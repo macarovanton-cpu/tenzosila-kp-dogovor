@@ -31,7 +31,7 @@ def test_default_state_has_manager_id():
 def test_header_has_no_removed_client_fields():
     at = _fresh_app()
     # Убеждаемся, что в state нет client_contact/email/phone/manager_name/deck_mm
-    for k in ("client_contact", "client_email", "client_phone", "manager_name", "deck_mm"):
+    for k in ("client_contact", "client_email", "client_phone", "manager_name", "deck_mm", "client_inn"):
         try:
             _ = at.session_state[k]
             raise AssertionError(f"Ключ {k} должен быть удалён, но присутствует")

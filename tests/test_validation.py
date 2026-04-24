@@ -12,7 +12,6 @@ def _valid_state() -> dict:
         "lead_number": "12345",
         "manager_id": "makarov_av",
         "client_name": "ООО «Тест»",
-        "client_inn": "",
         "kp_date": date.today(),
         "kp_valid_days": 15,
         "total_term_days": 35,

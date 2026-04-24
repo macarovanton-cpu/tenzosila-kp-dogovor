@@ -27,7 +27,6 @@ def initial_state() -> dict[str, Any]:
         "manager_id": "",
         # Клиент
         "client_name": "",
-        "client_inn": "",
         # Модель (каскад)
         "model_line": "С",
         "model_max": 60,
