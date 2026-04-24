@@ -1,0 +1,1196 @@
+{
+  "_meta": {
+    "version": "0.3",
+    "source_retail": "2026_03_01_Прайс_розница_Tenzosila.pdf",
+    "source_dealer": "2026_03_01_Прайс_дилер_экспорт.pdf",
+    "currency": "RUB",
+    "vat_note": "Все цены с НДС 22%. Дилер РФ = розница × 0.92.",
+    "valid_from": "2026-03-01",
+    "notes": [
+      "Цены извлечены из прайсов от 01.03.2026.",
+      "Для 20-метровых С/Ф используется цена 4-секционного варианта (стандарт MVP).",
+      "Для длины 22м опции (рама, ограждения, люки, фундаменты, стройработы) рассчитаны как среднее между 20 и 24м — в прайсе эти длины отсутствуют.",
+      "Для линейки П: модели 80т добавлены с ценами П-100 соответствующей длины (data_incomplete). Для П рекомендуются усиленные пандусы, в прайсе отсутствуют — используются обычные F/S. Фундаменты для П — те же, что для С/Ф.",
+      "ПАК ОРИОН: цена = Оборудование + Шеф-Монтаж одной суммой. Детальная разбивка — на следующей странице КП.",
+      "Навес под ключ = Навес + Фундамент под навес + Монтаж навеса одной суммой. В прайсе нет длины 24м.",
+      "Монтаж автовесов — ручной диапазон 100К–1М (дефолт 180К). Прайсовая строка «Монтаж С-60(80)-18 (3 секции) — 175К» — информационная.",
+      "ЕАЭС-цены убраны из scope MVP (v0.2). При необходимости — отдельная задача."
+    ],
+    "updated_at": "2026-04-23"
+  },
+  "models": {
+    "vesta-фл-60-18": {
+      "retail": 1668432,
+      "dealer_ru": 1534958,
+      "dealer_discount_pct": 8
+    },
+    "vesta-фл-60-20": {
+      "retail": 1883287,
+      "dealer_ru": 1732624,
+      "dealer_discount_pct": 8
+    },
+    "vesta-фл-60-22": {
+      "retail": 1966110,
+      "dealer_ru": 1808821,
+      "dealer_discount_pct": 8
+    },
+    "vesta-фл-80-18": {
+      "retail": 1744052,
+      "dealer_ru": 1604528,
+      "dealer_discount_pct": 8
+    },
+    "vesta-фл-80-20": {
+      "retail": 2052532,
+      "dealer_ru": 1888329,
+      "dealer_discount_pct": 8
+    },
+    "vesta-фл-80-22": {
+      "retail": 2141353,
+      "dealer_ru": 1970045,
+      "dealer_discount_pct": 8
+    },
+    "vesta-фл-80-24": {
+      "retail": 2208572,
+      "dealer_ru": 2031886,
+      "dealer_discount_pct": 8
+    },
+    "vesta-сл-60-18": {
+      "retail": 1805972,
+      "dealer_ru": 1661494,
+      "dealer_discount_pct": 8
+    },
+    "vesta-сл-60-20": {
+      "retail": 2078323,
+      "dealer_ru": 1912057,
+      "dealer_discount_pct": 8
+    },
+    "vesta-сл-60-22": {
+      "retail": 2186939,
+      "dealer_ru": 2011984,
+      "dealer_discount_pct": 8
+    },
+    "vesta-сл-80-18": {
+      "retail": 1877874,
+      "dealer_ru": 1727644,
+      "dealer_discount_pct": 8
+    },
+    "vesta-сл-80-20": {
+      "retail": 2145235,
+      "dealer_ru": 1973616,
+      "dealer_discount_pct": 8
+    },
+    "vesta-сл-80-22": {
+      "retail": 2217019,
+      "dealer_ru": 2039657,
+      "dealer_discount_pct": 8
+    },
+    "vesta-сл-80-24": {
+      "retail": 2324874,
+      "dealer_ru": 2138884,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-60-18": {
+      "retail": 1792719,
+      "dealer_ru": 1649302,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-60-20": {
+      "retail": 1948404,
+      "dealer_ru": 1792532,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-60-22": {
+      "retail": 2053870,
+      "dealer_ru": 1889560,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-80-18": {
+      "retail": 1957103,
+      "dealer_ru": 1800534,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-80-20": {
+      "retail": 2229140,
+      "dealer_ru": 2050808,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-80-22": {
+      "retail": 2338520,
+      "dealer_ru": 2151439,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-80-24": {
+      "retail": 2434256,
+      "dealer_ru": 2239515,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-100-18": {
+      "retail": 2065830,
+      "dealer_ru": 1900564,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-100-20": {
+      "retail": 2398538,
+      "dealer_ru": 2206655,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-100-22": {
+      "retail": 2555651,
+      "dealer_ru": 2351199,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-100-24": {
+      "retail": 2627411,
+      "dealer_ru": 2417218,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-60-18": {
+      "retail": 1906544,
+      "dealer_ru": 1754021,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-60-20": {
+      "retail": 2138678,
+      "dealer_ru": 1967584,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-60-22": {
+      "retail": 2261541,
+      "dealer_ru": 2080618,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-80-18": {
+      "retail": 2123456,
+      "dealer_ru": 1953580,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-80-20": {
+      "retail": 2446378,
+      "dealer_ru": 2250668,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-80-22": {
+      "retail": 2545320,
+      "dealer_ru": 2341695,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-80-24": {
+      "retail": 2615994,
+      "dealer_ru": 2406714,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-100-18": {
+      "retail": 2346349,
+      "dealer_ru": 2158641,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-100-20": {
+      "retail": 2665465,
+      "dealer_ru": 2452228,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-100-22": {
+      "retail": 2851933,
+      "dealer_ru": 2623779,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-100-24": {
+      "retail": 2929675,
+      "dealer_ru": 2695301,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-120-24": {
+      "retail": 3316202,
+      "dealer_ru": 3050905,
+      "dealer_discount_pct": 8
+    },
+    "vesta-п-100-18": {
+      "retail": 2723000,
+      "dealer_ru": 2505160,
+      "dealer_discount_pct": 8
+    },
+    "vesta-п-100-20": {
+      "retail": 2910000,
+      "dealer_ru": 2677200,
+      "dealer_discount_pct": 8
+    },
+    "vesta-п-100-22": {
+      "retail": 3090000,
+      "dealer_ru": 2842800,
+      "dealer_discount_pct": 8
+    },
+    "vesta-п-100-24": {
+      "retail": 3260000,
+      "dealer_ru": 2999200,
+      "dealer_discount_pct": 8
+    },
+    "vesta-п-80-18": {
+      "retail": 2723000,
+      "dealer_ru": 2505160,
+      "dealer_discount_pct": 8,
+      "data_incomplete": true
+    },
+    "vesta-п-80-20": {
+      "retail": 2910000,
+      "dealer_ru": 2677200,
+      "dealer_discount_pct": 8,
+      "data_incomplete": true
+    },
+    "vesta-п-80-22": {
+      "retail": 3090000,
+      "dealer_ru": 2842800,
+      "dealer_discount_pct": 8,
+      "data_incomplete": true
+    },
+    "vesta-п-80-24": {
+      "retail": 3260000,
+      "dealer_ru": 2999200,
+      "dealer_discount_pct": 8,
+      "data_incomplete": true
+    }
+  },
+  "options": {
+    "ramp_set_fl_sl": {
+      "label": "Комплект пандусов под весы ВЕСТА-ФЛ/СЛ (L=2,9м)",
+      "applies_to_lines": [
+        "ФЛ",
+        "СЛ"
+      ],
+      "applies_to_lengths": [
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 280000,
+      "price_dealer_ru": 257600,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "ramp_set_f_s": {
+      "label": "Комплект пандусов под весы ВЕСТА-Ф/С (L=3,9м)",
+      "applies_to_lines": [
+        "Ф",
+        "С",
+        "П"
+      ],
+      "applies_to_lengths": [
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 380000,
+      "price_dealer_ru": 349600,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Для линейки П рекомендуются усиленные пандусы, которых в прайсе нет. В MVP используются стандартные. Уточнить у производства."
+    },
+    "frame_18": {
+      "label": "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 18м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 130000,
+      "price_dealer_ru": 119600,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "frame_20": {
+      "label": "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 20м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 160000,
+      "price_dealer_ru": 147200,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "frame_24": {
+      "label": "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 24м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 165000,
+      "price_dealer_ru": 151800,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "fence_light_18": {
+      "label": "Ограждение ЛАЙТ уголок 100мм, 18м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 99000,
+      "price_dealer_ru": 91080,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "fence_light_20": {
+      "label": "Ограждение ЛАЙТ уголок 100мм, 20м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 114300,
+      "price_dealer_ru": 105156,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "fence_light_24": {
+      "label": "Ограждение ЛАЙТ уголок 100мм, 24м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 121000,
+      "price_dealer_ru": 111320,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "fence_norma_18": {
+      "label": "Ограждение НОРМА высота 200мм, 18м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 128000,
+      "price_dealer_ru": 117760,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "fence_norma_20": {
+      "label": "Ограждение НОРМА высота 200мм, 20м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 148000,
+      "price_dealer_ru": 136160,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "fence_norma_24": {
+      "label": "Ограждение НОРМА высота 200мм, 24м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 162000,
+      "price_dealer_ru": 149040,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "hatches_fl_18": {
+      "label": "Комплект люков для весов ВЕСТА-ФЛ, 18м",
+      "applies_to_lines": [
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 200000,
+      "price_dealer_ru": 184000,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "hatches_fl_20": {
+      "label": "Комплект люков для весов ВЕСТА-ФЛ, 20м",
+      "applies_to_lines": [
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 220000,
+      "price_dealer_ru": 202400,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "hatches_fl_24": {
+      "label": "Комплект люков для весов ВЕСТА-ФЛ, 24м",
+      "applies_to_lines": [
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 240000,
+      "price_dealer_ru": 220800,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "hatches_f_18": {
+      "label": "Комплект люков для весов ВЕСТА-Ф, 18м",
+      "applies_to_lines": [
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 150000,
+      "price_dealer_ru": 138000,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "hatches_f_20": {
+      "label": "Комплект люков для весов ВЕСТА-Ф, 20м",
+      "applies_to_lines": [
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 165000,
+      "price_dealer_ru": 151800,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "hatches_f_24": {
+      "label": "Комплект люков для весов ВЕСТА-Ф, 24м",
+      "applies_to_lines": [
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 180000,
+      "price_dealer_ru": 165600,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "embedded_parts": {
+      "label": "Комплект закладных деталей",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 35000,
+      "price_dealer_ru": 32200,
+      "discount_pct": 8,
+      "notes": "Цена в прайсе: 18м=30000, 20м=35000, 24м=35000. В JSON — усреднённое или по запросу.",
+      "price_class": "A_retail_and_dealer"
+    },
+    "rubber_t_6m": {
+      "label": "Защитная Т-образная резина, 6м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 43000,
+      "price_dealer_ru": 39560,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "factory_calibration": {
+      "label": "Калибровка датчиков на производстве",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 120000,
+      "price_dealer_ru": 110400,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer"
+    },
+    "foundation_lite_sl_fl_18": {
+      "label": "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ/ФЛ, 18м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 1200000,
+      "price_dealer_ru": 1104000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "foundation_lite_sl_fl_20": {
+      "label": "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ/ФЛ, 20м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 1300000,
+      "price_dealer_ru": 1196000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "foundation_lite_sl_fl_24": {
+      "label": "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ/ФЛ, 24м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 1350000,
+      "price_dealer_ru": 1242000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "foundation_std_sl_fl_18": {
+      "label": "Фундамент пандусный «Стандарт» под ВЕСТА-СЛ/ФЛ, 18м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 1350000,
+      "price_dealer_ru": 1242000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "foundation_std_sl_fl_20": {
+      "label": "Фундамент пандусный «Стандарт» под ВЕСТА-СЛ/ФЛ, 20м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 1500000,
+      "price_dealer_ru": 1380000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "foundation_std_sl_fl_24": {
+      "label": "Фундамент пандусный «Стандарт» под ВЕСТА-СЛ/ФЛ, 24м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 1550000,
+      "price_dealer_ru": 1426000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "foundation_s_f_18": {
+      "label": "Фундамент под ВЕСТА-С/Ф/П, 18м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 1500000,
+      "price_dealer_ru": 1380000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "foundation_s_f_20": {
+      "label": "Фундамент под ВЕСТА-С/Ф/П, 20м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "П"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 1550000,
+      "price_dealer_ru": 1426000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "foundation_s_f_24": {
+      "label": "Фундамент под ВЕСТА-С/Ф/П, 24м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "П"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 1600000,
+      "price_dealer_ru": 1472000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "construction_works_18": {
+      "label": "Строительные работы без материалов, 18м",
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 400000,
+      "price_dealer_ru": 368000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "construction_works_20": {
+      "label": "Строительные работы без материалов, 20м",
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 430000,
+      "price_dealer_ru": 395600,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "construction_works_24": {
+      "label": "Строительные работы без материалов, 24м",
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 460000,
+      "price_dealer_ru": 423200,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "concrete_base_on_frame": {
+      "label": "Бетонное основание для весов на раме",
+      "applies_to_lengths": [
+        18,
+        20,
+        24
+      ],
+      "price_retail": 550000,
+      "price_dealer_ru": 506000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "foundation_supervision": {
+      "label": "Курирование строительства фундамента ВЕСТА",
+      "price_retail": 120000,
+      "price_dealer_ru": 110400,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "orion_cable_poles": {
+      "label": "Установка опор и кабель-трасс для ПАК ОРИОН",
+      "price_retail": 155000,
+      "price_dealer_ru": 142600,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "frame_22": {
+      "label": "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 22м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 162500,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "notes": "Цена для 22м рассчитана как среднее между 20 и 24м — в прайсе отсутствует."
+    },
+    "fence_light_22": {
+      "label": "Ограждение ЛАЙТ уголок 100мм, 22м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 117650,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "notes": "Цена для 22м — среднее между 20 и 24м."
+    },
+    "fence_norma_22": {
+      "label": "Ограждение НОРМА высота 200мм, 22м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 155000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "notes": "Цена для 22м — среднее между 20 и 24м."
+    },
+    "hatches_fl_22": {
+      "label": "Комплект люков для весов ВЕСТА-ФЛ, 22м",
+      "applies_to_lines": [
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 230000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "notes": "Цена для 22м — среднее между 20 и 24м."
+    },
+    "hatches_f_22": {
+      "label": "Комплект люков для весов ВЕСТА-Ф, 22м",
+      "applies_to_lines": [
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 172500,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "notes": "Цена для 22м — среднее между 20 и 24м."
+    },
+    "foundation_lite_sl_fl_22": {
+      "label": "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ/ФЛ, 22м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 1325000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Цена для 22м — среднее между 20 и 24м. В прайсе только розница."
+    },
+    "foundation_std_sl_fl_22": {
+      "label": "Фундамент пандусный «Стандарт» под ВЕСТА-СЛ/ФЛ, 22м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 1525000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Цена для 22м — среднее между 20 и 24м. В прайсе только розница."
+    },
+    "foundation_s_f_22": {
+      "label": "Фундамент под ВЕСТА-С/Ф/П, 22м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "П"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 1575000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Цена для 22м — среднее между 20 и 24м. В прайсе только розница."
+    },
+    "construction_works_22": {
+      "label": "Строительные работы без материалов, 22м",
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 445000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "notes": "Цена для 22м — среднее между 20 и 24м."
+    },
+    "canopy_turnkey_18": {
+      "label": "Навес под ключ для ВЕСТА, 18м (навес + фундамент + монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 5500000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "components": {
+        "canopy": 2800000,
+        "foundation_under_canopy": 1100000,
+        "canopy_installation": 1600000
+      },
+      "notes": "Сумма трёх компонентов из прайса: навес 2 800 000 + фундамент 1 100 000 + монтаж 1 600 000. Радиус 300 км от Воронежа."
+    },
+    "canopy_turnkey_20": {
+      "label": "Навес под ключ для ВЕСТА, 20м (навес + фундамент + монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 6000000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "components": {
+        "canopy": 3000000,
+        "foundation_under_canopy": 1350000,
+        "canopy_installation": 1650000
+      },
+      "notes": "Сумма трёх компонентов из прайса: навес 3 000 000 + фундамент 1 350 000 + монтаж 1 650 000. Радиус 300 км от Воронежа."
+    },
+    "canopy_turnkey_22": {
+      "label": "Навес под ключ для ВЕСТА, 22м (навес + фундамент + монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 6380000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "components": {
+        "canopy": 3200000,
+        "foundation_under_canopy": 1480000,
+        "canopy_installation": 1700000
+      },
+      "notes": "Сумма трёх компонентов из прайса: навес 3 200 000 + фундамент 1 480 000 + монтаж 1 700 000. Радиус 300 км от Воронежа."
+    },
+    "canopy_turnkey_24": {
+      "label": "Навес под ключ для ВЕСТА, 24м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 24м для навеса отсутствует. По запросу.",
+      "on_request": true
+    },
+    "orion_lite": {
+      "label": "ПАК ОРИОН Лайт (оборудование + шеф-монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 245000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "components": {
+        "equipment": 135000,
+        "shef_montazh": 110000
+      },
+      "notes": "Оборудование 135 000 + шеф-монтаж 110 000. Детальная спецификация — на отдельной странице КП. Монтаж — радиус 200 км от Воронежа."
+    },
+    "orion_standard": {
+      "label": "ПАК ОРИОН Стандарт (оборудование + шеф-монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 464900,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "components": {
+        "equipment": 299900,
+        "shef_montazh": 165000
+      },
+      "notes": "Оборудование 299 900 + шеф-монтаж 165 000. Детальная спецификация — на отдельной странице КП. Монтаж — радиус 200 км от Воронежа."
+    },
+    "orion_standard_plus": {
+      "label": "ПАК ОРИОН Стандарт+ (оборудование + шеф-монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 835000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "components": {
+        "equipment": 650000,
+        "shef_montazh": 185000
+      },
+      "notes": "Оборудование 650 000 + шеф-монтаж 185 000. Детальная спецификация — на отдельной странице КП. Монтаж — радиус 200 км от Воронежа."
+    },
+    "orion_auto": {
+      "label": "ПАК ОРИОН Автоматика (оборудование + шеф-монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 620000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "components": {
+        "equipment": 445000,
+        "shef_montazh": 175000
+      },
+      "notes": "Оборудование 445 000 + шеф-монтаж 175 000. Детальная спецификация — на отдельной странице КП. Монтаж — радиус 200 км от Воронежа."
+    },
+    "orion_auto_plus": {
+      "label": "ПАК ОРИОН Автоматика+ (оборудование + шеф-монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 934000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "components": {
+        "equipment": 739000,
+        "shef_montazh": 195000
+      },
+      "notes": "Оборудование 739 000 + шеф-монтаж 195 000. Детальная спецификация — на отдельной странице КП. Монтаж — радиус 200 км от Воронежа."
+    },
+    "install_default": {
+      "label": "Монтаж автовесов",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 180000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 100000,
+      "range_max": 1000000,
+      "notes": "Ручной диапазон. Прайсовая строка «Монтаж С-60(80)-18 (3 секции) — 175К» — информационная, всегда рассчитывается индивидуально."
+    },
+    "delivery_default": {
+      "label": "Доставка",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 60000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 10000,
+      "range_max": 1000000,
+      "notes": "Ручной диапазон. Рассчитывается по месту доставки."
+    },
+    "verification_default": {
+      "label": "Поверка",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 60000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 20000,
+      "range_max": 2000000,
+      "allow_customer_value": true,
+      "notes": "Ручной диапазон. Альтернатива — «Заказчик» (поверка силами заказчика)."
+    }
+  }
+}

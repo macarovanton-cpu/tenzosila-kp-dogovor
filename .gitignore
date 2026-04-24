@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Сгенерированные КП — не храним в репо
+output/
+
+# Секреты
+.env
+*.env
+secrets.json
+
+# Claude Code (локальные логи сессии, в репо не нужны)
+.claude/
