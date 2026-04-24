@@ -12,6 +12,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from src.data_loader import (  # noqa: E402
+    load_managers,
     load_models,
     load_options_meta,
     load_payment_terms,
@@ -20,6 +21,7 @@ from src.data_loader import (  # noqa: E402
 from src.pricing import calc_totals  # noqa: E402
 from src.spec_builder import build_spec_items, resolve_term_days  # noqa: E402
 from src.state import init_state  # noqa: E402
+from src.ui.construction_section import render_construction_section  # noqa: E402
 from src.ui.equipment_section import render_equipment_section  # noqa: E402
 from src.ui.header import render_header  # noqa: E402
 from src.ui.model_section import render_model_section  # noqa: E402
@@ -47,13 +49,15 @@ def main() -> None:
     prices = load_prices()
     payment_terms = load_payment_terms()
     options_meta = load_options_meta()
+    managers = load_managers()
 
-    render_header(st.session_state)
+    render_header(st.session_state, managers)
 
     col1, col2 = st.columns(2, gap="large")
     with col1:
         render_model_section(st.session_state, models_json, prices)
         render_equipment_section(st.session_state, models_json)
+        render_construction_section(st.session_state, models_json)
     with col2:
         render_options_section(
             st.session_state, prices, models_json, options_meta
@@ -65,7 +69,7 @@ def main() -> None:
     )
 
     errors, warnings = validate(
-        st.session_state, prices, models_json, payment_terms
+        st.session_state, prices, models_json, payment_terms, managers
     )
     totals = calc_totals(spec_items)
     term_days = resolve_term_days(spec_items, st.session_state)

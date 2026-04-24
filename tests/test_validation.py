@@ -10,7 +10,9 @@ def _valid_state() -> dict:
     """Полностью валидный state — все проверки должны проходить."""
     return {
         "lead_number": "12345",
+        "manager_id": "makarov_av",
         "client_name": "ООО «Тест»",
+        "client_inn": "",
         "kp_date": date.today(),
         "kp_valid_days": 15,
         "total_term_days": 35,
@@ -28,36 +30,50 @@ def _valid_state() -> dict:
     }
 
 
-def test_empty_lead_blocks(prices, models_json, payment_terms):
+def test_empty_lead_blocks(prices, models_json, payment_terms, managers):
     state = _valid_state()
     state["lead_number"] = "   "
-    errors, _ = validate(state, prices, models_json, payment_terms)
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
     assert any("лида" in e for e in errors)
 
 
-def test_model_40t_not_in_prices(prices, models_json, payment_terms):
+def test_empty_manager_id_blocks(prices, models_json, payment_terms, managers):
+    state = _valid_state()
+    state["manager_id"] = ""
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
+    assert any("енеджер" in e for e in errors)
+
+
+def test_unknown_manager_id_blocks(prices, models_json, payment_terms, managers):
+    state = _valid_state()
+    state["manager_id"] = "nonexistent_id"
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
+    assert any("енеджер" in e for e in errors)
+
+
+def test_model_40t_not_in_prices(prices, models_json, payment_terms, managers):
     state = _valid_state()
     state["model_id"] = "vesta-с-40-18"
     state["model_line"] = "С"
     state["model_max"] = 40
-    errors, _ = validate(state, prices, models_json, payment_terms)
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
     assert any("отсутствует в прайсе" in e for e in errors)
 
 
-def test_percents_not_100_on_prepay_50_postpay_50(prices, models_json, payment_terms):
+def test_percents_not_100_on_prepay_50_postpay_50(prices, models_json, payment_terms, managers):
     state = _valid_state()
     state["payment_percents"] = {"p1": 50, "p2": 40}
-    errors, _ = validate(state, prices, models_json, payment_terms)
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
     assert any("не равна 100" in e for e in errors)
 
 
-def test_valid_state_returns_empty_errors(prices, models_json, payment_terms):
+def test_valid_state_returns_empty_errors(prices, models_json, payment_terms, managers):
     state = _valid_state()
-    errors, _ = validate(state, prices, models_json, payment_terms)
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
     assert errors == []
 
 
-def test_on_request_option_blocks(prices, models_json, payment_terms):
+def test_on_request_option_blocks(prices, models_json, payment_terms, managers):
     state = _valid_state()
     state["model_length"] = 24
     state["model_id"] = "vesta-с-60-24"  # такой модели нет в prices → ожидаем ещё одну ошибку
@@ -70,11 +86,11 @@ def test_on_request_option_blocks(prices, models_json, payment_terms):
             "qty": 1,
         }
     }
-    errors, _ = validate(state, prices, models_json, payment_terms)
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
     assert any("под запрос" in e for e in errors)
 
 
-def test_data_incomplete_emits_warning(prices, models_json, payment_terms):
+def test_data_incomplete_emits_warning(prices, models_json, payment_terms, managers):
     """П-80-18 помечена data_incomplete — должен быть warning."""
     state = _valid_state()
     state["model_id"] = "vesta-п-80-18"
@@ -84,5 +100,5 @@ def test_data_incomplete_emits_warning(prices, models_json, payment_terms):
     # цена из prices для П-80-18
     price = prices["models"]["vesta-п-80-18"]
     state["model_price"] = price["retail"]
-    _, warnings = validate(state, prices, models_json, payment_terms)
+    _, warnings = validate(state, prices, models_json, payment_terms, managers)
     assert any("неполные" in w for w in warnings)

@@ -1,15 +1,13 @@
 """Логика расчёта цен: диапазоны слайдеров, классы A/B/C/UNKNOWN, итоги."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any
 
 from src.config import (
     MAX_COEFF,
     MIN_COEFF_B,
-    SLIDER_STEP_LARGE,
-    SLIDER_STEP_SMALL,
-    SLIDER_THRESHOLD,
     SYNTHETIC_DEALER_FACTOR,
     VAT_RATE,
 )
@@ -29,20 +27,47 @@ class SliderParams:
     allow_customer_value: bool
 
 
-def _step_for(retail: int) -> int:
-    return SLIDER_STEP_LARGE if retail >= SLIDER_THRESHOLD else SLIDER_STEP_SMALL
+def calc_slider_step(max_value: int) -> int:
+    """Шаг слайдера по верхней границе диапазона.
+
+    > 1 000 000 → 10 000; > 100 000 → 5 000; иначе → 1 000.
+    """
+    if max_value > 1_000_000:
+        return 10_000
+    if max_value > 100_000:
+        return 5_000
+    return 1_000
+
+
+def _ceil_to_1000(x: float) -> int:
+    return int(math.ceil(x / 1000.0) * 1000)
+
+
+def _floor_to_1000(x: float) -> int:
+    return int(math.floor(x / 1000.0) * 1000)
+
+
+def _round_to_1000(x: float) -> int:
+    return int(round(x / 1000.0) * 1000)
+
+
+def _clamp(val: int, lo: int, hi: int) -> int:
+    return max(lo, min(hi, val))
 
 
 def _as_unknown_params(entry: dict[str, Any]) -> SliderParams:
     retail = int(entry.get("price_retail") or 0)
-    synth_dealer = round(retail * SYNTHETIC_DEALER_FACTOR)
+    synth_dealer_raw = retail * SYNTHETIC_DEALER_FACTOR
+    min_v = _ceil_to_1000(synth_dealer_raw)
+    max_v = _floor_to_1000(retail * MAX_COEFF)
+    default_v = _clamp(_round_to_1000(retail), min_v, max_v)
     return SliderParams(
         kind="slider",
-        min_v=synth_dealer,
-        max_v=round(retail * MAX_COEFF),
-        default_v=retail,
-        step=_step_for(retail),
-        dealer=synth_dealer,
+        min_v=min_v,
+        max_v=max_v,
+        default_v=default_v,
+        step=calc_slider_step(max_v),
+        dealer=min_v,
         retail=retail,
         is_on_request=False,
         dealer_is_synthetic=True,
@@ -75,12 +100,15 @@ def get_slider_params(entry: dict[str, Any]) -> SliderParams:
         return _as_unknown_params(entry)
 
     if price_class == "C_manual_range":
+        min_v = _ceil_to_1000(int(entry.get("range_min", 0)))
+        max_v = _floor_to_1000(int(entry.get("range_max", 0)))
+        default_v = _clamp(_round_to_1000(retail), min_v, max_v)
         return SliderParams(
             kind="number_input",
-            min_v=int(entry.get("range_min", 0)),
-            max_v=int(entry.get("range_max", 0)),
-            default_v=retail,
-            step=SLIDER_STEP_LARGE,
+            min_v=min_v,
+            max_v=max_v,
+            default_v=default_v,
+            step=calc_slider_step(max_v),
             dealer=None,
             retail=retail,
             is_on_request=False,
@@ -90,12 +118,15 @@ def get_slider_params(entry: dict[str, Any]) -> SliderParams:
 
     if price_class == "A_retail_and_dealer":
         dealer = int(entry.get("price_dealer_ru") or 0)
+        min_v = _ceil_to_1000(dealer)
+        max_v = _floor_to_1000(retail * MAX_COEFF)
+        default_v = _clamp(_round_to_1000(retail), min_v, max_v)
         return SliderParams(
             kind="slider",
-            min_v=dealer,
-            max_v=round(retail * MAX_COEFF),
-            default_v=retail,
-            step=_step_for(retail),
+            min_v=min_v,
+            max_v=max_v,
+            default_v=default_v,
+            step=calc_slider_step(max_v),
             dealer=dealer,
             retail=retail,
             is_on_request=False,
@@ -104,12 +135,15 @@ def get_slider_params(entry: dict[str, Any]) -> SliderParams:
         )
 
     if price_class == "B_retail_only":
+        min_v = _ceil_to_1000(retail * MIN_COEFF_B)
+        max_v = _floor_to_1000(retail * MAX_COEFF)
+        default_v = _clamp(_round_to_1000(retail), min_v, max_v)
         return SliderParams(
             kind="slider",
-            min_v=round(retail * MIN_COEFF_B),
-            max_v=round(retail * MAX_COEFF),
-            default_v=retail,
-            step=_step_for(retail),
+            min_v=min_v,
+            max_v=max_v,
+            default_v=default_v,
+            step=calc_slider_step(max_v),
             dealer=None,
             retail=retail,
             is_on_request=False,
@@ -125,12 +159,15 @@ def get_model_slider_params(price_entry: dict[str, Any]) -> SliderParams:
     """Параметры слайдера цены самой модели (логика класса A)."""
     retail = int(price_entry.get("retail", 0))
     dealer = int(price_entry.get("dealer_ru", 0))
+    min_v = _ceil_to_1000(dealer)
+    max_v = _floor_to_1000(retail * MAX_COEFF)
+    default_v = _clamp(_round_to_1000(retail), min_v, max_v)
     return SliderParams(
         kind="slider",
-        min_v=dealer,
-        max_v=round(retail * MAX_COEFF),
-        default_v=retail,
-        step=_step_for(retail),
+        min_v=min_v,
+        max_v=max_v,
+        default_v=default_v,
+        step=calc_slider_step(max_v),
         dealer=dealer,
         retail=retail,
         is_on_request=False,

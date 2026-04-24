@@ -32,3 +32,8 @@ def prices() -> dict:
 @pytest.fixture(scope="session")
 def payment_terms() -> dict:
     return _read(DATA / "payment_terms.json")
+
+
+@pytest.fixture(scope="session")
+def managers() -> dict:
+    return _read(DATA / "managers.json")

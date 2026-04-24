@@ -1,0 +1,18 @@
+{
+  "_meta": {
+    "version": "0.1",
+    "updated_at": "2026-04-24",
+    "note": "Справочник менеджеров Тензосилы. Для MVP — один менеджер. Расширяется по запросу."
+  },
+  "default_manager_id": "makarov_av",
+  "managers": [
+    {
+      "id": "makarov_av",
+      "full_name": "Макаров Антон",
+      "position": "Менеджер",
+      "phone": "+7 903 651-85-77",
+      "email": "a.makarov@tenzosila.ru",
+      "is_default": true
+    }
+  ]
+}

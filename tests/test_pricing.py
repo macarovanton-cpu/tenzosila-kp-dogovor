@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from src.pricing import (
+    calc_slider_step,
     calc_totals,
     color_code,
     get_model_slider_params,
@@ -9,52 +10,83 @@ from src.pricing import (
 )
 
 
+# --- Шаг слайдера ---
+
+
+def test_calc_slider_step_large():
+    assert calc_slider_step(2_500_000) == 10_000
+
+
+def test_calc_slider_step_medium():
+    assert calc_slider_step(380_000) == 5_000
+
+
+def test_calc_slider_step_small():
+    assert calc_slider_step(60_000) == 1_000
+
+
+def test_calc_slider_step_boundaries():
+    assert calc_slider_step(100_001) == 5_000
+    assert calc_slider_step(100_000) == 1_000
+    assert calc_slider_step(1_000_001) == 10_000
+    assert calc_slider_step(1_000_000) == 5_000
+
+
+# --- Границы слайдеров по классам ---
+
+
 def test_slider_params_class_a_ramp_set_f_s(prices):
-    """Класс A: min=dealer_ru, max=round(retail*1.4), default=retail."""
+    """Класс A: min=ceil(dealer/1000)*1000, max=floor(retail*1.4/1000)*1000,
+    default=round(retail/1000)*1000."""
     entry = prices["options"]["ramp_set_f_s"]
+    # retail=380_000, dealer=349_600
     params = get_slider_params(entry)
     assert params.kind == "slider"
-    assert params.min_v == 349600
-    assert params.max_v == round(380000 * 1.4)  # 532000
-    assert params.default_v == 380000
-    assert params.dealer == 349600
+    assert params.min_v == 350_000       # ceil(349_600/1000)*1000
+    assert params.max_v == 532_000       # floor(380_000*1.4/1000)*1000 = floor(532_000)
+    assert params.default_v == 380_000   # round(380_000/1000)*1000
+    assert params.dealer == 349_600
+    assert params.step == 5_000          # max_v=532_000 > 100_000 → 5_000
     assert params.is_on_request is False
     assert params.dealer_is_synthetic is False
 
 
 def test_slider_params_class_b_construction_works_20(prices):
-    """Класс B: min=retail*0.6, max=retail*1.4, dealer не показываем."""
+    """Класс B: min=ceil(retail*0.6/1000)*1000, max=floor(retail*1.4/1000)*1000."""
     entry = prices["options"]["construction_works_20"]
     retail = int(entry["price_retail"])
     params = get_slider_params(entry)
     assert params.kind == "slider"
-    assert params.min_v == round(retail * 0.6)
-    assert params.max_v == round(retail * 1.4)
-    assert params.default_v == retail
+    assert params.min_v % 1000 == 0
+    assert params.max_v % 1000 == 0
+    assert params.default_v % 1000 == 0
+    assert params.min_v >= retail * 0.6  # ceil — округляем вверх
+    assert params.max_v <= retail * 1.4  # floor — округляем вниз
     assert params.dealer is None
 
 
 def test_slider_params_class_c_verification(prices):
-    """Класс C: number_input с range_min/range_max, allow_customer_value=True."""
+    """Класс C: number_input с округлением range_min/range_max, allow_customer_value=True."""
     entry = prices["options"]["verification_default"]
+    # range_min=20_000, range_max=2_000_000
     params = get_slider_params(entry)
     assert params.kind == "number_input"
-    assert params.min_v == 20000
-    assert params.max_v == 2000000
-    assert params.default_v == 60000
+    assert params.min_v == 20_000
+    assert params.max_v == 2_000_000
+    assert params.default_v == 60_000   # round(60_000/1000)*1000
+    assert params.step == 10_000         # max_v > 1_000_000
     assert params.allow_customer_value is True
 
 
 def test_slider_params_unknown_22m_frame_22(prices):
-    """UNKNOWN (22м без price_class): dealer = retail*0.92 (synthetic)."""
+    """UNKNOWN (22м без price_class): min=ceil(retail*0.92/1000), dealer помечен synthetic."""
     entry = prices["options"]["frame_22"]
-    retail = int(entry["price_retail"])
     params = get_slider_params(entry)
     assert params.kind == "slider"
     assert params.dealer_is_synthetic is True
-    assert params.dealer == round(retail * 0.92)
-    assert params.min_v == round(retail * 0.92)
-    assert params.max_v == round(retail * 1.4)
+    assert params.min_v % 1000 == 0
+    assert params.max_v % 1000 == 0
+    assert params.dealer == params.min_v
 
 
 def test_slider_params_on_request_canopy_24(prices):
@@ -64,12 +96,36 @@ def test_slider_params_on_request_canopy_24(prices):
     assert params.is_on_request is True
 
 
-def test_model_slider_uses_dealer_as_min(prices):
+# --- Слайдер модели ---
+
+
+def test_model_slider_rounds_to_thousands(prices):
+    """Для vesta-фл-60-18: dealer_ru=1_534_958, retail=1_668_432.
+
+    min=1_535_000, max=2_335_000 (floor(1_668_432*1.4)=floor(2_335_804.8)),
+    default=1_668_000.
+    """
+    price = {"retail": 1_668_432, "dealer_ru": 1_534_958}
+    params = get_model_slider_params(price)
+    assert params.min_v == 1_535_000
+    assert params.max_v == 2_335_000
+    assert params.default_v == 1_668_000
+    assert params.step == 10_000        # max_v > 1_000_000
+
+
+def test_model_slider_real_model_s_60_18(prices):
+    """На реальной модели vesta-с-60-18 все границы кратны 1000 и default ∈ [min, max]."""
     price = prices["models"]["vesta-с-60-18"]
     params = get_model_slider_params(price)
-    assert params.min_v == price["dealer_ru"]
-    assert params.default_v == price["retail"]
-    assert params.max_v == round(price["retail"] * 1.4)
+    assert params.min_v % 1000 == 0
+    assert params.max_v % 1000 == 0
+    assert params.default_v % 1000 == 0
+    assert params.min_v <= params.default_v <= params.max_v
+    assert params.dealer == price["dealer_ru"]
+    assert params.retail == price["retail"]
+
+
+# --- Прочее ---
 
 
 def test_color_code_rules():

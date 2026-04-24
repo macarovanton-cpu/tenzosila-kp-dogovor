@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.data_loader import get_model_by_id, get_price_by_model_id
+from src.data_loader import get_manager_by_id, get_model_by_id, get_price_by_model_id
 
 
 def _get_preset(payment_terms: dict, preset_id: str) -> dict | None:
@@ -25,6 +25,7 @@ def validate(
     prices: dict,
     models_json: dict,
     payment_terms: dict,
+    managers: dict,
 ) -> tuple[list[str], list[str]]:
     """Вернуть (errors, warnings). errors блокируют кнопку «Сгенерировать КП»."""
     errors: list[str] = []
@@ -35,6 +36,10 @@ def validate(
         errors.append("Не указан номер лида Битрикс")
     if not str(state.get("client_name", "")).strip():
         errors.append("Не указан клиент")
+
+    manager_id = str(state.get("manager_id", "")).strip()
+    if not manager_id or get_manager_by_id(managers, manager_id) is None:
+        errors.append("Менеджер не выбран")
 
     model_id = state.get("model_id", "")
     price_entry = get_price_by_model_id(prices, model_id)

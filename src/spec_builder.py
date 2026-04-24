@@ -26,11 +26,31 @@ def _option_name(entry: dict, opt_state: dict) -> str:
     return name
 
 
+def _apply_override(
+    computed_qty: int,
+    computed_price: int,
+    override: dict | None,
+) -> tuple[int, int, bool]:
+    """Применить override поверх вычисленных qty/price. Возвращает (qty, price, is_overridden)."""
+    if not override:
+        return computed_qty, computed_price, False
+    ov_qty = override.get("qty")
+    ov_price = override.get("price")
+    qty = int(ov_qty) if ov_qty is not None else computed_qty
+    price = int(ov_price) if ov_price is not None else computed_price
+    is_ov = (ov_qty is not None) or (ov_price is not None)
+    return qty, price, is_ov
+
+
 def build_spec_items(
     state: dict[str, Any], prices: dict, models_json: dict
 ) -> list[dict]:
-    """Собрать упорядоченный список позиций: модель + включённые опции."""
+    """Собрать упорядоченный список позиций: модель + включённые опции.
+
+    Если в state["spec_items_overrides"][item_key] есть qty/price — применяем.
+    """
     items: list[dict] = []
+    overrides: dict = state.get("spec_items_overrides", {}) or {}
 
     model_id = state.get("model_id", "")
     price_entry = get_price_by_model_id(prices, model_id)
@@ -39,14 +59,19 @@ def build_spec_items(
     if price_entry is not None:
         if model_price is None:
             model_price = int(price_entry.get("retail", 0))
+        qty, price, is_ov = _apply_override(
+            1, int(model_price), overrides.get(model_id)
+        )
         items.append({
             "num": 1,
+            "item_key": model_id,
             "name": _format_model_name(model, model_id),
-            "qty": 1,
+            "qty": qty,
             "unit": "шт",
-            "price": int(model_price),
-            "total": int(model_price),
+            "price": price,
+            "total": price * qty,
             "term_days": DEFAULT_MODEL_TERM_DAYS,
+            "is_overridden": is_ov,
         })
 
     line = state.get("model_line", "")
@@ -59,19 +84,24 @@ def build_spec_items(
             opt = options_state.get(key)
             if not opt or not opt.get("enabled"):
                 continue
-            qty = int(opt.get("qty", 1))
+            computed_qty = int(opt.get("qty", 1))
             if opt.get("customer_side"):
-                price = 0
+                computed_price = 0
             else:
-                price = int(opt.get("price", 0))
+                computed_price = int(opt.get("price", 0))
+            qty, price, is_ov = _apply_override(
+                computed_qty, computed_price, overrides.get(key)
+            )
             items.append({
                 "num": len(items) + 1,
+                "item_key": key,
                 "name": _option_name(entry, opt),
                 "qty": qty,
                 "unit": UNIT_BY_BLOCK.get(block_id, "шт"),
                 "price": price,
                 "total": price * qty,
                 "term_days": TERM_DAYS_BY_BLOCK.get(block_id, DEFAULT_MODEL_TERM_DAYS),
+                "is_overridden": is_ov,
             })
 
     return items
@@ -85,3 +115,30 @@ def resolve_term_days(spec_items: list[dict], state: dict) -> int:
     if not spec_items:
         return DEFAULT_MODEL_TERM_DAYS
     return max(int(it.get("term_days", 0)) for it in spec_items)
+
+
+def build_construction_description(state: dict) -> str:
+    """Готовый русский текст описания конструкции для поля ТХ в DOCX.
+
+    Формат совпадает с UI-превью, но plain text (без Markdown-блока цитаты).
+    """
+    beam = state.get("construction_beam", "") or "—"
+    beam_cnt = state.get("construction_beam_count", 0) or 0
+    deck = state.get("construction_deck_mm", 0) or 0
+    under = state.get("construction_underlining_mm", 0) or 0
+    center_beam = state.get("construction_center_beam", "") or ""
+    center_beam_count = state.get("construction_center_beam_count", 0) or 0
+    is_rail = not center_beam
+
+    if is_rail:
+        return (
+            f"Конструкция колейная: {beam} {beam_cnt} шт., "
+            f"лист настила {deck} мм рифлёный, "
+            f"нижний подшив {under} мм"
+        )
+    return (
+        f"Конструкция сплошная: {beam} {beam_cnt} шт., "
+        f"{center_beam} {center_beam_count} шт., "
+        f"лист настила {deck} мм рифлёный, "
+        f"нижний подшив {under} мм"
+    )

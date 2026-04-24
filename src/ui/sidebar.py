@@ -1,7 +1,14 @@
-"""Sticky-sidebar: превью spec_items, Итого, кнопка генерации."""
+"""Sticky-sidebar: редактируемая таблица spec_items, Итого, кнопка генерации."""
 from __future__ import annotations
 
+from typing import Any
+
 import streamlit as st
+
+
+def _fmt_rub(n: int) -> str:
+    """Формат '1 234 567 ₽' с пробелами как разделителями тысяч."""
+    return f"{int(n):,} ₽".replace(",", " ")
 
 
 def render_sidebar(
@@ -19,36 +26,16 @@ def render_sidebar(
         if not spec_items:
             st.info("Выберите модель, чтобы увидеть спецификацию.")
         else:
-            table_rows = []
-            for it in spec_items:
-                table_rows.append(
-                    {
-                        "№": it["num"],
-                        "Позиция": it["name"],
-                        "Кол-во": f"{it['qty']} {it['unit']}",
-                        "Цена, ₽": f"{int(it['price']):,}".replace(",", " "),
-                        "Сумма, ₽": f"{int(it['total']):,}".replace(",", " "),
-                    }
-                )
-            st.dataframe(table_rows, hide_index=True, width="stretch")
+            _render_spec_editor(state, spec_items)
 
         st.divider()
         st.markdown("**Итого**")
         c1, c2 = st.columns(2)
         with c1:
-            st.metric(
-                "Без НДС",
-                f"{totals['without_vat']:,} ₽".replace(",", " "),
-            )
-            st.metric(
-                "НДС 22%",
-                f"{totals['vat']:,} ₽".replace(",", " "),
-            )
+            st.metric("Без НДС", _fmt_rub(totals["without_vat"]))
+            st.metric("НДС 22%", _fmt_rub(totals["vat"]))
         with c2:
-            st.metric(
-                "С НДС",
-                f"{totals['with_vat']:,} ₽".replace(",", " "),
-            )
+            st.metric("С НДС", _fmt_rub(totals["with_vat"]))
             st.metric("Срок исполнения", f"{term_days} дн.")
 
         st.caption(
@@ -59,6 +46,8 @@ def render_sidebar(
         if payment_preview:
             with st.expander("💸 Условия оплаты (превью)", expanded=False):
                 st.markdown(payment_preview)
+
+        _render_override_conflict(state)
 
         st.divider()
 
@@ -81,6 +70,7 @@ def render_sidebar(
                         "meta": {
                             "client_name": state["client_name"],
                             "lead_number": state["lead_number"],
+                            "manager_id": state.get("manager_id", ""),
                             "model_id": state["model_id"],
                             "total_term_days": term_days,
                             "payment_preset_id": state["payment_preset_id"],
@@ -89,3 +79,111 @@ def render_sidebar(
                         "totals": totals,
                     }
                 )
+
+
+def _render_spec_editor(state: dict, spec_items: list[dict]) -> None:
+    """Редактируемая таблица spec_items (Streamlit data_editor).
+
+    - qty и price: NumberColumn, редактируемые. Формат без пробелов
+      (NumberColumn не поддерживает кастомный разделитель тысяч —
+      осознанный trade-off для MVP).
+    - total: TextColumn, read-only, строка '1 234 567 ₽' с пробелами.
+    - num, name: read-only.
+    """
+    import pandas as pd
+
+    rows = []
+    for it in spec_items:
+        mark = " ✏️" if it.get("is_overridden") else ""
+        rows.append(
+            {
+                "num": it["num"],
+                "item_key": it["item_key"],
+                "name": it["name"] + mark,
+                "qty": int(it["qty"]),
+                "price": int(it["price"]),
+                "total": _fmt_rub(it["total"]),
+            }
+        )
+    df = pd.DataFrame(rows)
+
+    edited = st.data_editor(
+        df,
+        hide_index=True,
+        width="stretch",
+        num_rows="fixed",
+        disabled=["num", "item_key", "name", "total"],
+        column_config={
+            "num": st.column_config.NumberColumn("№", width="small"),
+            "item_key": None,  # скрываем техническую колонку
+            "name": st.column_config.TextColumn("Позиция", width="large"),
+            "qty": st.column_config.NumberColumn("Кол-во", min_value=1, step=1),
+            "price": st.column_config.NumberColumn("Цена, ₽", min_value=0, step=1000),
+            "total": st.column_config.TextColumn("Сумма, ₽"),
+        },
+        key="spec_editor",
+    )
+    _sync_overrides(state, spec_items, edited)
+
+
+def _sync_overrides(state: dict, spec_items: list[dict], edited: Any) -> None:
+    """Сравнить edited DataFrame с spec_items и записать изменения в overrides."""
+    overrides: dict = state.setdefault("spec_items_overrides", {})
+
+    edited_rows = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
+    by_key = {row["item_key"]: row for row in edited_rows}
+
+    # Базовая цена/кол-во без overrides — из computed-значений,
+    # хранящихся в самом spec_item (price/qty в нём уже могут быть с оверрайдом).
+    # Чтобы отличить «user поменял» от «осталось как computed», сравниваем с
+    # текущим spec_item — это снимок, полученный из того же источника, что
+    # отображается в data_editor до правки.
+    for it in spec_items:
+        key = it["item_key"]
+        row = by_key.get(key)
+        if row is None:
+            continue
+        new_qty = int(row["qty"])
+        new_price = int(row["price"])
+        cur_ov = overrides.get(key, {}) or {}
+
+        qty_ov = cur_ov.get("qty")
+        price_ov = cur_ov.get("price")
+
+        # qty
+        if new_qty != int(it["qty"]):
+            qty_ov = new_qty
+        # price
+        if new_price != int(it["price"]):
+            price_ov = new_price
+
+        new_ov: dict = {}
+        if qty_ov is not None:
+            new_ov["qty"] = int(qty_ov)
+        if price_ov is not None:
+            new_ov["price"] = int(price_ov)
+
+        if new_ov:
+            overrides[key] = new_ov
+        else:
+            overrides.pop(key, None)
+
+
+def _render_override_conflict(state: dict) -> None:
+    """Warning, если слайдер цены разошёлся с ручным override."""
+    conflict_key = state.get("spec_override_conflict")
+    if not conflict_key:
+        return
+    st.warning(
+        "Вы изменили цену этой позиции вручную. "
+        "Продолжить со значения слайдера?"
+    )
+    if st.button("Да, обнулить ручную правку", key="btn_reset_override"):
+        overrides = state.setdefault("spec_items_overrides", {})
+        ov = overrides.get(conflict_key)
+        if ov:
+            ov.pop("price", None)
+            if not ov:
+                overrides.pop(conflict_key, None)
+        state.pop("spec_override_conflict", None)
+        st.rerun()

@@ -10,6 +10,7 @@ MODELS_JSON: Path = DATA_DIR / "models.json"
 PRICES_JSON: Path = DATA_DIR / "prices.json"
 PAYMENT_TERMS_JSON: Path = DATA_DIR / "payment_terms.json"
 OPTIONS_META_JSON: Path = DATA_DIR / "options.json"
+MANAGERS_JSON: Path = DATA_DIR / "managers.json"
 
 # НДС — в прайсе цены уже с НДС 22%
 VAT_RATE: float = 0.22
@@ -23,10 +24,7 @@ SYNTHETIC_DEALER_FACTOR: float = 0.92  # для UNKNOWN-опций 22м
 MAX_COEFF: float = 1.4                 # верхняя граница слайдера (× retail)
 MIN_COEFF_B: float = 0.6               # нижняя граница для класса B
 
-# Шаги слайдера
-SLIDER_STEP_LARGE: int = 10_000        # retail > 1 000 000
-SLIDER_STEP_SMALL: int = 5_000
-SLIDER_THRESHOLD: int = 1_000_000
+# Шаг слайдера — см. pricing.calc_slider_step()
 
 # Линейки и длины в scope MVP
 LINES: list[str] = ["С", "СЛ", "Ф", "ФЛ", "П"]

@@ -48,3 +48,7 @@ pytest tests/ -v
 
 ## Домен
 ВЕСТА — автовесы Тензосилы. Линейки в MVP: С, СЛ, Ф, ФЛ, П. Обозначение: ВЕСТА-[линейка]-[max_т]-[длина_м]-[Ц]. Терминология — `03_knowledge_base/spravochnik_vesta_fixed.md`.
+
+## Skills
+   Для работы со Streamlit использовать установленный скилл streamlit/agent-skills 
+   (в ~/.claude/skills/streamlit/). Он покрывает современные API, кэширование, layouts.

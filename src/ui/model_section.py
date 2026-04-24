@@ -127,6 +127,16 @@ def _render_model_price_slider(state: dict, price: dict) -> None:
         key=f"model_price_slider__{state['model_id']}",
     )
     state["model_price"] = int(value)
+
+    # Конфликт со spec-таблицей: пользователь руками правил цену позиции,
+    # но дёрнул слайдер — покажем warning + кнопку сброса в sidebar.
+    model_id = state["model_id"]
+    ov = state.get("spec_items_overrides", {}).get(model_id, {})
+    if ov.get("price") is not None and int(ov["price"]) != int(value):
+        state["spec_override_conflict"] = model_id
+    elif state.get("spec_override_conflict") == model_id:
+        state.pop("spec_override_conflict", None)
+
     tag = color_code(int(value), params.retail, params.dealer)
     pct = percent_to_retail(int(value), params.retail)
     sign = "+" if pct >= 0 else ""

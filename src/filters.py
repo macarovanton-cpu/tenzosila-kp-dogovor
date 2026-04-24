@@ -6,6 +6,11 @@ from typing import Any
 from src.config import BLOCK_KEY_PREFIXES
 
 
+def calc_default_deck_mm(max_t: int) -> int:
+    """Толщина настила по умолчанию: ≤60 т → 6 мм, >60 т → 8 мм."""
+    return 6 if int(max_t) <= 60 else 8
+
+
 def model_id_from_cascade(line: str, max_load: int, length: int) -> str:
     """Собрать id модели в том же формате, что в prices.json."""
     return f"vesta-{line.lower()}-{max_load}-{length}"

@@ -8,10 +8,11 @@ from typing import Any
 import streamlit as st
 
 from src.config import (
+    MANAGERS_JSON,
     MODELS_JSON,
-    PRICES_JSON,
-    PAYMENT_TERMS_JSON,
     OPTIONS_META_JSON,
+    PAYMENT_TERMS_JSON,
+    PRICES_JSON,
 )
 
 
@@ -41,6 +42,12 @@ def load_payment_terms() -> dict[str, Any]:
 def load_options_meta() -> dict[str, Any]:
     """Загрузить options.json — текстовые описания пакетов ОРИОН, фундаментов и пр."""
     return _read_json(OPTIONS_META_JSON)
+
+
+@st.cache_data(ttl=3600)
+def load_managers() -> dict[str, Any]:
+    """Загрузить managers.json: _meta, default_manager_id, managers[]."""
+    return _read_json(MANAGERS_JSON)
 
 
 # --- Хелперы доступа ---
@@ -83,3 +90,26 @@ def get_indicator_alternatives(models_json: dict) -> list[dict]:
         .get("indicator", {})
         .get("alternatives", [])
     )
+
+
+def get_manager_by_id(managers: dict, manager_id: str) -> dict | None:
+    """Найти менеджера в managers.json по id."""
+    for m in managers.get("managers", []):
+        if m.get("id") == manager_id:
+            return m
+    return None
+
+
+def get_default_manager_id(managers: dict) -> str:
+    """Вернуть id менеджера по умолчанию (из поля default_manager_id)."""
+    default_id = managers.get("default_manager_id", "")
+    if default_id:
+        return str(default_id)
+    # Фолбэк: первый менеджер с is_default=true, иначе первый в списке.
+    lst = managers.get("managers", [])
+    for m in lst:
+        if m.get("is_default"):
+            return str(m.get("id", ""))
+    if lst:
+        return str(lst[0].get("id", ""))
+    return ""

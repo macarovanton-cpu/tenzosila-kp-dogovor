@@ -1,4 +1,4 @@
-"""Оборудование: настил, датчик, индикатор, кабель, гарантия."""
+"""Оборудование: датчик, индикатор, кабель, гарантия. Настил/подшивка — в секции «Конструкция»."""
 from __future__ import annotations
 
 import streamlit as st
@@ -16,33 +16,26 @@ def render_equipment_section(state: dict, models_json: dict) -> None:
     line = state.get("model_line", "С")
     ld = get_line_defaults(models_json, line)
 
-    cols = st.columns(2)
-
-    # Настил
-    with cols[0]:
-        deck_min = int(ld.get("underlining_mm_min", 3))
-        deck_max = int(ld.get("underlining_mm_max", 6))
-        deck_default = int(ld.get("underlining_mm", deck_min))
-        if state.get("deck_mm") is None or not (deck_min <= state["deck_mm"] <= deck_max):
-            state["deck_mm"] = deck_default
-        st.slider(
-            "Толщина настила, мм",
-            min_value=deck_min,
-            max_value=deck_max,
-            step=1,
-            key="deck_mm",
-        )
-
     # Гарантия
-    with cols[1]:
-        default_warr = int(ld.get("default_warranty_months", 36))
-        warr_opts = [12, 18, 24, 36, 48, 60]
-        if state.get("warranty_months") not in warr_opts:
-            state["warranty_months"] = default_warr
+    default_warr = int(ld.get("default_warranty_months", 36))
+    warr_opts = [12, 18, 24, 36, 48, 60]
+    if state.get("warranty_months") not in warr_opts:
+        state["warranty_months"] = default_warr
+
+    cols = st.columns(2)
+    with cols[0]:
         st.selectbox(
             "Гарантия, мес.",
             warr_opts,
             key="warranty_months",
+        )
+
+    # Кабель
+    with cols[1]:
+        st.number_input(
+            "Длина кабеля, м",
+            min_value=5, max_value=100, step=5,
+            key="cable_m",
         )
 
     # Датчик
@@ -77,10 +70,3 @@ def render_equipment_section(state: dict, models_json: dict) -> None:
             format_func=lambda iid: ind_labels.get(iid, iid),
             key="indicator_id",
         )
-
-    # Кабель
-    st.number_input(
-        "Длина кабеля, м",
-        min_value=5, max_value=100, step=5,
-        key="cable_m",
-    )

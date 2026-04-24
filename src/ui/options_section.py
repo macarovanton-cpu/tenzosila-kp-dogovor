@@ -88,6 +88,11 @@ def _render_option_row(
             "dealer_is_synthetic": params.dealer_is_synthetic,
             "block": block_id,
         }
+        # При выключении опции сбросить её override в spec-таблице
+        overrides = state.setdefault("spec_items_overrides", {})
+        overrides.pop(key, None)
+        if state.get("spec_override_conflict") == key:
+            state.pop("spec_override_conflict", None)
         return
 
     # Поверка: особый случай — radio «Подрядчик / Заказчик»
@@ -127,6 +132,14 @@ def _render_option_row(
         "dealer_is_synthetic": params.dealer_is_synthetic,
         "block": block_id,
     }
+
+    # Конфликт со spec-таблицей (если пользователь вручную правил цену
+    # этой опции в spec-таблице — показываем warning в sidebar).
+    ov = state.get("spec_items_overrides", {}).get(key, {})
+    if ov.get("price") is not None and int(ov["price"]) != int(price_value):
+        state["spec_override_conflict"] = key
+    elif state.get("spec_override_conflict") == key:
+        state.pop("spec_override_conflict", None)
 
 
 def _render_price_widget(

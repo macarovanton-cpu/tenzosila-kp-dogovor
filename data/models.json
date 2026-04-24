@@ -161,7 +161,9 @@
       "underlining_mm_min": 3,
       "underlining_mm_max": 6,
       "center_reinforcement": "Швеллер №14",
-      "longitudinal_beams_count": 4
+      "longitudinal_beams_count": 4,
+      "default_construction_type": "Сплошная",
+      "default_center_beam_count": 2
     },
     "СЛ": {
       "name_full": "ВЕСТА-СЛ",
@@ -182,7 +184,9 @@
       "underlining_mm_min": 3,
       "underlining_mm_max": 6,
       "center_reinforcement": "Швеллер №12",
-      "longitudinal_beams_count": 4
+      "longitudinal_beams_count": 4,
+      "default_construction_type": "Сплошная",
+      "default_center_beam_count": 2
     },
     "Ф": {
       "name_full": "ВЕСТА-Ф",
@@ -203,7 +207,9 @@
       "underlining_mm_min": 3,
       "underlining_mm_max": 6,
       "center_reinforcement": null,
-      "longitudinal_beams_count": 4
+      "longitudinal_beams_count": 4,
+      "default_construction_type": "Колейная",
+      "default_center_beam_count": null
     },
     "ФЛ": {
       "name_full": "ВЕСТА-ФЛ",
@@ -224,7 +230,9 @@
       "underlining_mm_min": 3,
       "underlining_mm_max": 6,
       "center_reinforcement": null,
-      "longitudinal_beams_count": 4
+      "longitudinal_beams_count": 4,
+      "default_construction_type": "Колейная",
+      "default_center_beam_count": null
     },
     "П": {
       "name_full": "ВЕСТА-П",
@@ -245,7 +253,9 @@
       "underlining_mm_min": 3,
       "underlining_mm_max": 6,
       "center_reinforcement": "5-й дополнительный двутавр (не 4, а 5 профилей на колею)",
-      "longitudinal_beams_count": 5
+      "longitudinal_beams_count": 5,
+      "default_construction_type": "Сплошная",
+      "default_center_beam_count": 2
     }
   },
   "models": [
