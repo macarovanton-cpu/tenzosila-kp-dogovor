@@ -28,6 +28,7 @@ from src.ui.model_section import render_model_section  # noqa: E402
 from src.ui.options_section import render_options_section  # noqa: E402
 from src.ui.payment_section import render_payment_section  # noqa: E402
 from src.ui.sidebar import render_sidebar  # noqa: E402
+from src.ui.specification_section import render_specification_section  # noqa: E402
 from src.validation import validate  # noqa: E402
 
 
@@ -64,6 +65,7 @@ def main() -> None:
         )
 
     spec_items = build_spec_items(st.session_state, prices, models_json)
+    render_specification_section(st.session_state, spec_items)
     payment_preview = render_payment_section(
         st.session_state, payment_terms, spec_items
     )

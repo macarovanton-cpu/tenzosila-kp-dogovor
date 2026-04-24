@@ -79,7 +79,6 @@ def reset_options() -> None:
 def reset_spec_overrides() -> None:
     """Очистить ручные правки qty/price в spec-таблице (при смене модели)."""
     st.session_state["spec_items_overrides"] = {}
-    st.session_state.pop("spec_override_conflict", None)
 
 
 def on_cascade_change() -> None:

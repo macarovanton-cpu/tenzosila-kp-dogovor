@@ -115,6 +115,20 @@ def _render_model_card(model: dict | None, models_json: dict, line: str) -> None
         )
 
 
+def _clear_model_price_override() -> None:
+    """Колбэк: движение слайдера модели молча чистит price-часть override."""
+    model_id = st.session_state.get("model_id")
+    if not model_id:
+        return
+    overrides = st.session_state.setdefault("spec_items_overrides", {})
+    ov = overrides.get(model_id, {}) or {}
+    ov.pop("price", None)
+    if ov:
+        overrides[model_id] = ov
+    else:
+        overrides.pop(model_id, None)
+
+
 def _render_model_price_slider(state: dict, price: dict) -> None:
     params = get_model_slider_params(price)
     current = state.get("model_price") or params.default_v
@@ -125,17 +139,9 @@ def _render_model_price_slider(state: dict, price: dict) -> None:
         value=int(current),
         step=params.step,
         key=f"model_price_slider__{state['model_id']}",
+        on_change=_clear_model_price_override,
     )
     state["model_price"] = int(value)
-
-    # Конфликт со spec-таблицей: пользователь руками правил цену позиции,
-    # но дёрнул слайдер — покажем warning + кнопку сброса в sidebar.
-    model_id = state["model_id"]
-    ov = state.get("spec_items_overrides", {}).get(model_id, {})
-    if ov.get("price") is not None and int(ov["price"]) != int(value):
-        state["spec_override_conflict"] = model_id
-    elif state.get("spec_override_conflict") == model_id:
-        state.pop("spec_override_conflict", None)
 
     tag = color_code(int(value), params.retail, params.dealer)
     pct = percent_to_retail(int(value), params.retail)

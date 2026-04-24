@@ -91,8 +91,6 @@ def _render_option_row(
         # При выключении опции сбросить её override в spec-таблице
         overrides = state.setdefault("spec_items_overrides", {})
         overrides.pop(key, None)
-        if state.get("spec_override_conflict") == key:
-            state.pop("spec_override_conflict", None)
         return
 
     # Поверка: особый случай — radio «Подрядчик / Заказчик»
@@ -133,37 +131,35 @@ def _render_option_row(
         "block": block_id,
     }
 
-    # Конфликт со spec-таблицей (если пользователь вручную правил цену
-    # этой опции в spec-таблице — показываем warning в sidebar).
-    ov = state.get("spec_items_overrides", {}).get(key, {})
-    if ov.get("price") is not None and int(ov["price"]) != int(price_value):
-        state["spec_override_conflict"] = key
-    elif state.get("spec_override_conflict") == key:
-        state.pop("spec_override_conflict", None)
+
+def _clear_price_override(item_key: str) -> None:
+    """Колбэк: движение слайдера цены молча чистит price-часть override."""
+    overrides = st.session_state.setdefault("spec_items_overrides", {})
+    ov = overrides.get(item_key, {}) or {}
+    ov.pop("price", None)
+    if ov:
+        overrides[item_key] = ov
+    else:
+        overrides.pop(item_key, None)
 
 
 def _render_price_widget(
     key: str, params: SliderParams, widget_suffix: str
 ) -> int:
     widget_key = f"opt_{key}_price{widget_suffix}"
+    common = dict(
+        min_value=params.min_v,
+        max_value=params.max_v,
+        value=params.default_v,
+        step=params.step,
+        key=widget_key,
+        on_change=_clear_price_override,
+        args=(key,),
+    )
     if params.kind == "number_input":
-        value = st.number_input(
-            "Цена, ₽ (с НДС 22%)",
-            min_value=params.min_v,
-            max_value=params.max_v,
-            value=params.default_v,
-            step=params.step,
-            key=widget_key,
-        )
+        value = st.number_input("Цена, ₽ (с НДС 22%)", **common)
     else:
-        value = st.slider(
-            "Цена, ₽ (с НДС 22%)",
-            min_value=params.min_v,
-            max_value=params.max_v,
-            value=params.default_v,
-            step=params.step,
-            key=widget_key,
-        )
+        value = st.slider("Цена, ₽ (с НДС 22%)", **common)
 
     _render_price_caption(int(value), params)
     return int(value)

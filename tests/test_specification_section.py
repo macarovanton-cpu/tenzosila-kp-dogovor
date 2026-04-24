@@ -1,9 +1,9 @@
-"""Тесты _sync_overrides из sidebar.py — логики синхронизации правок data_editor."""
+"""Тесты _sync_overrides — логики синхронизации правок data_editor."""
 from __future__ import annotations
 
 import pandas as pd
 
-from src.ui.sidebar import _sync_overrides
+from src.ui.specification_section import _sync_overrides
 
 
 def _items() -> list[dict]:

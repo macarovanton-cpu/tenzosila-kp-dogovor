@@ -122,6 +122,16 @@ def test_empty_lead_number_blocks_generate_button():
     assert any("лида" in e for e in errors)
 
 
+def test_app_has_specification_section_in_main():
+    """Секция «📊 Спецификация» отрендерена в main area как subheader."""
+    at = _fresh_app()
+    assert not at.exception
+    titles = [h.value for h in at.subheader]
+    assert any("Спецификация" in t for t in titles), (
+        f"Ожидался subheader со словом 'Спецификация', есть: {titles}"
+    )
+
+
 @pytest.mark.skipif(True, reason="AppTest не поддерживает data_editor в текущей версии Streamlit")
 def test_data_editor_price_edit_updates_overrides():
     """Скип до поддержки data_editor в AppTest — проверено юнит-тестами."""
