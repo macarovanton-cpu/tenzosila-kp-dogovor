@@ -1,14 +1,9 @@
 [theme]
-base = "light"
-primaryColor = "#015198"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F5F7FA"
-textColor = "#1A1A1A"
-borderColor = "#E0E4E8"
-linkColor = "#015198"
-
-redColor = "#D04514"
-orangeColor = "#EF7F1A"
+base = "dark"
+primaryColor = "#2E7FD9"
+backgroundColor = "#0F1419"
+secondaryBackgroundColor = "#1A2028"
+textColor = "#E8EAED"
 
 font = "PT Sans:https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
 headingFont = "PT Sans Narrow:https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@700&display=swap"
@@ -16,7 +11,3 @@ headingFont = "PT Sans Narrow:https://fonts.googleapis.com/css2?family=PT+Sans+N
 baseRadius = "6px"
 buttonRadius = "6px"
 showSidebarBorder = true
-
-[theme.sidebar]
-backgroundColor = "#F5F7FA"
-borderColor = "#E0E4E8"
