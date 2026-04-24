@@ -75,6 +75,19 @@ def test_qty_and_price_overrides_independent(prices, models_json):
     assert items[0]["total"] == 2 * 1_906_000
 
 
+def test_both_qty_and_price_overrides_recompute_total(prices, models_json):
+    """qty=2, price=1_500_000 → total=3_000_000 (правильный пересчёт)."""
+    state = _base_state()
+    state["spec_items_overrides"] = {
+        "vesta-с-60-18": {"qty": 2, "price": 1_500_000}
+    }
+    items = build_spec_items(state, prices, models_json)
+    assert items[0]["qty"] == 2
+    assert items[0]["price"] == 1_500_000
+    assert items[0]["total"] == 3_000_000
+    assert items[0]["is_overridden"] is True
+
+
 def test_override_for_unknown_key_ignored(prices, models_json):
     """Override на опцию которой нет в state → молча игнорируется."""
     state = _base_state()

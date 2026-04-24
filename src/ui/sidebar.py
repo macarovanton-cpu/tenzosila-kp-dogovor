@@ -123,12 +123,23 @@ def _render_spec_editor(state: dict, spec_items: list[dict]) -> None:
         },
         key="spec_editor",
     )
-    _sync_overrides(state, spec_items, edited)
+    # Если пользователь правил qty/price — обновляем overrides и инициируем rerun.
+    # Без повторного прохода data_editor показал бы обновлённые qty/price,
+    # но total (disabled TextColumn) и Итого остались бы stale: build_spec_items
+    # применяет overrides только на следующий rerun.
+    if _sync_overrides(state, spec_items, edited):
+        st.rerun()
 
 
-def _sync_overrides(state: dict, spec_items: list[dict], edited: Any) -> None:
-    """Сравнить edited DataFrame с spec_items и записать изменения в overrides."""
+def _sync_overrides(state: dict, spec_items: list[dict], edited: Any) -> bool:
+    """Сравнить edited DataFrame с spec_items и записать изменения в overrides.
+
+    Возвращает True, если словарь overrides изменился в этом проходе — тогда
+    вызывающий код должен инициировать st.rerun(), чтобы build_spec_items
+    применил override и пересчитал total/totals.
+    """
     overrides: dict = state.setdefault("spec_items_overrides", {})
+    prev_snapshot = {k: dict(v) for k, v in overrides.items()}
 
     edited_rows = edited.to_dict("records") if hasattr(edited, "to_dict") else list(edited)
     by_key = {row["item_key"]: row for row in edited_rows}
@@ -167,6 +178,8 @@ def _sync_overrides(state: dict, spec_items: list[dict], edited: Any) -> None:
             overrides[key] = new_ov
         else:
             overrides.pop(key, None)
+
+    return prev_snapshot != overrides
 
 
 def _render_override_conflict(state: dict) -> None:
