@@ -19,7 +19,8 @@ def render_payment_section(
     state: dict, payment_terms: dict, spec_items: list[dict]
 ) -> str:
     """Отрисовать секцию оплаты. Вернуть готовый текст (markdown) для sidebar."""
-    st.subheader("4. Условия оплаты")
+    st.subheader("💳 Условия оплаты")
+    st.caption("Условия и процентные платежи")
 
     presets = payment_terms.get("presets", [])
     preset_ids = [p["id"] for p in presets]

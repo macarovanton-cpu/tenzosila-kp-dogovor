@@ -1,12 +1,9 @@
-"""Sticky-sidebar: итоги, сроки, валидация, кнопка генерации."""
+"""Sticky-sidebar: итоги, сроки, валидация, кнопка генерации, брендовый футер."""
 from __future__ import annotations
 
 import streamlit as st
 
-
-def _fmt_rub(n: int) -> str:
-    """Формат '1 234 567 ₽' с пробелами как разделителями тысяч."""
-    return f"{int(n):,} ₽".replace(",", " ")
+from src.utils.format import fmt_rub
 
 
 def render_sidebar(
@@ -19,23 +16,22 @@ def render_sidebar(
     term_days: int,
 ) -> None:
     with st.sidebar:
-        st.header("📋 Итоги КП")
+        st.subheader("📋 Итоги")
 
         with st.container(border=True):
-            st.metric("ИТОГО с НДС", _fmt_rub(totals["with_vat"]))
-        c1, c2 = st.columns(2)
-        with c1:
-            st.metric("Без НДС", _fmt_rub(totals["without_vat"]))
-        with c2:
-            st.metric("НДС 22%", _fmt_rub(totals["vat"]))
+            st.metric("ИТОГО с НДС", fmt_rub(totals["with_vat"]))
+        st.caption(
+            f"Без НДС: {fmt_rub(totals['without_vat'])}  ·  "
+            f"НДС 22%: {fmt_rub(totals['vat'])}"
+        )
 
         st.divider()
-        st.markdown("**Сроки**")
+
         c3, c4 = st.columns(2)
         with c3:
-            st.metric("Срок исполнения", f"{term_days} дн.")
+            st.metric("🔨 Исполнение", f"{term_days} дн.")
         with c4:
-            st.metric("КП действует", f"{state['kp_valid_days']} дн.")
+            st.metric("📅 Действует", f"{state['kp_valid_days']} дн.")
         st.caption(f"от {state['kp_date'].strftime('%d.%m.%Y')}")
 
         if payment_preview:
@@ -44,15 +40,23 @@ def render_sidebar(
 
         st.divider()
 
-        for w in warnings:
-            st.warning(w)
-        for e in errors:
-            st.error(e)
+        # Статус валидации
+        if errors:
+            with st.container(border=True):
+                st.markdown(f"**🔴 Ошибки валидации ({len(errors)})**")
+                for e in errors:
+                    st.markdown(f"- {e}")
+        if warnings:
+            with st.container(border=True):
+                st.markdown(f"**🟡 Предупреждения ({len(warnings)})**")
+                for w in warnings:
+                    st.markdown(f"- {w}")
+        if not errors and not warnings:
+            st.success("✅ Готово к генерации КП")
 
-        disabled = bool(errors)
         if st.button(
             "🚀 Сгенерировать КП",
-            disabled=disabled,
+            disabled=bool(errors),
             width="stretch",
             type="primary",
         ):
@@ -73,7 +77,6 @@ def render_sidebar(
                     }
                 )
 
-        if errors:
-            st.caption(f"⚠️ {len(errors)} ошибок валидации")
-        else:
-            st.caption("✅ Готово к генерации")
+        st.divider()
+        st.image("assets/tenzosila_logo_small.png", width=120)
+        st.caption("© ООО «ТПК «Тензосила», Воронеж")

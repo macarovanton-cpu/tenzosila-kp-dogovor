@@ -15,8 +15,7 @@ def render_specification_section(state: dict, spec_items: list[dict]) -> None:
     """
     st.subheader("📊 Спецификация")
     st.caption(
-        "Итоговый состав КП. Вы можете вручную отредактировать "
-        "количество и цену перед генерацией."
+        "Итоговый состав КП с возможностью ручной корректировки перед генерацией"
     )
 
     if not spec_items:

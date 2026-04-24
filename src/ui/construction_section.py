@@ -36,6 +36,7 @@ def render_construction_section(state: dict, models_json: dict) -> None:
                 "Настил, мм",
                 [6, 8, 10],
                 key="construction_deck_mm",
+                help="Верхний рифлёный лист для проезда машин. 6 мм для ≤60 т, 8 мм для >60 т",
             )
         with cols[1]:
             st.number_input(
@@ -53,6 +54,7 @@ def render_construction_section(state: dict, models_json: dict) -> None:
                 "Подшивка, мм",
                 [3, 4, 5],
                 key="construction_underlining_mm",
+                help="Нижний гладкий лист, защита снизу от коррозии",
             )
 
 

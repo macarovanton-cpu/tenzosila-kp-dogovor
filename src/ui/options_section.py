@@ -25,17 +25,26 @@ def render_options_section(
     models_json: dict,
     options_meta: dict,
 ) -> None:
-    st.subheader("3. Дополнительное оборудование и работы")
+    st.subheader("➕ Опции и услуги")
+    st.caption("Фундамент, монтаж, доставка, поверка и дополнительные услуги")
     line = state.get("model_line", "С")
     length = int(state.get("model_length", 18))
     prices_options = prices.get("options", {})
+    enabled_map = state.get("options", {}) or {}
 
     for block_id in OPTION_BLOCKS_ORDER:
         visible = get_visible_options(prices_options, line, length, block_id)
         if not visible:
             # Не рендерим пустой expander — для чистоты UI
             continue
-        with st.expander(BLOCK_LABELS[block_id], expanded=False):
+        enabled_count = sum(
+            1 for key, _ in visible
+            if enabled_map.get(key, {}).get("enabled")
+        )
+        label = BLOCK_LABELS[block_id]
+        if enabled_count:
+            label = f"{label} ({enabled_count} включено)"
+        with st.expander(label, expanded=enabled_count > 0):
             for key, entry in visible:
                 _render_option_row(
                     key, entry, block_id, state, options_meta
@@ -101,6 +110,7 @@ def _render_option_row(
             ["Подрядчик", "Заказчик"],
             horizontal=True,
             key=f"opt_{key}_side{widget_suffix}",
+            help="При выборе «Заказчик» цена поверки в спецификации обнуляется",
         )
         customer_side = side == "Заказчик"
 
@@ -155,6 +165,7 @@ def _render_price_widget(
         key=widget_key,
         on_change=_clear_price_override,
         args=(key,),
+        help="Диапазон дилерская ↔ розница +40 %. Значения округлены до тысяч",
     )
     if params.kind == "number_input":
         value = st.number_input("Цена, ₽ (с НДС 22%)", **common)
@@ -166,6 +177,7 @@ def _render_price_widget(
 
 
 def _render_price_caption(value: int, params: SliderParams) -> None:
+    from src.utils.format import fmt_rub
     tag = color_code(value, params.retail, params.dealer)
     pct = percent_to_retail(value, params.retail)
     sign = "+" if pct >= 0 else ""
@@ -174,13 +186,11 @@ def _render_price_caption(value: int, params: SliderParams) -> None:
         dealer_label = "Дилер"
         if params.dealer_is_synthetic:
             dealer_label = "Дилер (оценка)"
-        dealer_part = f"{dealer_label}: {params.dealer:,} ₽ · "
+        dealer_part = f"{dealer_label}: {fmt_rub(params.dealer)} · "
     st.caption(
-        (
-            f"{tag} {dealer_part}"
-            f"Розница: {params.retail:,} ₽ · "
-            f"Выбрано: {value:,} ₽ ({sign}{pct:.1f}% к рознице)"
-        ).replace(",", " ")
+        f"{tag} {dealer_part}"
+        f"Розница: {fmt_rub(params.retail)} · "
+        f"Выбрано: {fmt_rub(value)} ({sign}{pct:.1f}% к рознице)"
     )
 
 

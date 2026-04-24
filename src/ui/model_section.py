@@ -23,7 +23,8 @@ from src.state import on_cascade_change
 
 
 def render_model_section(state: dict, models_json: dict, prices: dict) -> None:
-    st.subheader("1. Модель автовесов")
+    st.subheader("🏗️ Модель")
+    st.caption("Выберите линейку, тоннаж и длину")
 
     # Линейка
     cols = st.columns(3)
@@ -130,6 +131,7 @@ def _clear_model_price_override() -> None:
 
 
 def _render_model_price_slider(state: dict, price: dict) -> None:
+    from src.utils.format import fmt_rub
     params = get_model_slider_params(price)
     current = state.get("model_price") or params.default_v
     value = st.slider(
@@ -140,6 +142,7 @@ def _render_model_price_slider(state: dict, price: dict) -> None:
         step=params.step,
         key=f"model_price_slider__{state['model_id']}",
         on_change=_clear_model_price_override,
+        help="Диапазон дилерская ↔ розница +40 %. Значения округлены до тысяч",
     )
     state["model_price"] = int(value)
 
@@ -147,6 +150,6 @@ def _render_model_price_slider(state: dict, price: dict) -> None:
     pct = percent_to_retail(int(value), params.retail)
     sign = "+" if pct >= 0 else ""
     st.caption(
-        f"{tag} Дилер: {params.dealer:,} ₽ · Розница: {params.retail:,} ₽ · "
-        f"Выбрано: {int(value):,} ₽ ({sign}{pct:.1f}% к рознице)".replace(",", " ")
+        f"{tag} Дилер: {fmt_rub(params.dealer)} · Розница: {fmt_rub(params.retail)} · "
+        f"Выбрано: {fmt_rub(int(value))} ({sign}{pct:.1f}% к рознице)"
     )

@@ -11,7 +11,8 @@ from src.data_loader import (
 
 
 def render_equipment_section(state: dict, models_json: dict) -> None:
-    st.subheader("2. Оборудование и гарантия")
+    st.subheader("🔌 Оборудование")
+    st.caption("Датчики, индикатор, гарантия")
 
     line = state.get("model_line", "С")
     ld = get_line_defaults(models_json, line)

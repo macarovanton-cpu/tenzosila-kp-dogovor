@@ -44,8 +44,7 @@ def main() -> None:
 
     col_logo, _ = st.columns([1, 4])
     with col_logo:
-        st.image("assets/tenzosila_logo.png", width=200)
-    st.divider()
+        st.image("assets/tenzosila_logo.png", width=160)
 
     models_json = load_models()
     prices = load_prices()
@@ -54,6 +53,8 @@ def main() -> None:
     managers = load_managers()
 
     render_header(st.session_state, managers)
+
+    st.divider()
 
     col1, col2 = st.columns(2, gap="large")
     with col1:
@@ -65,8 +66,13 @@ def main() -> None:
             st.session_state, prices, models_json, options_meta
         )
 
+    st.divider()
+
     spec_items = build_spec_items(st.session_state, prices, models_json)
     render_specification_section(st.session_state, spec_items)
+
+    st.divider()
+
     payment_preview = render_payment_section(
         st.session_state, payment_terms, spec_items
     )
