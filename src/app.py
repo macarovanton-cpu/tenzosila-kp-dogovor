@@ -34,17 +34,18 @@ from src.validation import validate  # noqa: E402
 
 def main() -> None:
     st.set_page_config(
-        page_title="Конфигуратор КП ВЕСТА",
+        page_title="Конфигуратор КП ВЕСТА | Тензосила",
+        page_icon="assets/favicon.png",
         layout="wide",
         initial_sidebar_state="expanded",
     )
-    st.title("Конфигуратор коммерческого предложения")
-    st.caption(
-        "ТПК «Тензосила» · автомобильные весы ВЕСТА · "
-        "Фаза 1.1+1.2 (без DOCX-генерации)"
-    )
 
     init_state()
+
+    col_logo, _ = st.columns([1, 4])
+    with col_logo:
+        st.image("assets/tenzosila_logo.png", width=200)
+    st.divider()
 
     models_json = load_models()
     prices = load_prices()
