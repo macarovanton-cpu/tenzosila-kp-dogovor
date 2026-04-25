@@ -170,6 +170,38 @@ streamlit run src/app.py
 
 ---
 
+## Установка для разработки и тестов
+
+```bash
+python -m venv venv
+venv\Scripts\activate           # Windows
+# source venv/bin/activate      # *nix
+
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+playwright install chromium
+```
+
+Доп. бинарные зависимости (только для e2e + visual regression):
+
+- **LibreOffice** — для рендера DOCX → PDF.
+  Windows: <https://www.libreoffice.org/download/>
+  По умолчанию ищется `C:\Program Files\LibreOffice\program\soffice.exe` или PATH.
+- **Poppler** — для конверсии PDF → PNG (через `pdf2image`).
+  Windows: <https://github.com/oschwartz10612/poppler-windows/releases>
+  Распакуй и добавь `…\poppler-XX\Library\bin` в PATH.
+
+### Запуск тестов
+
+```bash
+pytest                                              # unit + integration (e2e исключены)
+pytest -m e2e tests/e2e -v                          # e2e через Playwright + Streamlit
+pytest -m "e2e and visual" tests/e2e                # только visual-regression
+pytest -m e2e tests/e2e --update-baseline           # пересоздать PNG-baseline
+```
+
+Подробности про baseline — `tests/baseline/README.md`.
+
 ## Что в `requirements.txt` на старте
 
 ```

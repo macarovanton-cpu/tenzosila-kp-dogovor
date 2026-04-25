@@ -1,27 +1,38 @@
 """Инициализация st.session_state и колбэки каскада модели."""
 from __future__ import annotations
 
+import os
 from datetime import date
 from typing import Any
 
 import streamlit as st
 
-from src.config import (
-    DEFAULT_KP_VALID_DAYS,
-    DEFAULT_TOTAL_TERM_DAYS,
-)
+from src.config import DEFAULT_KP_VALID_DAYS
 from src.data_loader import get_line_defaults, get_model_by_id, load_models
 from src.filters import model_id_from_cascade
 from src.ui.construction_section import reset_construction
+
+
+def _default_kp_date() -> date:
+    # Только для e2e/visual-regression: фиксируем дату через env-vars,
+    # чтобы baseline-снимки DOCX были детерминированными.
+    fake = os.getenv("TENZOSILA_FAKE_DATE")
+    if fake:
+        try:
+            return date.fromisoformat(fake)
+        except ValueError:
+            pass
+    return date.today()
 
 
 def initial_state() -> dict[str, Any]:
     """Построить dict с дефолтными значениями для session_state."""
     return {
         # Метаданные КП
-        "kp_date": date.today(),
+        "kp_date": _default_kp_date(),
         "kp_valid_days": DEFAULT_KP_VALID_DAYS,
-        "total_term_days": DEFAULT_TOTAL_TERM_DAYS,
+        # Срок проекта: дефолт пересчитывается в header по составу spec_items.
+        "total_term_days": None,
         "kp_number": "",
         # Менеджер — дефолт проставит header.py через get_default_manager_id
         "manager_id": "",
@@ -99,6 +110,9 @@ def on_cascade_change() -> None:
         reset_spec_overrides()
         # Сброс режима диапазона: менеджер сам решит, включать ли заново
         st.session_state["is_dual_range"] = False
+        # Сброс ручного срока — следуем за дефолтом по новому составу
+        st.session_state.pop("total_term_days_user_set", None)
+        st.session_state["total_term_days"] = None
         # Сброс конструкции на defaults новой модели
         models_json = load_models()
         model = get_model_by_id(models_json, new_id)

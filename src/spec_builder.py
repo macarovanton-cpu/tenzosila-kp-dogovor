@@ -4,12 +4,14 @@ from __future__ import annotations
 from typing import Any
 
 from src.config import (
-    DEFAULT_MODEL_TERM_DAYS,
     OPTION_BLOCKS_ORDER,
-    TERM_DAYS_BY_BLOCK,
     UNIT_BY_BLOCK,
 )
-from src.data_loader import get_model_by_id, get_price_by_model_id
+from src.data_loader import (
+    get_equipment_info,
+    get_model_by_id,
+    get_price_by_model_id,
+)
 from src.filters import get_visible_options
 
 
@@ -17,6 +19,51 @@ def _format_model_name(model: dict | None, model_id: str) -> str:
     if model and model.get("full_name"):
         return f"Весы автомобильные {model['full_name']}"
     return f"Весы автомобильные {model_id}"
+
+
+def _detect_fence_type(options: dict) -> str | None:
+    """Тип ограждения по включённым опциям. None — без ограждения."""
+    for key, opt in options.items():
+        if not opt or not opt.get("enabled"):
+            continue
+        if key.startswith("fence_light_"):
+            return "ЛАЙТ"
+        if key.startswith("fence_norma_"):
+            return "НОРМА"
+    return None
+
+
+def _format_model_full_spec_name(
+    model: dict | None,
+    model_id: str,
+    state: dict,
+    models_json: dict,
+) -> str:
+    """Многострочное имя для первой позиции спецификации.
+
+    Структура (plain string с \\n; форматирование шрифта — в kp_generator):
+        Весы автомобильные {full_name}
+        Датчики: {sensor_label}, {sensors_count} шт.
+        Терминал: {indicator_label}
+        Ограждение {fence_type}   ← опционально, если включено fence_*
+    """
+    parts = [_format_model_name(model, model_id)]
+    if model:
+        sensor_info = get_equipment_info(
+            models_json, "sensor", state.get("sensor_id", "")
+        )
+        sensors_count = model.get("sensors_count", 0)
+        parts.append(
+            f"Датчики: {sensor_info['label']}, {sensors_count} шт."
+        )
+        indicator_info = get_equipment_info(
+            models_json, "indicator", state.get("indicator_id", "")
+        )
+        parts.append(f"Терминал: {indicator_info['label']}")
+    fence_type = _detect_fence_type(state.get("options", {}) or {})
+    if fence_type:
+        parts.append(f"Ограждение {fence_type}")
+    return "\n".join(parts)
 
 
 def _option_name(entry: dict, opt_state: dict) -> str:
@@ -80,12 +127,13 @@ def build_spec_items(
         items.append({
             "num": 1,
             "item_key": model_id,
-            "name": _format_model_name(model, model_id),
+            "name": _format_model_full_spec_name(
+                model, model_id, state, models_json
+            ),
             "qty": qty,
             "unit": "шт",
             "price": price,
             "total": price * qty,
-            "term_days": DEFAULT_MODEL_TERM_DAYS,
             "is_overridden": is_ov,
             "payment_group": resolve_payment_group(model_id),
         })
@@ -116,7 +164,6 @@ def build_spec_items(
                 "unit": UNIT_BY_BLOCK.get(block_id, "шт"),
                 "price": price,
                 "total": price * qty,
-                "term_days": TERM_DAYS_BY_BLOCK.get(block_id, DEFAULT_MODEL_TERM_DAYS),
                 "is_overridden": is_ov,
                 "payment_group": resolve_payment_group(key),
             })
@@ -124,14 +171,39 @@ def build_spec_items(
     return items
 
 
+def calculate_default_term_days(spec_items: list[dict]) -> int:
+    """Дефолтный срок проекта по составу спецификации.
+
+    База 20 + 5 (монтаж/поверка) + 5 (ОРИОН) + 10 (фундамент).
+    Доставка и опции (рамы/ограждения/навес/...) на срок не влияют.
+    """
+    days = 20
+    has_install_or_verification = False
+    has_orion = False
+    has_foundation = False
+    for it in spec_items:
+        key = it.get("item_key", "")
+        if key in ("install_default", "verification_default"):
+            has_install_or_verification = True
+        if key.startswith("orion_"):
+            has_orion = True
+        if key.startswith("foundation_"):
+            has_foundation = True
+    if has_install_or_verification:
+        days += 5
+    if has_orion:
+        days += 5
+    if has_foundation:
+        days += 10
+    return days
+
+
 def resolve_term_days(spec_items: list[dict], state: dict) -> int:
-    """Общий срок исполнения: ручной из state (если задан), иначе max из позиций."""
+    """Срок проекта: ручной из state (если задан), иначе дефолт по составу."""
     manual = state.get("total_term_days")
-    if manual:
+    if manual is not None:
         return int(manual)
-    if not spec_items:
-        return DEFAULT_MODEL_TERM_DAYS
-    return max(int(it.get("term_days", 0)) for it in spec_items)
+    return calculate_default_term_days(spec_items)
 
 
 def build_construction_description(state: dict) -> str:

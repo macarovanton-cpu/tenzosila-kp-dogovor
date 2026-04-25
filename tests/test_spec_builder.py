@@ -100,9 +100,22 @@ def test_override_for_unknown_key_ignored(prices, models_json):
 
 
 def test_resolve_term_days_uses_manual_value():
+    """Ручное значение в state переопределяет дефолт по составу."""
     state = {"total_term_days": 42}
-    items = [{"term_days": 30}, {"term_days": 45}]
+    items = [{"item_key": "vesta-с-60-18"}, {"item_key": "install_default"}]
     assert resolve_term_days(items, state) == 42
+
+
+def test_resolve_term_days_falls_back_to_default():
+    """Если total_term_days=None — возвращается дефолт по составу."""
+    state = {"total_term_days": None}
+    items = [
+        {"item_key": "vesta-с-60-18"},
+        {"item_key": "install_default"},
+        {"item_key": "foundation_s_f_18"},
+    ]
+    # 20 + 5 (install) + 10 (foundation) = 35
+    assert resolve_term_days(items, state) == 35
 
 
 # --- payment_group ---
@@ -194,3 +207,55 @@ def test_construction_description_rail():
     assert "Швеллер" not in text
     assert "настила 6 мм" in text
     assert "подшив 3 мм" in text
+
+
+# --- multiline model name (sensors / terminal / fence) ---
+
+
+def test_model_name_is_multiline_with_sensors_and_terminal(
+    prices, models_json
+):
+    state = _base_state()
+    state["sensor_id"] = "zemic_dhm9b_30t"
+    state["indicator_id"] = "titan_3cs"
+    items = build_spec_items(state, prices, models_json)
+    name = items[0]["name"]
+    assert "ВЕСТА-С-60-18" in name
+    assert "Датчики:" in name
+    assert "Zemic DHM9B-30t" in name
+    assert "шт." in name
+    assert "Терминал: ТИТАН 3ЦС" in name
+
+
+def test_fence_norma_appears_in_model_name(prices, models_json):
+    state = _base_state()
+    state["options"] = {
+        "fence_norma_18": {
+            "enabled": True, "price": 100_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 100_000, "dealer_is_synthetic": False,
+            "block": "fences",
+        }
+    }
+    items = build_spec_items(state, prices, models_json)
+    assert "Ограждение НОРМА" in items[0]["name"]
+
+
+def test_fence_light_appears_in_model_name(prices, models_json):
+    state = _base_state()
+    state["options"] = {
+        "fence_light_18": {
+            "enabled": True, "price": 80_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 80_000, "dealer_is_synthetic": False,
+            "block": "fences",
+        }
+    }
+    items = build_spec_items(state, prices, models_json)
+    assert "Ограждение ЛАЙТ" in items[0]["name"]
+
+
+def test_no_fence_line_when_no_fence_option(prices, models_json):
+    state = _base_state()
+    items = build_spec_items(state, prices, models_json)
+    assert "Ограждение" not in items[0]["name"]

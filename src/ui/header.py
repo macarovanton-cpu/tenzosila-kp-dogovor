@@ -6,12 +6,22 @@ from datetime import timedelta
 import streamlit as st
 
 from src.data_loader import get_default_manager_id, get_manager_by_id
+from src.spec_builder import calculate_default_term_days
 
 
-def render_header(state: dict, managers: dict) -> None:
+def _on_term_change() -> None:
+    st.session_state["total_term_days_user_set"] = True
+
+
+def render_header(state: dict, managers: dict, spec_items: list[dict]) -> None:
     # Дефолт менеджера при первом запуске
     if not state.get("manager_id"):
         state["manager_id"] = get_default_manager_id(managers)
+
+    # Дефолт срока проекта по составу. Если менеджер не правил — следуем за ним.
+    default_term = calculate_default_term_days(spec_items)
+    if not state.get("total_term_days_user_set"):
+        state["total_term_days"] = default_term
 
     # Строка 1: лид / дата / сроки
     row1 = st.columns([2, 1, 1, 1])
@@ -34,10 +44,15 @@ def render_header(state: dict, managers: dict) -> None:
         st.caption(f"Действует до: **{valid_until.strftime('%d.%m.%Y')}**")
     with row1[3]:
         st.number_input(
-            "Срок исполнения, дней",
-            min_value=1, max_value=180, step=1,
+            "Срок исполнения проекта, рабочих дней",
+            min_value=5, max_value=70, step=1,
             key="total_term_days",
-            help="Сколько дней от оплаты до готовности весов. Стандарт — 35 дней",
+            on_change=_on_term_change,
+            help=(
+                f"Дефолт по составу: {default_term} дн. "
+                "База 20 + 5 (монтаж/поверка) + 5 (ОРИОН) + 10 (фундамент). "
+                "Менеджер может переопределить вручную."
+            ),
         )
 
     # Строка 2: менеджер / клиент

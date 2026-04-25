@@ -1,13 +1,14 @@
 """Тесты kp_generator: контекст, имя файла, генерация DOCX."""
 from __future__ import annotations
 
+import re
+import zipfile
 from datetime import date
 from io import BytesIO
 
 from docx import Document
 
 from src.generators.kp_generator import (
-    build_division_info,
     build_filename,
     build_main_scale_label,
     build_template_context,
@@ -30,6 +31,8 @@ def _state(**overrides) -> dict:
         "model_price": 2_450_000,
         "warranty_months": 36,
         "is_dual_range": False,
+        "sensor_id": "zemic_dhm9b_30t",
+        "indicator_id": "titan_3cs",
         "construction_beam": "Двутавр 30Б1",
         "construction_beam_count": 8,
         "construction_center_beam": "Швеллер №12",
@@ -48,45 +51,12 @@ def _state(**overrides) -> dict:
     return base
 
 
-# --- build_division_info ---
-
-
-def test_build_division_info_single_range():
-    model = {
-        "full_name": "ВЕСТА-С-60-18",
-        "length_m": 18, "width_m": 3,
-        "max_load_t": 60, "verification_division_kg": 20, "n_intervals": 3000,
-    }
-    text = build_division_info(model, is_dual_range=False)
-    assert "ВЕСТА-С-60-18" in text
-    assert "Max=60т" in text
-    assert "e=20 кг" in text
-    assert "n=3000" in text
-
-
-def test_build_division_info_dual_range():
-    model = {
-        "full_name": "ВЕСТА-С-80-18",
-        "length_m": 18, "width_m": 3,
-        "max_load_t": 80, "verification_division_kg": 50, "n_intervals": 1600,
-        "dual_range": {
-            "w1": {"max_load_t": 60, "min_load_t": 0.4, "e_kg": 20, "n": 3000},
-            "w2": {"max_load_t": 80, "min_load_t": 0.4, "e_kg": 50, "n": 1600},
-        },
-    }
-    text = build_division_info(model, is_dual_range=True)
-    assert "Max₁=60т" in text
-    assert "Max₂=80т" in text
-    assert "e₁=20" in text
-    assert "e₂=50" in text
-
-
 # --- build_main_scale_label ---
 
 
 def test_build_main_scale_label_single_range():
     model = {"verification_division_kg": 20}
-    assert build_main_scale_label(model, is_dual_range=False) == "20"
+    assert build_main_scale_label(model, is_dual_range=False) == "20 кг"
 
 
 def test_build_main_scale_label_dual_range():
@@ -98,8 +68,10 @@ def test_build_main_scale_label_dual_range():
         },
     }
     label = build_main_scale_label(model, is_dual_range=True)
-    assert "20 до 60т" in label
-    assert "50 от 60т до 80т" in label
+    assert "20 кг (до 60 т)" in label
+    assert "50 кг (от 60 до 80 т)" in label
+    assert "\n" in label
+    assert " / " not in label
 
 
 # --- build_template_context ---
@@ -110,8 +82,11 @@ def test_build_template_context_keys(prices):
     ctx = build_template_context(state, prices)
     expected_keys = {
         "client_name", "kp_number", "kp_date", "kp_valid_days",
-        "warranty_text", "division_info", "max_load_t", "platform_size",
+        "warranty_text", "max_load_t", "platform_size",
         "main_scale_label", "construction_description",
+        "model_full_name",
+        "sensor_label", "sensor_temp_range",
+        "indicator_label", "indicator_temp_range",
         "spec_items", "total_price", "total_term_days", "vat_percent",
         "payment_terms_block",
         "manager_full_name", "manager_phone", "manager_email",
@@ -119,6 +94,7 @@ def test_build_template_context_keys(prices):
     assert expected_keys <= set(ctx.keys()), (
         f"Missing keys: {expected_keys - set(ctx.keys())}"
     )
+    assert "division_info" not in ctx
 
 
 def test_build_template_context_values(prices):
@@ -140,6 +116,35 @@ def test_pluralize_kp_valid_days_and_warranty(prices):
     ctx = build_template_context(state, prices)
     assert ctx["kp_valid_days"] == "21 день"
     assert ctx["warranty_text"] == "24 месяца"
+
+
+# --- equipment_info (datчик/терминал) ---
+
+
+def test_build_template_context_has_equipment_keys(prices):
+    state = _state()
+    ctx = build_template_context(state, prices)
+    new_keys = {
+        "model_full_name",
+        "sensor_label", "sensor_temp_range",
+        "indicator_label", "indicator_temp_range",
+    }
+    assert new_keys.issubset(ctx.keys())
+    assert "division_info" not in ctx
+
+
+def test_sensor_indicator_labels_match_state(prices):
+    state = _state(sensor_id="mera_cdl_30t", indicator_id="titan_3c")
+    ctx = build_template_context(state, prices)
+    assert ctx["sensor_label"] == "Mera CDL-30t"
+    assert ctx["sensor_temp_range"] == "-40...+40"
+    assert ctx["indicator_label"] == "ТИТАН 3Ц"
+
+
+def test_unknown_sensor_id_falls_back_to_default(prices):
+    state = _state(sensor_id="несуществующий")
+    ctx = build_template_context(state, prices)
+    assert ctx["sensor_label"] == "Zemic DHM9B-30t"
 
 
 # --- build_filename ---
@@ -209,21 +214,112 @@ def test_generate_kp_no_remaining_jinja(prices):
     assert "{%" not in text, "Остались jinja-теги {%...%}"
 
 
-def test_generate_kp_dual_range_division_info_present(prices):
-    """Для dual_range — division_info содержит Max₁/Max₂."""
-    state = _state(model_id="vesta-с-80-18", is_dual_range=True)
+def test_generated_docx_preserves_tx_labels(prices):
+    """Подписи в строках 10/11 таблицы ТХ не затёрты плейсхолдерами."""
+    state = _state(model_id="vesta-с-80-18")
     docx = generate_kp(state, prices)
     doc = Document(BytesIO(docx))
-    text = " ".join(
-        "".join(r.text or "" for r in p.runs)
-        for p in doc.paragraphs
+    tx = doc.tables[2]
+    assert tx.rows[10].cells[0].text.strip() == "Максимальная нагрузка, т"
+    assert tx.rows[11].cells[0].text.strip().startswith(
+        "Цена поверочного деления"
     )
-    for t in doc.tables:
-        for row in t.rows:
-            for cell in row.cells:
-                for p in cell.paragraphs:
-                    text += " " + "".join(r.text or "" for r in p.runs)
-    assert "Max₁" in text or "Max1" in text
+
+
+def test_generated_docx_description_cell_is_empty(prices):
+    """В строке «Описание весов» колонка значения пуста."""
+    state = _state()
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+    tx = doc.tables[2]
+    assert "Описание весов" in tx.rows[9].cells[0].text
+    assert tx.rows[9].cells[2].text.strip() == ""
+
+
+def test_section_title_includes_model_name(prices):
+    """Заголовок 'Характеристики ВЕСТА-С-80-18' использует model_full_name."""
+    state = _state(model_id="vesta-с-80-18")
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+    full_text = "\n".join(p.text for p in doc.paragraphs)
+    assert "Характеристики ВЕСТА-С-80-18" in full_text
+
+
+def test_kp_valid_days_paragraph_is_bold(prices):
+    """Срок действия КП — жирным шрифтом."""
+    state = _state()
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+    valid_paras = [
+        p for p in doc.paragraphs if "Срок действия настоящего" in p.text
+    ]
+    assert valid_paras, "Параграф 'Срок действия настоящего' не найден"
+    assert any(r.bold for r in valid_paras[0].runs)
+
+
+def test_spec_item_name_is_richtext_with_9pt_subline(prices):
+    """Имя модели в spec_items_fmt — RichText, вспомогательные строки 9pt."""
+    state = _state(model_id="vesta-с-80-18")
+    ctx = build_template_context(state, prices)
+    name = ctx["spec_items"][0]["name"]
+    # docxtpl.RichText сериализуется в XML с size в half-points
+    xml = str(name)
+    assert "ВЕСТА-С-80-18" in xml
+    assert "Датчики:" in xml
+    assert "Терминал" in xml
+    # 9pt = half-points 18
+    assert 'w:sz w:val="18"' in xml or 'sz w:val="18"' in xml, (
+        f"9pt size не найден в RichText XML: {xml[:300]}"
+    )
+
+
+# --- 1.5b-fix3: шрифты, оранжевый «ВЕСТА», тире в payment-блоке ---
+
+
+def test_generated_docx_specification_has_no_arial_runs(prices):
+    """В run-ах body нет явного Arial — спецификация в PT Sans (1.5b-fix3)."""
+    state = _state()
+    docx = generate_kp(state, prices)
+    with zipfile.ZipFile(BytesIO(docx)) as z:
+        xml = z.read("word/document.xml").decode("utf-8")
+    assert 'w:ascii="Arial"' not in xml, (
+        "Найден явный Arial в run-ах — регрессия rPr"
+    )
+
+
+def test_generated_docx_vesta_is_orange(prices):
+    """Слово «ВЕСТА» в заголовке имеет color D04514 (1.5b-fix3)."""
+    state = _state()
+    docx = generate_kp(state, prices)
+    with zipfile.ZipFile(BytesIO(docx)) as z:
+        xml = z.read("word/document.xml").decode("utf-8")
+    pattern = re.compile(
+        r'<w:r[^>]*>(?:(?!</w:r>).)*?w:val="D04514"(?:(?!</w:r>).)*?'
+        r'<w:t[^>]*>ВЕСТА</w:t>(?:(?!</w:r>).)*?</w:r>',
+        re.DOTALL,
+    )
+    assert pattern.search(xml), "Оранжевая «ВЕСТА» (D04514) не найдена"
+
+
+def test_generated_docx_payment_lines_have_dashes(prices):
+    """Блок «Условия поставки» содержит ≥ 2 строк с «— » (1.5b-fix3)."""
+    state = _state(
+        payment_preset_id="split_by_items",
+        options={
+            "foundation_s_f_18": {
+                "enabled": True, "price": 1_900_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 1_900_000, "dealer_is_synthetic": False,
+                "block": "foundations",
+            },
+        },
+    )
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+    text = "\n".join(p.text for p in doc.paragraphs)
+    assert text.count("— ") >= 2, (
+        f"Меньше 2 строк с «— » в payment-блоке: {text!r}"
+    )
 
 
 def test_generate_kp_payment_block_contains_split_lines(prices):
@@ -247,3 +343,57 @@ def test_generate_kp_payment_block_contains_split_lines(prices):
     )
     assert "по уведомлению" in text
     assert "фундамент" in text
+
+
+def test_payment_block_paragraph_has_no_list_numbering(prices):
+    """Параграф с «— Предоплата:» в готовом DOCX не содержит numPr —
+    иначе Word добавляет list-маркер перед первой строкой, и получается
+    двойное тире (1.5b-fix4)."""
+    state = _state()
+    docx = generate_kp(state, prices)
+    with zipfile.ZipFile(BytesIO(docx)) as z:
+        xml = z.read("word/document.xml").decode("utf-8")
+    # После рендера «— Предоплата:» — первая строка блока условий оплаты.
+    marker = "Предоплата:"
+    idx = xml.find(marker)
+    assert idx > 0, f"'{marker}' не найден в document.xml"
+    para_start = xml.rfind("<w:p ", 0, idx)
+    para_end = xml.find("</w:p>", idx) + len("</w:p>")
+    para_xml = xml[para_start:para_end]
+    assert "<w:numPr>" not in para_xml, (
+        "Параграф с «Предоплата:» содержит numPr — Word добавит лишний list-маркер"
+    )
+
+
+def test_validity_paragraph_uses_pt_sans(prices):
+    """Параграф «Срок действия КП» использует PT Sans (не Times New Roman) и жирный."""
+    state = _state()
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+
+    target = None
+    for para in doc.paragraphs:
+        if "Срок действия настоящего" in para.text:
+            target = para
+            break
+
+    assert target is not None, "Параграф со сроком действия не найден"
+
+    fonts_found: set[str] = set()
+    for run in target.runs:
+        rpr = run._r.find(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}rPr")
+        if rpr is not None:
+            rfonts = rpr.find("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}rFonts")
+            if rfonts is not None:
+                W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                for attr in ("ascii", "hAnsi", "cs"):
+                    val = rfonts.get(f"{{{W}}}{attr}")
+                    if val:
+                        fonts_found.add(val)
+
+    assert any("PT Sans" in f for f in fonts_found), (
+        f"Ожидался PT Sans в rFonts, найдено: {fonts_found}"
+    )
+    assert any(run.bold for run in target.runs), (
+        "Срок действия КП должен быть жирным"
+    )

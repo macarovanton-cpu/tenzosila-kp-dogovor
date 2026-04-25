@@ -15,8 +15,8 @@ MANAGERS_JSON: Path = DATA_DIR / "managers.json"
 # НДС — в прайсе цены уже с НДС 22%
 VAT_RATE: float = 0.22
 
-# Сроки по умолчанию
-DEFAULT_TOTAL_TERM_DAYS: int = 35
+# Срок действия КП по умолчанию (дни). Срок исполнения проекта рассчитывается
+# по составу спецификации — см. spec_builder.calculate_default_term_days.
 DEFAULT_KP_VALID_DAYS: int = 15
 
 # Коридоры цен
@@ -102,21 +102,3 @@ UNIT_BY_BLOCK: dict[str, str] = {
     "foundations": "компл",
 }
 
-# Ориентировочные сроки исполнения (дни) по блокам — для spec_items
-TERM_DAYS_BY_BLOCK: dict[str, int] = {
-    "ramps": 35,
-    "frames": 35,
-    "fences": 35,
-    "hatches": 35,
-    "foundations": 30,
-    "construction_works": 30,
-    "concrete_on_frame": 30,
-    "canopy": 45,
-    "pak_orion": 35,
-    "misc": 35,
-    "install": 10,
-    "delivery": 7,
-    "verification": 5,
-}
-
-DEFAULT_MODEL_TERM_DAYS: int = 35  # срок производства весов

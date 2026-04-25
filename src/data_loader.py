@@ -99,6 +99,28 @@ def get_indicator_alternatives(models_json: dict) -> list[dict]:
     )
 
 
+def get_equipment_info(
+    models_json: dict, eq_type: str, eq_id: str
+) -> dict[str, str]:
+    """Найти датчик/терминал по id в equipment_defaults.
+
+    eq_type: 'sensor' | 'indicator'.
+    Возвращает {'label': str, 'temp_range': str}. При неизвестном id —
+    fallback на equipment_defaults[eq_type].default + default_temp_range_c.
+    """
+    eq_block = models_json.get("equipment_defaults", {}).get(eq_type, {})
+    for alt in eq_block.get("alternatives", []):
+        if alt.get("id") == eq_id:
+            return {
+                "label": alt.get("label", "—"),
+                "temp_range": alt.get("temp_range_c", "—"),
+            }
+    return {
+        "label": eq_block.get("default", "—"),
+        "temp_range": eq_block.get("default_temp_range_c", "—"),
+    }
+
+
 def get_manager_by_id(managers: dict, manager_id: str) -> dict | None:
     """Найти менеджера в managers.json по id."""
     for m in managers.get("managers", []):

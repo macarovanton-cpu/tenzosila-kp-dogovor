@@ -24,6 +24,12 @@ Thumbs.db
 # Сгенерированные КП — не храним в репо
 output/
 
+# E2e: рантайм-артефакты тестов и эталонные DOCX (PNG-baseline коммитим)
+tests/output/
+tests/baseline/docx/
+playwright-report/
+test-results/
+
 # Секреты
 .env
 *.env

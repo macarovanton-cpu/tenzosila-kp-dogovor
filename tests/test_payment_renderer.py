@@ -209,3 +209,31 @@ def test_unknown_preset_id_returns_dash(payment_terms):
     state = _state("nonexistent_preset_id")
     text = render_payment_block(state, [], payment_terms)
     assert text == "—"
+
+
+# --- Маркер списка «— » расставляется вручную (1.5b-fix3) ---
+
+
+def test_split_has_dash_prefix(payment_terms):
+    """split_by_items: каждая строка начинается с «— »."""
+    items = [
+        _item("vesta-с-60-18", "scales"),
+        _item("foundation_s_f_18", "foundation"),
+        _item("delivery_default", "delivery"),
+        _item("install_default", "installation_and_verification"),
+    ]
+    state = _state("split_by_items")
+    text = render_payment_block(state, items, payment_terms)
+    for line in text.split("\n"):
+        assert line.startswith("— "), f"Missing dash prefix: {line!r}"
+
+
+def test_simple_multiline_preset_has_dash_prefix(payment_terms):
+    """Многострочные простые пресеты (50/50, 30/70): каждая строка с «— »."""
+    for preset_id in ("prepay_50_postpay_50", "prepay_30_postpay_70"):
+        state = _state(preset_id)
+        text = render_payment_block(state, [], payment_terms)
+        for line in text.split("\n"):
+            assert line.startswith("— "), (
+                f"{preset_id}: missing dash prefix: {line!r}"
+            )

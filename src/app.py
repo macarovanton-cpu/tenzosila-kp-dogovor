@@ -52,7 +52,8 @@ def main() -> None:
     options_meta = load_options_meta()
     managers = load_managers()
 
-    render_header(st.session_state, managers)
+    spec_items = build_spec_items(st.session_state, prices, models_json)
+    render_header(st.session_state, managers, spec_items)
 
     st.divider()
 
@@ -68,6 +69,7 @@ def main() -> None:
 
     st.divider()
 
+    # Пересобрать spec_items после правок UI (опции/модель могли измениться).
     spec_items = build_spec_items(st.session_state, prices, models_json)
     render_specification_section(st.session_state, spec_items)
 

@@ -56,6 +56,35 @@ def set_para_text(para, text):
         para._p.append(r)
 
 
+def set_cell_text(cell, text: str) -> None:
+    """Перезаписать содержимое ячейки многострочным текстом (\\n → <w:br/>).
+
+    Сохраняет форматирование первого run первого параграфа, удаляет
+    остальные параграфы, остальные строки вставляет line break'ами в
+    тот же первый run.
+    """
+    from docx.oxml import OxmlElement
+    paras = cell.paragraphs
+    if not paras:
+        return
+    first_para = paras[0]
+    merge_runs(first_para)
+    for p in paras[1:]:
+        p._p.getparent().remove(p._p)
+    if not first_para.runs:
+        first_para.add_run("")
+    first_run = first_para.runs[0]
+    lines = text.split("\n")
+    first_run.text = lines[0]
+    for line in lines[1:]:
+        br = OxmlElement("w:br")
+        first_run._r.append(br)
+        t = OxmlElement("w:t")
+        t.text = line
+        t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+        first_run._r.append(t)
+
+
 # ---------------------------------------------------------------------------
 # Footer placeholders (manager_*)
 # ---------------------------------------------------------------------------
@@ -168,9 +197,24 @@ def remove_orion_block(doc):
 # Spec table → jinja loop
 # ---------------------------------------------------------------------------
 
+def _extract_first_rpr(tc):
+    """Найти rPr первого run-а в tc, у которого rPr задано. None — иначе."""
+    for r in tc.findall(f'.//{qn("r")}'):
+        rpr = r.find(qn("rPr"))
+        if rpr is not None:
+            return copy.deepcopy(rpr)
+    return None
+
+
 def _set_tc_text(tc, text):
-    """Установить текст первой ячейки <w:tc> на уровне XML."""
+    """Установить текст первой ячейки <w:tc>, сохраняя rPr первого run-а.
+
+    rPr (шрифт, цвет, размер) копируется с первого подходящего run-а ячейки
+    и применяется к новому run-у. Это сохраняет PT Sans / 11pt / etc. вместо
+    дефолтного шрифта Word после рендера.
+    """
     from docx.oxml import OxmlElement
+    saved_rpr = _extract_first_rpr(tc)
     ps = tc.findall(f'.//{qn("p")}')
     if not ps:
         return
@@ -178,6 +222,8 @@ def _set_tc_text(tc, text):
     for r in list(p.findall(qn("r"))):
         p.remove(r)
     r_el = OxmlElement('w:r')
+    if saved_rpr is not None:
+        r_el.insert(0, saved_rpr)  # rPr ДОЛЖЕН быть первым ребёнком <w:r>
     t_el = OxmlElement('w:t')
     t_el.text = text
     r_el.append(t_el)
@@ -272,11 +318,36 @@ def make_template():
 
         # kp_number + kp_date (в одном абзаце)
         elif "Коммерческое предложение № 47141" in full:
-            merge_runs(para)
-            new = (get_para_text(para)
-                   .replace("47141",      "{{ kp_number }}")
-                   .replace("22.04.2026", "{{ kp_date }}"))
-            para.runs[0].text = new
+            # НЕ merge_runs целиком — иначе пропадёт оранжевая «ВЕСТА»
+            # (последний run с w:color=D04514). Сжимаем все runs ДО оранжевого
+            # в первый, подставляем плейсхолдеры; оранжевый run не трогаем.
+            runs = list(para.runs)
+            orange_idx = None
+            for i, r in enumerate(runs):
+                rpr = r._r.find(qn("rPr"))
+                if rpr is None:
+                    continue
+                color = rpr.find(qn("color"))
+                if color is not None and color.get(qn("val")) == "D04514":
+                    orange_idx = i
+                    break
+            if orange_idx is None:
+                # Fallback: оранжевого run-а нет — обычный merge.
+                merge_runs(para)
+                para.runs[0].text = (get_para_text(para)
+                    .replace("47141", "{{ kp_number }}")
+                    .replace("22.04.2026", "{{ kp_date }}"))
+            else:
+                before_runs = runs[:orange_idx]
+                if before_runs:
+                    full_before = "".join((r.text or "") for r in before_runs)
+                    new_text = (full_before
+                        .replace("47141", "{{ kp_number }}")
+                        .replace("22.04.2026", "{{ kp_date }}"))
+                    before_runs[0].text = new_text
+                    for r in before_runs[1:]:
+                        r._r.getparent().remove(r._r)
+                # runs[orange_idx] (оранжевая «ВЕСТА») остаётся нетронутой
 
         # vat_percent (body paragraph, not table)
         elif "НДС 22%" in full:
@@ -285,16 +356,78 @@ def make_template():
 
         # payment_terms_block (заменяет payment_line_1 в эталоне) — RichText с многострочным
         # содержимым, абзацные переносы добавляет docxtpl при рендере.
+        # 1.5b-fix4: снять numPr — иначе Word добавляет list-маркер (тире) перед первой
+        # строкой блока, а у нас уже есть ручной "— " из payment_renderer → двойное тире.
         elif full.startswith("Предоплата:"):
             merge_runs(para)
             para.runs[0].text = "{{ payment_terms_block }}"
+            p_elem = para._p
+            pPr = p_elem.find(qn("pPr"))
+            if pPr is not None:
+                numPr = pPr.find(qn("numPr"))
+                if numPr is not None:
+                    pPr.remove(numPr)
 
         # kp_valid_days — переиспользуем абзац "Доплата:" под строку срока действия КП.
+        # Перед параграфом вставляем 2 пустых абзаца, текст делаем жирным.
+        # Параграф «Доплата:» в эталоне унаследовал стиль списка (numPr) —
+        # очищаем, чтобы Word не рисовал тире-маркер.
         elif full.startswith("Доплата:"):
+            from docx.oxml import OxmlElement
+            p_elem = para._p
+            parent = p_elem.getparent()
+            idx = list(parent).index(p_elem)
+            for _ in range(2):
+                empty_p = OxmlElement("w:p")
+                parent.insert(idx, empty_p)
+                idx += 1
             merge_runs(para)
-            para.runs[0].text = (
+
+            # Сменить стиль на Normal (если ListParagraph) и убрать numPr
+            pPr = p_elem.find(qn("pPr"))
+            if pPr is not None:
+                numPr = pPr.find(qn("numPr"))
+                if numPr is not None:
+                    pPr.remove(numPr)
+                pStyle = pPr.find(qn("pStyle"))
+                if pStyle is not None:
+                    style_val = pStyle.get(qn("val")) or ""
+                    if "List" in style_val:
+                        pPr.remove(pStyle)
+            try:
+                para.style = doc.styles["Normal"]
+            except KeyError:
+                pass
+
+            run = para.runs[0]
+            run.text = (
                 "Срок действия настоящего коммерческого предложения — "
                 "{{ kp_valid_days }}."
+            )
+            run.bold = True
+            # После сброса стиля в Normal дефолтный шрифт — Times New Roman.
+            # Явно ставим rFonts=PT Sans в rPr, чтобы не зависеть от стиля абзаца.
+            r_elem = run._r
+            rpr = r_elem.find(qn("rPr"))
+            if rpr is None:
+                rpr = OxmlElement("w:rPr")
+                r_elem.insert(0, rpr)
+            rfonts = rpr.find(qn("rFonts"))
+            if rfonts is None:
+                rfonts = OxmlElement("w:rFonts")
+                rpr.insert(0, rfonts)  # rFonts — первый ребёнок rPr (схема OOXML)
+            rfonts.set(qn("ascii"), "PT Sans")
+            rfonts.set(qn("hAnsi"), "PT Sans")
+            rfonts.set(qn("cs"), "PT Sans")
+
+        # Заголовок раздела «Характеристики ВЕСТА...» → плейсхолдер с моделью
+        elif full.strip().startswith("Характеристики ВЕСТА"):
+            import re
+            merge_runs(para)
+            para.runs[0].text = re.sub(
+                r"Характеристики ВЕСТА[\w\-]*",
+                "Характеристики {{ model_full_name }}",
+                get_para_text(para),
             )
 
     # -----------------------------------------------------------------------
@@ -336,27 +469,6 @@ def make_template():
                             "22%", "{{ vat_percent }}%"
                         )
 
-            # --- division_info (описание весов в таблице ТХ — пустая ячейка ЗНАЧЕНИЕ) ---
-            if "Описание весов" in first_cell_text and len(cells) >= 3:
-                set_para_text(cells[2].paragraphs[0], "{{ division_info }}")
-
-            # --- max_load_t (контекстный матч по первой ячейке) ---
-            if "Максимальная нагрузка" in first_cell_text and len(cells) >= 2:
-                set_para_text(cells[1].paragraphs[0], "{{ max_load_t }}")
-
-            # --- main_scale_label (цена поверочного деления — split runs) ---
-            if "Цена поверочного деления" in first_cell_text and len(cells) >= 2:
-                val_paras = cells[1].paragraphs
-                for p in val_paras:
-                    merge_runs(p)
-                # Схлопываем все параграфы ячейки в один
-                if len(val_paras) > 1:
-                    combined = "".join(get_para_text(p) for p in val_paras)
-                    set_para_text(val_paras[0], combined)
-                    for p in val_paras[1:]:
-                        p._p.getparent().remove(p._p)
-                set_para_text(cells[1].paragraphs[0], "{{ main_scale_label }}")
-
             # --- total_price + total_term_days (ИТОГО — split runs) ---
             if first_cell_text == "ИТОГО" and len(cells) >= 2:
                 val_paras = cells[1].paragraphs
@@ -368,6 +480,50 @@ def make_template():
                 for p in term_paras:
                     merge_runs(p)
                 set_para_text(term_paras[0], "{{ total_term_days }}")
+
+    # -----------------------------------------------------------------------
+    # 2b. Прицельная обработка таблицы ТХ (Tbl 2) — по индексам строк
+    # -----------------------------------------------------------------------
+    tx_table = doc.tables[2]
+
+    # Sanity-check: подтвердить ожидаемую структуру эталона
+    _expected_labels = {
+        1: "Рабочий диапазон температур",
+        9: "Описание весов",
+        10: "Максимальная нагрузка",
+        11: "Цена поверочного деления",
+    }
+    for r_idx, expected in _expected_labels.items():
+        actual = tx_table.rows[r_idx].cells[0].text.strip()
+        if expected not in actual:
+            raise RuntimeError(
+                f"Tbl 2 row {r_idx}: ожидался текст '{expected}', "
+                f"в шаблоне '{actual[:80]}'. Структура эталона изменилась?"
+            )
+
+    # Row 1 — Рабочий диапазон температур (динамические датчик и терминал)
+    set_cell_text(tx_table.rows[1].cells[0], (
+        "Рабочий диапазон температур, °С:\n"
+        "- для Тензодатчиков {{ sensor_label }}\n"
+        "- для Весового индикатора (терминала) {{ indicator_label }}"
+    ))
+    set_cell_text(
+        tx_table.rows[1].cells[2],
+        "{{ sensor_temp_range }}\n{{ indicator_temp_range }}",
+    )
+
+    # Row 9 — Описание весов: подпись восстанавливаем, значение очищаем
+    set_cell_text(tx_table.rows[9].cells[0], "Описание весов")
+    set_cell_text(tx_table.rows[9].cells[2], "")
+
+    # Row 10 — Максимальная нагрузка: подпись + плейсхолдер в [2]
+    set_cell_text(tx_table.rows[10].cells[0], "Максимальная нагрузка, т")
+    set_cell_text(tx_table.rows[10].cells[2], "{{ max_load_t }}")
+
+    # Row 11 — Цена поверочного деления: подпись + плейсхолдер в [2].
+    # Единица измерения «кг» теперь в значении (см. build_main_scale_label).
+    set_cell_text(tx_table.rows[11].cells[0], "Цена поверочного деления:")
+    set_cell_text(tx_table.rows[11].cells[2], "{{ main_scale_label }}")
 
     # -----------------------------------------------------------------------
     # 3. Таблица спецификации → jinja-цикл
@@ -392,15 +548,18 @@ def make_template():
     print(f"  Шаблон сохранён: {DST}")
 
     # -----------------------------------------------------------------------
-    # 6. Sanity-check: 16 статических + 3 loop-плейсхолдера
+    # 6. Sanity-check: 18 статических body + 3 footer + 3 loop-плейсхолдера
     # -----------------------------------------------------------------------
     import re, zipfile
     expected_static_body = {
         "client_name", "kp_number", "kp_date", "kp_valid_days",
-        "warranty_text", "division_info", "platform_size", "max_load_t",
+        "warranty_text", "platform_size", "max_load_t",
         "construction_description", "main_scale_label",
         "total_price", "total_term_days", "vat_percent",
         "payment_terms_block",
+        "model_full_name",
+        "sensor_label", "sensor_temp_range",
+        "indicator_label", "indicator_temp_range",
     }
     expected_static_footer = {
         "manager_full_name", "manager_phone", "manager_email",
@@ -446,6 +605,25 @@ def make_template():
         problems.append("{%tr for} не найден в XML")
     if "{%tr endfor" not in xml:
         problems.append("{%tr endfor} не найден в XML")
+    # 1.5b-fix3: spec-row run должен иметь rPr (PT Sans), не пустой <w:r>
+    name_idx = xml.find("{{ item.name }}")
+    if name_idx > 0:
+        # Ищем именно открывающий <w:r> или <w:r ...>, не <w:rPr>/<w:rFonts>.
+        run_start = max(xml.rfind("<w:r>", 0, name_idx), xml.rfind("<w:r ", 0, name_idx))
+        run_end = xml.find("</w:r>", name_idx) + len("</w:r>")
+        run_xml = xml[run_start:run_end]
+        if "<w:rPr>" not in run_xml:
+            problems.append("Run с {{ item.name }} без rPr — шрифты будут дефолтными")
+        elif 'w:ascii="PT Sans"' not in run_xml:
+            problems.append("Run с {{ item.name }} без PT Sans в rPr")
+    # 1.5b-fix3: оранжевая «ВЕСТА» должна быть в параграфе с {{ kp_number }}
+    kp_idx = xml.find("{{ kp_number }}")
+    if kp_idx > 0:
+        para_start = xml.rfind("<w:p ", 0, kp_idx)
+        para_end = xml.find("</w:p>", kp_idx) + len("</w:p>")
+        para_xml = xml[para_start:para_end]
+        if 'w:val="D04514"' not in para_xml:
+            problems.append("Оранжевый цвет D04514 в заголовке КП пропал")
     if problems:
         raise RuntimeError("Sanity-check FAILED:\n" + "\n".join(f"  - {p}" for p in problems))
     n_static = len(expected_static)

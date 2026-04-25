@@ -1,0 +1,7 @@
+# Dev/test зависимости (помимо requirements.txt).
+# Установка: pip install -r requirements-dev.txt && playwright install chromium
+playwright>=1.40
+pytest-playwright>=0.4
+pytest-rerunfailures>=14.0
+pdf2image>=1.16
+pillow>=10.0

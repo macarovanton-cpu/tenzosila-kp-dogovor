@@ -7,6 +7,16 @@ from pathlib import Path
 
 import pytest
 
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--update-baseline",
+        action="store_true",
+        default=False,
+        help="Перезаписать PNG-baseline актуальными снимками "
+             "(см. tests/baseline/README.md).",
+    )
+
 # Сделать `src` импортируемым при запуске `pytest tests/`
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
