@@ -9,7 +9,7 @@ from src.validation import validate
 def _valid_state() -> dict:
     """Полностью валидный state — все проверки должны проходить."""
     return {
-        "lead_number": "12345",
+        "kp_number": "12345",
         "manager_id": "makarov_av",
         "client_name": "ООО «Тест»",
         "kp_date": date.today(),
@@ -29,11 +29,11 @@ def _valid_state() -> dict:
     }
 
 
-def test_empty_lead_blocks(prices, models_json, payment_terms, managers):
+def test_empty_kp_number_blocks(prices, models_json, payment_terms, managers):
     state = _valid_state()
-    state["lead_number"] = "   "
+    state["kp_number"] = "   "
     errors, _ = validate(state, prices, models_json, payment_terms, managers)
-    assert any("лида" in e for e in errors)
+    assert any("КП" in e for e in errors)
 
 
 def test_empty_manager_id_blocks(prices, models_json, payment_terms, managers):

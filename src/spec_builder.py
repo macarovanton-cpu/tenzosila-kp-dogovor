@@ -42,6 +42,21 @@ def _apply_override(
     return qty, price, is_ov
 
 
+def resolve_payment_group(item_key: str) -> str:
+    """Какой группе оплаты (split_by_items) принадлежит позиция спецификации.
+
+    Группы: scales (модель + ОРИОН + рамы/пандусы/ограждения/навес/люки/конструкция),
+    foundation, delivery, installation_and_verification.
+    """
+    if item_key.startswith("foundation_"):
+        return "foundation"
+    if item_key == "delivery_default":
+        return "delivery"
+    if item_key in ("install_default", "verification_default"):
+        return "installation_and_verification"
+    return "scales"
+
+
 def build_spec_items(
     state: dict[str, Any], prices: dict, models_json: dict
 ) -> list[dict]:
@@ -72,6 +87,7 @@ def build_spec_items(
             "total": price * qty,
             "term_days": DEFAULT_MODEL_TERM_DAYS,
             "is_overridden": is_ov,
+            "payment_group": resolve_payment_group(model_id),
         })
 
     line = state.get("model_line", "")
@@ -102,6 +118,7 @@ def build_spec_items(
                 "total": price * qty,
                 "term_days": TERM_DAYS_BY_BLOCK.get(block_id, DEFAULT_MODEL_TERM_DAYS),
                 "is_overridden": is_ov,
+                "payment_group": resolve_payment_group(key),
             })
 
     return items

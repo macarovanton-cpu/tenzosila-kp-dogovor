@@ -32,8 +32,8 @@ def validate(
     warnings: list[str] = []
 
     # --- ERRORS ---
-    if not str(state.get("lead_number", "")).strip():
-        errors.append("Не указан номер лида Битрикс")
+    if not str(state.get("kp_number", "")).strip():
+        errors.append("Не указан номер КП")
     if not str(state.get("client_name", "")).strip():
         errors.append("Не указан клиент")
 

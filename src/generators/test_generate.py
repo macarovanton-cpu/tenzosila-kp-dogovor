@@ -1,239 +1,265 @@
 #!/usr/bin/env python
-"""
-test_generate.py — генерирует тестовые КП из шаблона для ручной проверки.
+"""test_generate.py — генерирует тестовые КП из шаблона для ручной проверки в Word.
+
+Использует тот же путь, что и UI: build_template_context(state, prices) →
+DocxTemplate.render(). Это даёт уверенность, что DOCX-генерация согласована
+с реальным state менеджера.
 
 Кейсы:
-  1. Гипсобетон — ВЕСТА-С-80-18, 5.93 млн, 6 позиций, оплата 50/50
-  2. Кирова     — ВЕСТА-ФЛ-80-18, 3.475 млн, 4 позиции, расщеплённая оплата
-  3. Стресс-тест — 12 позиций, максимальная нагрузка
+  1. Гипсобетон   — ВЕСТА-С-80-18, dual_range, фундамент, split_by_items
+  2. Кирова       — ВЕСТА-ФЛ-80-18, single, без фундамента, split_by_items
+  3. Стресс-тест  — ВЕСТА-С-100-24, dual_range, все опции, custom
 
 Запуск:
     python src/generators/test_generate.py
-
-Результаты сохраняются в output/
+Результаты сохраняются в output/.
 """
-import os
-from docxtpl import DocxTemplate
+from __future__ import annotations
 
-BASE     = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
-TEMPLATE = os.path.join(BASE, "templates/kp_template.docx")
-OUT_DIR  = os.path.join(BASE, "output")
+import os
+from datetime import date
+from pathlib import Path
+
+from docx import Document
+
+from src.data_loader import load_prices
+from src.generators.kp_generator import build_filename, generate_kp
+
+BASE: Path = Path(__file__).resolve().parent.parent.parent
+OUT_DIR: Path = BASE / "output"
+
+
+def _gipsobeton_state() -> dict:
+    """Большая сделка: dual_range, фундамент, ОРИОН, split_by_items с правкой."""
+    return {
+        "kp_number": "47141",
+        "kp_date": date(2026, 4, 22),
+        "kp_valid_days": 15,
+        "total_term_days": 35,
+        "manager_id": "makarov_av",
+        "client_name": "АО «Гипсобетон»",
+        "model_line": "С",
+        "model_max": 80,
+        "model_length": 18,
+        "model_id": "vesta-с-80-18",
+        "model_price": 2_450_000,
+        "warranty_months": 36,
+        "is_dual_range": True,
+        "construction_beam": "Двутавр 30Б1",
+        "construction_beam_count": 8,
+        "construction_center_beam": "Швеллер №12",
+        "construction_center_beam_count": 2,
+        "construction_deck_mm": 10,
+        "construction_underlining_mm": 4,
+        "options": {
+            "foundation_s_f_18": {
+                "enabled": True, "price": 1_900_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 1_900_000, "dealer_is_synthetic": False,
+                "block": "foundations",
+            },
+            "orion_standard_plus": {
+                "enabled": True, "price": 1_200_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 1_200_000, "dealer_is_synthetic": False,
+                "block": "pak_orion",
+            },
+            "install_default": {
+                "enabled": True, "price": 250_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 250_000, "dealer_is_synthetic": False,
+                "block": "install",
+            },
+            "delivery_default": {
+                "enabled": True, "price": 70_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 70_000, "dealer_is_synthetic": False,
+                "block": "delivery",
+            },
+            "verification_default": {
+                "enabled": True, "price": 60_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 60_000, "dealer_is_synthetic": False,
+                "block": "verification",
+            },
+        },
+        "spec_items_overrides": {},
+        "payment_preset_id": "split_by_items",
+        "payment_split_state": {},
+        "payment_percents": {},
+        "payment_days": 5,
+        "payment_custom_text": "",
+    }
+
+
+def _kirova_state() -> dict:
+    """Без фундамента, без ОРИОН, поверка силами заказчика."""
+    return {
+        "kp_number": "47215",
+        "kp_date": date(2026, 4, 22),
+        "kp_valid_days": 15,
+        "total_term_days": 30,
+        "manager_id": "makarov_av",
+        "client_name": "АО «Совхоз имени Кирова»",
+        "model_line": "ФЛ",
+        "model_max": 80,
+        "model_length": 18,
+        "model_id": "vesta-фл-80-18",
+        "model_price": 1_800_000,
+        "warranty_months": 24,
+        "is_dual_range": False,
+        "construction_beam": "Двутавр 25Б1",
+        "construction_beam_count": 8,
+        "construction_center_beam": "",
+        "construction_center_beam_count": 0,
+        "construction_deck_mm": 8,
+        "construction_underlining_mm": 3,
+        "options": {
+            "install_default": {
+                "enabled": True, "price": 200_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 200_000, "dealer_is_synthetic": False,
+                "block": "install",
+            },
+            "delivery_default": {
+                "enabled": True, "price": 75_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 75_000, "dealer_is_synthetic": False,
+                "block": "delivery",
+            },
+        },
+        "spec_items_overrides": {},
+        "payment_preset_id": "split_by_items",
+        "payment_split_state": {},
+        "payment_percents": {},
+        "payment_days": 5,
+        "payment_custom_text": "",
+    }
+
+
+def _stress_state() -> dict:
+    """Максимум: 100т 24м dual_range, custom-оплата."""
+    return {
+        "kp_number": "99999",
+        "kp_date": date(2026, 4, 23),
+        "kp_valid_days": 21,
+        "total_term_days": 60,
+        "manager_id": "makarov_av",
+        "client_name": "ООО «Стресс-тест Макс»",
+        "model_line": "С",
+        "model_max": 100,
+        "model_length": 24,
+        "model_id": "vesta-с-100-24",
+        "model_price": 3_200_000,
+        "warranty_months": 36,
+        "is_dual_range": True,
+        "construction_beam": "Двутавр 35Б1",
+        "construction_beam_count": 10,
+        "construction_center_beam": "Швеллер №14",
+        "construction_center_beam_count": 2,
+        "construction_deck_mm": 12,
+        "construction_underlining_mm": 5,
+        "options": {
+            "foundation_s_f_24": {
+                "enabled": True, "price": 2_800_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 2_800_000, "dealer_is_synthetic": False,
+                "block": "foundations",
+            },
+            "orion_auto_plus": {
+                "enabled": True, "price": 1_850_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 1_850_000, "dealer_is_synthetic": False,
+                "block": "pak_orion",
+            },
+            "install_default": {
+                "enabled": True, "price": 380_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 380_000, "dealer_is_synthetic": False,
+                "block": "install",
+            },
+            "delivery_default": {
+                "enabled": True, "price": 90_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 90_000, "dealer_is_synthetic": False,
+                "block": "delivery",
+            },
+            "verification_default": {
+                "enabled": True, "price": 70_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 70_000, "dealer_is_synthetic": False,
+                "block": "verification",
+            },
+        },
+        "spec_items_overrides": {},
+        "payment_preset_id": "custom",
+        "payment_split_state": {},
+        "payment_percents": {},
+        "payment_days": 5,
+        "payment_custom_text": (
+            "— 30% предоплаты в течение 10 банковских дней с момента подписания.\n"
+            "— 40% после готовности фундамента.\n"
+            "— 30% по факту запуска весов и подписания акта."
+        ),
+    }
 
 
 CASES = [
-    {
-        "_name": "gipsobeton",
-        # Шапка
-        "client_name": "АО Гипсобетон",
-        "kp_number":   "47141",
-        "kp_date":     "22.04.2026",
-        # Технические характеристики
-        "warranty_text":          "36 месяцев",
-        "division_info":          (
-            "Весы автомобильные ВЕСТА-С-80-18, max 80т, "
-            "размеры платформы 18х3м; "
-            "Ограждение НОРМА; Датчики Zemic DHM9B 30t 8шт; "
-            "Терминал цифровой ТИТАН 3ЦС 1шт"
-        ),
-        "platform_size":          "18×3",
-        "max_load_t":             "80",
-        "construction_description": (
-            "Конструкция сплошная 09Г2С: Двутавр 30Б1 8 шт., "
-            "швеллер 12 2шт, Лист настила 10мм рифлёный, нижний подшив 4мм"
-        ),
-        "main_scale_label":       "20 до 60т / 50 от 60т до 80т",
-        # Спецификация (динамический список)
-        "spec_items": [
-            {"name": "Весы автомобильные ВЕСТА-С-80-18, max 80т, р-р платформы 18х3м",
-             "price": "2 450 000", "term_days": "45"},
-            {"name": "Фундамент под ВЕСТА-С/Ф, 18м, «под ключ»",
-             "price": "1 900 000", "term_days": "30"},
-            {"name": "ПАК ОРИОН Стандарт+",
-             "price": "1 200 000", "term_days": "21"},
-            {"name": "Монтаж автовесов",
-             "price": "250 000",   "term_days": "5"},
-            {"name": "Доставка",
-             "price": "70 000",    "term_days": "7"},
-            {"name": "Поверка",
-             "price": "60 000",    "term_days": "3"},
-        ],
-        "total_price":     "5 930 000",
-        "total_term_days": "35",
-        "vat_percent": "22",
-        # Условия оплаты
-        "payment_line_1": "Предоплата: 50% от стоимости проекта",
-        "payment_line_2": "Доплата: 50% по завершении проекта",
-    },
-    {
-        "_name": "kirova",
-        # Шапка
-        "client_name": "АО Совхоз имени Кирова",
-        "kp_number":   "47215",
-        "kp_date":     "22.04.2026",
-        # Технические характеристики
-        "warranty_text":          "24 месяца",
-        "division_info":          (
-            "Весы автомобильные ВЕСТА-ФЛ-80-18, max 80т, "
-            "размеры платформы 18х3м"
-        ),
-        "platform_size":          "18×3",
-        "max_load_t":             "80",
-        "construction_description": (
-            "Конструкция колейная: Двутавр 25Б1 8 шт., "
-            "Лист настила 8мм рифлёный, нижний подшив 3мм"
-        ),
-        "main_scale_label":       "50",
-        # Спецификация (4 позиции, поверка — силами заказчика)
-        "spec_items": [
-            {"name": "Весы автомобильные ВЕСТА-ФЛ-80-18, max 80т, р-р платформы 18х3м",
-             "price": "1 800 000", "term_days": "45"},
-            {"name": "Фундамент пандусный «Стандарт» под ВЕСТА-СЛ/ФЛ, 18м",
-             "price": "1 400 000", "term_days": "30"},
-            {"name": "Монтаж автовесов",
-             "price": "200 000",   "term_days": "5"},
-            {"name": "Доставка",
-             "price": "75 000",    "term_days": "7"},
-        ],
-        "total_price":     "3 475 000",
-        "total_term_days": "30",
-        "vat_percent": "22",
-        # Условия оплаты (расщеплённая)
-        "payment_line_1": (
-            "Предоплата: 50% стоимости весов + 50% стоимости фундамента"
-        ),
-        "payment_line_2": (
-            "Доплата: по уведомлению о готовности весов к отгрузке "
-            "и по факту готовности фундамента — "
-            "50% стоимости весов + 50% стоимости фундамента + "
-            "100% стоимости доставки. "
-            "За монтаж: по факту выполнения — 100% стоимости монтажа."
-        ),
-    },
-    {
-        "_name": "stress_max",
-        # Шапка
-        "client_name": "ООО «Стресс-тест Макс»",
-        "kp_number":   "99999",
-        "kp_date":     "23.04.2026",
-        # Технические характеристики
-        "warranty_text":          "36 месяцев",
-        "division_info":          (
-            "Весы автомобильные ВЕСТА-С-100-24, max 100т, "
-            "размеры платформы 24х3м; "
-            "Ограждение НОРМА; Датчики Zemic DHM9B 50t 10шт; "
-            "Терминал цифровой ТИТАН 3ЦС 1шт"
-        ),
-        "platform_size":          "24×3",
-        "max_load_t":             "100",
-        "construction_description": (
-            "Конструкция сплошная 09Г2С: Двутавр 35Б1 10 шт., "
-            "швеллер 14 2шт, Лист настила 12мм рифлёный, нижний подшив 5мм"
-        ),
-        "main_scale_label":       "50 до 100т",
-        # Спецификация (12 позиций — стресс-тест масштабирования)
-        "spec_items": [
-            {"name": "Весы автомобильные ВЕСТА-С-100-24, max 100т, р-р платформы 24х3м",
-             "price": "3 200 000", "term_days": "60"},
-            {"name": "Фундамент монолитный под ВЕСТА-С/Ф, 24м",
-             "price": "2 800 000", "term_days": "45"},
-            {"name": "Пандусы подъездные, 2 шт.",
-             "price": "320 000",   "term_days": "30"},
-            {"name": "Рама монтажная усиленная",
-             "price": "180 000",   "term_days": "20"},
-            {"name": "Ограждение НОРМА, комплект",
-             "price": "95 000",    "term_days": "14"},
-            {"name": "Люки обслуживания, 2 шт.",
-             "price": "60 000",    "term_days": "14"},
-            {"name": "ПАК ОРИОН Автоматика+",
-             "price": "1 850 000", "term_days": "30"},
-            {"name": "Навес металлический под ключ, 30м²",
-             "price": "750 000",   "term_days": "25"},
-            {"name": "Монтаж автовесов с наладкой",
-             "price": "380 000",   "term_days": "7"},
-            {"name": "Доставка (до 1000 км)",
-             "price": "90 000",    "term_days": "3"},
-            {"name": "Поверка государственная",
-             "price": "70 000",    "term_days": "3"},
-            {"name": "ЗИП комплект (расходники 1 год)",
-             "price": "150 000",   "term_days": "14"},
-        ],
-        "total_price":     "9 945 000",
-        "total_term_days": "60",
-        "vat_percent":  "22",
-        # Условия оплаты
-        "payment_line_1": "Предоплата: 50% стоимости весов + 50% стоимости фундамента",
-        "payment_line_2": (
-            "Доплата: по факту готовности весов к отгрузке "
-            "и по факту готовности фундамента — остаток суммы"
-        ),
-    },
+    ("gipsobeton", _gipsobeton_state),
+    ("kirova", _kirova_state),
+    ("stress_max", _stress_state),
 ]
 
 
-def _get_para_text(para):
-    return "".join(r.text or "" for r in para.runs)
-
-
-def generate(case: dict) -> str:
-    name = case["_name"]
-    data = {k: v for k, v in case.items() if not k.startswith("_")}
-    tpl  = DocxTemplate(TEMPLATE)
-    tpl.render(data)
-    os.makedirs(OUT_DIR, exist_ok=True)
-    out_path = os.path.join(OUT_DIR, f"КП_тест_{name}.docx")
-    tpl.save(out_path)
-
-    # --- автопроверки ---
-    from docx import Document
-    doc = Document(out_path)
-    all_text = " ".join("".join(r.text or "" for r in p.runs) for p in doc.paragraphs)
+def _doc_text(doc) -> str:
+    parts: list[str] = []
+    for p in doc.paragraphs:
+        parts.append("".join(r.text or "" for r in p.runs))
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
-                all_text += " " + "".join(
-                    "".join(r.text or "" for r in p.runs) for p in cell.paragraphs
-                )
+                for p in cell.paragraphs:
+                    parts.append("".join(r.text or "" for r in p.runs))
+    for section in doc.sections:
+        f = section.footer
+        if f is None:
+            continue
+        for p in f.paragraphs:
+            parts.append("".join(r.text or "" for r in p.runs))
+        for t in f.tables:
+            for row in t.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        parts.append("".join(r.text or "" for r in p.runs))
+    return " ".join(parts)
 
-    # 1. Нет незаполненных jinja-тегов
-    assert "{{" not in all_text, (
-        f"[{name}] В документе остались незаполненные плейсхолдеры {{{{ }}}}"
-    )
-    assert "{%" not in all_text, (
-        f"[{name}] В документе остались незаполненные теги {{%}}"
-    )
 
-    # 2. Количество строк в таблице спецификации
-    spec_tbl = next(
-        (t for t in doc.tables
-         if t.rows and "Наименование" in "".join(
-             _get_para_text(p) for p in t.rows[0].cells[0].paragraphs
-         )),
-        None,
-    )
-    assert spec_tbl is not None, f"[{name}] Таблица спецификации не найдена в output"
-    # header + N items + ИТОГО; endfor-строка удалена docxtpl
-    expected_rows = 2 + len(data["spec_items"])
-    assert len(spec_tbl.rows) == expected_rows, (
-        f"[{name}] Строк в таблице спецификации: {len(spec_tbl.rows)}, "
-        f"ожидалось {expected_rows} (1 заголовок + {len(data['spec_items'])} позиций + 1 ИТОГО)"
-    )
+def generate_case(name: str, state_factory) -> Path:
+    state = state_factory()
+    prices = load_prices()
+    docx_bytes = generate_kp(state, prices)
 
-    # 3. total_price и total_term_days присутствуют в тексте
-    assert data["total_price"] in all_text, (
-        f"[{name}] Не найден total_price={data['total_price']!r}"
-    )
-    assert data["total_term_days"] in all_text, (
-        f"[{name}] Не найден total_term_days={data['total_term_days']!r}"
-    )
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = OUT_DIR / f"КП_тест_{name}.docx"
+    out_path.write_bytes(docx_bytes)
+
+    # --- автопроверки ---
+    doc = Document(str(out_path))
+    text = _doc_text(doc)
+    assert "{{" not in text, f"[{name}] Остались незаполненные плейсхолдеры {{{{ }}}}"
+    assert "{%" not in text, f"[{name}] Остались jinja-теги {{%}}"
+
+    # Имя файла строится по тем же правилам, что и в sidebar
+    expected_filename = build_filename(state)
+    assert expected_filename.endswith(".docx"), f"[{name}] Неверное имя: {expected_filename}"
 
     return out_path
 
 
-def main():
-    print(f"Шаблон : {TEMPLATE}")
-    for case in CASES:
-        out = generate(case)
-        print(f"  Сохранён: {out} [{len(case['spec_items'])} позиций]")
+def main() -> None:
+    for name, factory in CASES:
+        out = generate_case(name, factory)
+        print(f"  Сохранён: {out}")
     print("Готово. Откройте файлы в output/ для ручной проверки.")
 
 

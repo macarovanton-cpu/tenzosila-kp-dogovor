@@ -57,6 +57,76 @@ def set_para_text(para, text):
 
 
 # ---------------------------------------------------------------------------
+# Footer placeholders (manager_*)
+# ---------------------------------------------------------------------------
+
+def _replace_chunk_text(chunk: list, new_text: str) -> None:
+    """Сжать список runs в первый, заменить текст, удалить остальные."""
+    if not chunk:
+        return
+    chunk[0].text = new_text
+    for r in chunk[1:]:
+        r._r.getparent().remove(r._r)
+
+
+def _split_runs_by_breaks(para) -> list[list]:
+    """Разбить runs параграфа на чанки по соседним '\\n'-runs (line breaks)."""
+    chunks: list[list] = [[]]
+    for r in para.runs:
+        # python-docx возвращает '\n' для <w:br/> элементов
+        if r.text == "\n":
+            chunks.append([])
+        else:
+            chunks[-1].append(r)
+    return [c for c in chunks if c]
+
+
+def replace_footer_placeholders(doc) -> None:
+    """Заменить статические данные менеджера в колонтитуле на плейсхолдеры.
+
+    В эталонном Гипсобетон-КП футер представлен таблицей: cell[0] содержит
+    'Макаров Антон\\nМенеджер', cell[1] — телефон\\nemail. Между строками —
+    line break (<w:br/>), который python-docx показывает как run.text == '\\n'.
+    Заменяем чанки между линейными разрывами, line break'ы сохраняем.
+    """
+    line_replacements = {
+        "Макаров Антон": "{{ manager_full_name }}",
+        "+7 903 651-85-77": "{{ manager_phone }}",
+        "a.makarov@tenzosila.ru": "{{ manager_email }}",
+    }
+
+    for section in doc.sections:
+        footer = section.footer
+        if footer is None:
+            continue
+        # Параграфы напрямую в footer
+        for para in footer.paragraphs:
+            _apply_chunk_replacements(para, line_replacements)
+        # Таблицы в footer
+        for table in footer.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        _apply_chunk_replacements(para, line_replacements)
+
+
+def _apply_chunk_replacements(para, line_replacements: dict[str, str]) -> None:
+    """Найти чанки runs (между line break'ами), сопоставить с line_replacements
+    и заменить текст на плейсхолдер."""
+    chunks = _split_runs_by_breaks(para)
+    if not chunks:
+        return
+    for chunk in chunks:
+        full = "".join(r.text or "" for r in chunk)
+        if not full:
+            continue
+        for old, placeholder in line_replacements.items():
+            if old in full:
+                _replace_chunk_text(chunk, full.replace(old, placeholder))
+                break
+
+
+# ---------------------------------------------------------------------------
 # ОРИОН block removal
 # ---------------------------------------------------------------------------
 
@@ -213,15 +283,19 @@ def make_template():
             merge_runs(para)
             para.runs[0].text = get_para_text(para).replace("22%", "{{ vat_percent }}%")
 
-        # payment_line_1
+        # payment_terms_block (заменяет payment_line_1 в эталоне) — RichText с многострочным
+        # содержимым, абзацные переносы добавляет docxtpl при рендере.
         elif full.startswith("Предоплата:"):
             merge_runs(para)
-            para.runs[0].text = "{{ payment_line_1 }}"
+            para.runs[0].text = "{{ payment_terms_block }}"
 
-        # payment_line_2
+        # kp_valid_days — переиспользуем абзац "Доплата:" под строку срока действия КП.
         elif full.startswith("Доплата:"):
             merge_runs(para)
-            para.runs[0].text = "{{ payment_line_2 }}"
+            para.runs[0].text = (
+                "Срок действия настоящего коммерческого предложения — "
+                "{{ kp_valid_days }}."
+            )
 
     # -----------------------------------------------------------------------
     # 2. ТАБЛИЦЫ
@@ -306,6 +380,11 @@ def make_template():
     remove_orion_block(doc)
 
     # -----------------------------------------------------------------------
+    # 4b. Подставляем плейсхолдеры менеджера в колонтитул
+    # -----------------------------------------------------------------------
+    replace_footer_placeholders(doc)
+
+    # -----------------------------------------------------------------------
     # 5. Сохраняем
     # -----------------------------------------------------------------------
     os.makedirs(os.path.dirname(DST), exist_ok=True)
@@ -313,28 +392,46 @@ def make_template():
     print(f"  Шаблон сохранён: {DST}")
 
     # -----------------------------------------------------------------------
-    # 6. Sanity-check: 14 статических + 3 loop-плейсхолдера
+    # 6. Sanity-check: 16 статических + 3 loop-плейсхолдера
     # -----------------------------------------------------------------------
     import re, zipfile
-    expected_static = {
-        "client_name", "kp_number", "kp_date",
+    expected_static_body = {
+        "client_name", "kp_number", "kp_date", "kp_valid_days",
         "warranty_text", "division_info", "platform_size", "max_load_t",
         "construction_description", "main_scale_label",
         "total_price", "total_term_days", "vat_percent",
-        "payment_line_1", "payment_line_2",
+        "payment_terms_block",
     }
+    expected_static_footer = {
+        "manager_full_name", "manager_phone", "manager_email",
+    }
+    expected_static = expected_static_body | expected_static_footer
     saved = Document(DST)
-    all_text = " ".join(
+    body_text = " ".join(
         "".join(r.text or "" for r in p.runs)
         for p in saved.paragraphs
     )
     for table in saved.tables:
         for row in table.rows:
             for cell in row.cells:
-                all_text += " " + "".join(
+                body_text += " " + "".join(
                     "".join(r.text or "" for r in p.runs)
                     for p in cell.paragraphs
                 )
+    footer_text = ""
+    for section in saved.sections:
+        footer = section.footer
+        if footer is None:
+            continue
+        for p in footer.paragraphs:
+            footer_text += " " + "".join(r.text or "" for r in p.runs)
+        for table in footer.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        footer_text += " " + "".join(r.text or "" for r in p.runs)
+
+    all_text = body_text + " " + footer_text
     found_static = set(re.findall(r"\{\{\s*(\w+)\s*\}\}", all_text))
     problems = []
     missing_static = expected_static - found_static

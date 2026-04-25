@@ -17,9 +17,9 @@ def render_header(state: dict, managers: dict) -> None:
     row1 = st.columns([2, 1, 1, 1])
     with row1[0]:
         st.text_input(
-            "Лид Битрикс",
-            key="lead_number",
-            help="ID лида в CRM для трекинга сделки",
+            "Номер КП",
+            key="kp_number",
+            help="Номер коммерческого предложения (используется в шапке DOCX и имени файла)",
         )
     with row1[1]:
         st.date_input("Дата КП", key="kp_date")

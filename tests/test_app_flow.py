@@ -99,13 +99,13 @@ def test_model_price_slider_step_is_10000_for_large_price():
     assert params.max_v % 1000 == 0
 
 
-def test_empty_lead_number_blocks_generate_button():
-    """Пустой lead_number → validate возвращает ошибку."""
+def test_empty_kp_number_blocks_generate_button():
+    """Пустой kp_number → validate возвращает ошибку."""
     from src.data_loader import load_managers, load_models, load_payment_terms, load_prices
     from src.validation import validate
 
     state = {
-        "lead_number": "",
+        "kp_number": "",
         "manager_id": "makarov_av",
         "client_name": "Тест",
         "model_id": "vesta-с-60-18",
@@ -119,7 +119,7 @@ def test_empty_lead_number_blocks_generate_button():
     errors, _ = validate(
         state, load_prices(), load_models(), load_payment_terms(), load_managers()
     )
-    assert any("лида" in e for e in errors)
+    assert any("КП" in e for e in errors)
 
 
 def test_app_has_specification_section_in_main():

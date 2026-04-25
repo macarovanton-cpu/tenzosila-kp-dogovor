@@ -91,6 +91,7 @@ def main() -> None:
         totals,
         payment_preview,
         term_days,
+        prices,
     )
 
 

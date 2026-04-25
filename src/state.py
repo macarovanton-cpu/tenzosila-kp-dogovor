@@ -22,7 +22,7 @@ def initial_state() -> dict[str, Any]:
         "kp_date": date.today(),
         "kp_valid_days": DEFAULT_KP_VALID_DAYS,
         "total_term_days": DEFAULT_TOTAL_TERM_DAYS,
-        "lead_number": "",
+        "kp_number": "",
         # Менеджер — дефолт проставит header.py через get_default_manager_id
         "manager_id": "",
         # Клиент

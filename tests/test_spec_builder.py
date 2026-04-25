@@ -4,6 +4,7 @@ from __future__ import annotations
 from src.spec_builder import (
     build_construction_description,
     build_spec_items,
+    resolve_payment_group,
     resolve_term_days,
 )
 
@@ -102,6 +103,57 @@ def test_resolve_term_days_uses_manual_value():
     state = {"total_term_days": 42}
     items = [{"term_days": 30}, {"term_days": 45}]
     assert resolve_term_days(items, state) == 42
+
+
+# --- payment_group ---
+
+
+def test_payment_group_present_in_each_item(prices, models_json):
+    """В каждом item должно быть поле payment_group (для render_payment_block)."""
+    state = _base_state()
+    state["options"] = {
+        "foundation_s_f_18": {
+            "enabled": True, "price": 500_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 500_000, "dealer_is_synthetic": False,
+            "block": "foundations",
+        },
+        "delivery_default": {
+            "enabled": True, "price": 70_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 70_000, "dealer_is_synthetic": False,
+            "block": "delivery",
+        },
+    }
+    items = build_spec_items(state, prices, models_json)
+    for it in items:
+        assert "payment_group" in it, f"Нет payment_group в item {it}"
+        assert it["payment_group"] in (
+            "scales", "foundation", "delivery", "installation_and_verification"
+        )
+
+
+def test_resolve_payment_group_rules():
+    """Правила маппинга item_key → payment_group."""
+    # модель → scales
+    assert resolve_payment_group("vesta-с-60-18") == "scales"
+    # ОРИОН → scales
+    assert resolve_payment_group("orion_standard") == "scales"
+    assert resolve_payment_group("orion_auto_plus") == "scales"
+    # фундамент → foundation
+    assert resolve_payment_group("foundation_lite_18") == "foundation"
+    assert resolve_payment_group("foundation_s_f_24") == "foundation"
+    # доставка → delivery
+    assert resolve_payment_group("delivery_default") == "delivery"
+    # монтаж и поверка → installation_and_verification
+    assert resolve_payment_group("install_default") == "installation_and_verification"
+    assert resolve_payment_group("verification_default") == "installation_and_verification"
+    # рамы / пандусы / ограждения / навес / люки / конструкционные → scales
+    assert resolve_payment_group("frame_standard") == "scales"
+    assert resolve_payment_group("ramp_set_1x350") == "scales"
+    assert resolve_payment_group("fence_norma") == "scales"
+    assert resolve_payment_group("canopy_turnkey_18") == "scales"
+    assert resolve_payment_group("hatches_standard") == "scales"
 
 
 # --- build_construction_description ---
