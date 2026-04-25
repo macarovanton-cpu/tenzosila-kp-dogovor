@@ -81,9 +81,42 @@ def render_model_section(state: dict, models_json: dict, prices: dict) -> None:
         return
 
     model = get_model_by_id(models_json, state["model_id"])
+
+    has_dual = bool(model and model.get("dual_range"))
+    if not has_dual and st.session_state.get("is_dual_range"):
+        st.session_state["is_dual_range"] = False
+    st.checkbox(
+        "Двухдиапазонные весы",
+        key="is_dual_range",
+        disabled=not has_dual,
+        help=(
+            "Для этой модели двухдиапазонная конфигурация не предусмотрена"
+            if not has_dual
+            else "Включает многодиапазонный режим (W1/W2) согласно Таблице 6 "
+            "описания типа"
+        ),
+    )
+    st.caption(_render_metrology_caption(model, st.session_state.get("is_dual_range", False)))
+
     _render_model_card(model, models_json, line)
 
     _render_model_price_slider(state, price)
+
+
+def _render_metrology_caption(model: dict | None, is_dual_range: bool) -> str:
+    if not model:
+        return ""
+    dr = model.get("dual_range")
+    if is_dual_range and dr:
+        w1, w2 = dr["w1"], dr["w2"]
+        return (
+            f"W1: e = {w1['e_kg']} кг (до {w1['max_load_t']} т) / "
+            f"W2: e = {w2['e_kg']} кг (до {w2['max_load_t']} т)"
+        )
+    return (
+        f"Поверочный интервал e = {model.get('verification_division_kg', '—')} кг "
+        f"(Max {model.get('max_load_t', '—')} т)"
+    )
 
 
 def _render_model_card(model: dict | None, models_json: dict, line: str) -> None:

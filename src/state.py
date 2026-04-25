@@ -45,6 +45,8 @@ def initial_state() -> dict[str, Any]:
         "construction_center_beam_count": 0,
         "construction_deck_mm": 6,
         "construction_underlining_mm": 4,
+        # Метрология
+        "is_dual_range": False,  # чекбокс UI: одно/двухдиапазонный режим
         # Опции:
         # {option_key: {"enabled": bool, "price": int, "qty": int,
         #               "customer_side": bool, "is_on_request": bool,
@@ -95,6 +97,8 @@ def on_cascade_change() -> None:
         st.session_state["model_price"] = None
         reset_options()
         reset_spec_overrides()
+        # Сброс режима диапазона: менеджер сам решит, включать ли заново
+        st.session_state["is_dual_range"] = False
         # Сброс конструкции на defaults новой модели
         models_json = load_models()
         model = get_model_by_id(models_json, new_id)

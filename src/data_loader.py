@@ -61,6 +61,13 @@ def get_model_by_id(models_json: dict, model_id: str) -> dict | None:
     return None
 
 
+def get_dual_range(models_json: dict, model_id: str) -> dict | None:
+    """Вернуть блок dual_range модели или None, если модель не поддерживает
+    двухдиапазонный режим (или не найдена)."""
+    model = get_model_by_id(models_json, model_id)
+    return model.get("dual_range") if model else None
+
+
 def get_price_by_model_id(prices: dict, model_id: str) -> dict | None:
     """Вернуть запись цен модели: {retail, dealer_ru, dealer_discount_pct}."""
     return prices.get("models", {}).get(model_id)

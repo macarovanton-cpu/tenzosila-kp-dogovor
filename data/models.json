@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "version": "0.2",
+    "version": "0.3",
     "generated_at": "2026-04-23",
     "source": [
       "03_knowledge_base/spravochnik_vesta_fixed.md (v10.2 от 15.04.2025)",
@@ -54,9 +54,10 @@
       "Все модели в scope MVP. Модификации вне scope (М1, М2, К, Б, СБ, ФБ, ПВП, ПВС, длины <18 м) не включены — будут добавлены на последующих фазах.",
       "Поля с null и data_incomplete=true требуют уточнения у производства (актуально для всей линейки П).",
       "Температурные диапазоны датчика и индикатора вынесены в equipment_defaults, т.к. одинаковы для всех моделей.",
-      "v0.2: Исправлен deck_sheathing_mm для П (4→5). Добавлены поля center_reinforcement, underlining_mm_min/max в line_defaults. Добавлены П-80 (4 модели, data_incomplete — данные идентичны П-100, уточнить у производства)."
+      "v0.2: Исправлен deck_sheathing_mm для П (4→5). Добавлены поля center_reinforcement, underlining_mm_min/max в line_defaults. Добавлены П-80 (4 модели, data_incomplete — данные идентичны П-100, уточнить у производства).",
+      "v0.3: Добавлено поле dual_range у каждой модели по Таблице 6 описания типа (приказ № 544). Для моделей в scope MVP поле непустое."
     ],
-    "updated_at": "2026-04-23"
+    "updated_at": "2026-04-25"
   },
   "equipment_defaults": {
     "sensor": {
@@ -281,7 +282,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-с-40-20",
@@ -305,7 +320,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-с-40-22",
@@ -329,7 +358,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-с-40-24",
@@ -353,7 +396,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-с-60-18",
@@ -377,7 +434,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-с-60-20",
@@ -401,7 +472,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-с-60-22",
@@ -425,7 +510,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-с-60-24",
@@ -449,7 +548,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-с-80-18",
@@ -473,7 +586,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-с-80-20",
@@ -497,7 +624,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-с-80-22",
@@ -521,7 +662,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-с-80-24",
@@ -545,7 +700,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-с-100-18",
@@ -569,7 +738,21 @@
         "quad": 16
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-с-100-20",
@@ -593,7 +776,21 @@
         "quad": 16
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-с-100-22",
@@ -617,7 +814,21 @@
         "quad": 16
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-с-100-24",
@@ -641,7 +852,21 @@
         "quad": 16
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-с-120-24",
@@ -665,7 +890,21 @@
         "quad": 17
       },
       "data_incomplete": true,
-      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства."
+      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства.",
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 120,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2400
+        }
+      }
     },
     {
       "id": "vesta-сл-40-18",
@@ -689,7 +928,21 @@
         "quad": 7
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-сл-40-20",
@@ -713,7 +966,21 @@
         "quad": 7
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-сл-40-22",
@@ -737,7 +1004,21 @@
         "quad": 7
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-сл-40-24",
@@ -761,7 +1042,21 @@
         "quad": 7
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-сл-60-18",
@@ -785,7 +1080,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-сл-60-20",
@@ -809,7 +1118,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-сл-60-22",
@@ -833,7 +1156,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-сл-60-24",
@@ -857,7 +1194,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-сл-80-18",
@@ -881,7 +1232,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-сл-80-20",
@@ -905,7 +1270,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-сл-80-22",
@@ -929,7 +1308,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-сл-80-24",
@@ -953,7 +1346,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-ф-40-18",
@@ -977,7 +1384,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-ф-40-20",
@@ -1001,7 +1422,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-ф-40-22",
@@ -1025,7 +1460,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-ф-40-24",
@@ -1049,7 +1498,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-ф-60-18",
@@ -1073,7 +1536,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-ф-60-20",
@@ -1097,7 +1574,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-ф-60-22",
@@ -1121,7 +1612,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-ф-60-24",
@@ -1145,7 +1650,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-ф-80-18",
@@ -1169,7 +1688,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-ф-80-20",
@@ -1193,7 +1726,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-ф-80-22",
@@ -1217,7 +1764,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-ф-80-24",
@@ -1241,7 +1802,21 @@
         "quad": 11
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-ф-100-18",
@@ -1265,7 +1840,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-ф-100-20",
@@ -1289,7 +1878,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-ф-100-22",
@@ -1313,7 +1916,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-ф-100-24",
@@ -1337,7 +1954,21 @@
         "quad": 14
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-фл-40-18",
@@ -1361,7 +1992,21 @@
         "quad": 7
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-фл-40-20",
@@ -1385,7 +2030,21 @@
         "quad": 7
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-фл-40-22",
@@ -1409,7 +2068,21 @@
         "quad": 7
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-фл-40-24",
@@ -1433,7 +2106,21 @@
         "quad": 7
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 40,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-фл-60-18",
@@ -1457,7 +2144,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-фл-60-20",
@@ -1481,7 +2182,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-фл-60-22",
@@ -1505,7 +2220,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-фл-60-24",
@@ -1529,7 +2258,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
     },
     {
       "id": "vesta-фл-80-18",
@@ -1553,7 +2296,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-фл-80-20",
@@ -1577,7 +2334,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-фл-80-22",
@@ -1601,7 +2372,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-фл-80-24",
@@ -1625,7 +2410,21 @@
         "quad": 9
       },
       "data_incomplete": false,
-      "notes": null
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "id": "vesta-п-100-18",
@@ -1649,7 +2448,21 @@
         "quad": 19
       },
       "data_incomplete": true,
-      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства."
+      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства.",
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-п-100-20",
@@ -1673,7 +2486,21 @@
         "quad": 19
       },
       "data_incomplete": true,
-      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства."
+      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства.",
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-п-100-22",
@@ -1697,7 +2524,21 @@
         "quad": 19
       },
       "data_incomplete": true,
-      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства."
+      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства.",
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "id": "vesta-п-100-24",
@@ -1721,7 +2562,21 @@
         "quad": 19
       },
       "data_incomplete": true,
-      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства."
+      "notes": "Данные по П отсутствуют в справочнике. Требуется уточнение у производства.",
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 100,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 2000
+        }
+      }
     },
     {
       "line": "П",
@@ -1745,7 +2600,21 @@
       "notes": "П-80 добавлена по подтверждению менеджера. Конструктивно идентична П-100, отличается только диапазоном нагрузки. Полные характеристики требуют уточнения у производства.",
       "id": "vesta-п-80-18",
       "full_name": "ВЕСТА-П-80-18",
-      "length_m": 18
+      "length_m": 18,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "line": "П",
@@ -1769,7 +2638,21 @@
       "notes": "П-80 добавлена по подтверждению менеджера. Конструктивно идентична П-100, отличается только диапазоном нагрузки. Полные характеристики требуют уточнения у производства.",
       "id": "vesta-п-80-20",
       "full_name": "ВЕСТА-П-80-20",
-      "length_m": 20
+      "length_m": 20,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "line": "П",
@@ -1793,7 +2676,21 @@
       "notes": "П-80 добавлена по подтверждению менеджера. Конструктивно идентична П-100, отличается только диапазоном нагрузки. Полные характеристики требуют уточнения у производства.",
       "id": "vesta-п-80-22",
       "full_name": "ВЕСТА-П-80-22",
-      "length_m": 22
+      "length_m": 22,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     },
     {
       "line": "П",
@@ -1817,7 +2714,21 @@
       "notes": "П-80 добавлена по подтверждению менеджера. Конструктивно идентична П-100, отличается только диапазоном нагрузки. Полные характеристики требуют уточнения у производства.",
       "id": "vesta-п-80-24",
       "full_name": "ВЕСТА-П-80-24",
-      "length_m": 24
+      "length_m": 24,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 80,
+          "min_load_t": 1,
+          "e_kg": 50,
+          "n": 1600
+        }
+      }
     }
   ]
 }
