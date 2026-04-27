@@ -42,3 +42,4 @@ tenzosila-raw/product-types/
 tenzosila-raw/*.tar.gz
 tenzosila-raw/download_otypes.py
 tenzosila-raw/requirements.txt
+tenzosila-raw.tar.gz
