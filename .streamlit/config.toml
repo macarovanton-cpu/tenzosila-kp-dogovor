@@ -1,7 +1,7 @@
 # Двухтемная конфигурация: пользователь переключает через "⋮ → Settings → Appearance".
 # Дефолт следует системной теме браузера/ОС.
 # Shared-настройки (шрифты, радиусы, бренд-акцент) — в [theme].
-# Цветовые палитры — в [theme.light] / [theme.dark].
+# Цветовые палитры — в [theme.light] / [theme.dark] + sidebar-под-секциях.
 
 [theme]
 font = "PT Sans:https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
@@ -14,26 +14,38 @@ showSidebarBorder = true
 # Бренд-акцент Тензосилы (для warning/error badges и semantic-цветов)
 orangeColor = "#D04514"
 
-# === ТЁМНАЯ ТЕМА (текущая, рабочая — сохранена как есть) ===
+# === ТЁМНАЯ ТЕМА (рабочая — сохраняем визуально как сейчас) ===
 [theme.dark]
 primaryColor = "#2E7FD9"
 backgroundColor = "#0F1419"
 secondaryBackgroundColor = "#1A2028"
 textColor = "#E8EAED"
 linkColor = "#2E7FD9"
+borderColor = "#2A323D"
 
-# === СВЕТЛАЯ ТЕМА (тёплый off-white в духе Claude.ai) ===
+# Sidebar тёмной темы — явно прописан (без наследования)
+[theme.dark.sidebar]
+backgroundColor = "#0F1419"
+secondaryBackgroundColor = "#1A2028"
+textColor = "#E8EAED"
+borderColor = "#2A323D"
+
+# === СВЕТЛАЯ ТЕМА (тёплый off-white с серым подтоном, в духе Claude.ai) ===
 [theme.light]
 primaryColor = "#2E7FD9"
 backgroundColor = "#F5F4ED"
-secondaryBackgroundColor = "#EBEAE2"
+# secondaryBackgroundColor — на ~6% темнее основного, нейтральнее (меньше жёлтого подтона);
+# именно этот цвет рисует disabled-кнопки и блоки st.info/st.warning, поэтому ему нужен видимый контраст.
+secondaryBackgroundColor = "#E5E2D8"
 textColor = "#2D2D2A"
 linkColor = "#2E7FD9"
-borderColor = "#D6D4C8"
+borderColor = "#C8C4B8"
 
-# Sidebar светлой темы — чуть темнее основного фона для отделения
+# Sidebar светлой темы — три уровня: main bg < sidebar bg < sidebar secondary bg.
+# secondaryBackgroundColor сидит на ~10% темнее main (явно отличается от sidebar bg),
+# чтобы внутренние блоки (дата, валидация) не сливались в "оливковый" с фоном.
 [theme.light.sidebar]
-backgroundColor = "#EBEAE2"
-secondaryBackgroundColor = "#F5F4ED"
+backgroundColor = "#EDEAE0"
+secondaryBackgroundColor = "#DCD9CD"
 textColor = "#2D2D2A"
-borderColor = "#D6D4C8"
+borderColor = "#C8C4B8"
