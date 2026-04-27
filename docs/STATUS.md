@@ -61,6 +61,19 @@
     первый ребёнок `<w:rPr>` (до `<w:b/>`).
   - Тест `test_validity_paragraph_uses_pt_sans` проверяет rFonts и bold в
     рендеренном DOCX. Всего **111 PASSED, 1 SKIPPED**.
+- [x] **Двухтемная поддержка (light + dark)** (2026-04-27):
+  - `.streamlit/config.toml` переписан в dual-mode: `[theme.dark]` сохраняет
+    текущую палитру (`#0F1419` / `#1A2028` / `#E8EAED`, primary `#2E7FD9`),
+    `[theme.light]` — тёплый off-white в духе Claude.ai (`#F5F4ED` фон,
+    `#2D2D2A` текст, тот же синий primary для единообразия).
+  - Shared-настройки (`font` PT Sans, `headingFont` PT Sans Narrow,
+    `baseRadius`/`buttonRadius` 6px, `showSidebarBorder = true`,
+    `orangeColor = #D04514` как бренд-акцент) — в верхнеуровневом `[theme]`.
+  - `[theme.light.sidebar]` делает sidebar чуть темнее основного фона
+    (`#EBEAE2`) для отделения. В тёмной теме sidebar-override не нужен.
+  - Переключатель: «⋮ → Settings → Appearance» (встроенный механизм
+    Streamlit, без кастомных toggle-кнопок и CSS). Дефолт — системная тема.
+  - Pytest зелёный (**111 PASSED, 1 SKIPPED**), config парсится без warnings.
 - [x] **1.5b-fix4 Двойное тире в первой строке блока условий оплаты** (2026-04-25):
   - **Диагноз:** параграф `{{ payment_terms_block }}` в шаблоне наследовал
     стиль списка (`numPr`) → Word рисовал list-маркер (тире) перед первой

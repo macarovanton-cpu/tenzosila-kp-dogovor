@@ -1,13 +1,39 @@
-[theme]
-base = "dark"
-primaryColor = "#2E7FD9"
-backgroundColor = "#0F1419"
-secondaryBackgroundColor = "#1A2028"
-textColor = "#E8EAED"
+# Двухтемная конфигурация: пользователь переключает через "⋮ → Settings → Appearance".
+# Дефолт следует системной теме браузера/ОС.
+# Shared-настройки (шрифты, радиусы, бренд-акцент) — в [theme].
+# Цветовые палитры — в [theme.light] / [theme.dark].
 
+[theme]
 font = "PT Sans:https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
 headingFont = "PT Sans Narrow:https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@700&display=swap"
 
 baseRadius = "6px"
 buttonRadius = "6px"
 showSidebarBorder = true
+
+# Бренд-акцент Тензосилы (для warning/error badges и semantic-цветов)
+orangeColor = "#D04514"
+
+# === ТЁМНАЯ ТЕМА (текущая, рабочая — сохранена как есть) ===
+[theme.dark]
+primaryColor = "#2E7FD9"
+backgroundColor = "#0F1419"
+secondaryBackgroundColor = "#1A2028"
+textColor = "#E8EAED"
+linkColor = "#2E7FD9"
+
+# === СВЕТЛАЯ ТЕМА (тёплый off-white в духе Claude.ai) ===
+[theme.light]
+primaryColor = "#2E7FD9"
+backgroundColor = "#F5F4ED"
+secondaryBackgroundColor = "#EBEAE2"
+textColor = "#2D2D2A"
+linkColor = "#2E7FD9"
+borderColor = "#D6D4C8"
+
+# Sidebar светлой темы — чуть темнее основного фона для отделения
+[theme.light.sidebar]
+backgroundColor = "#EBEAE2"
+secondaryBackgroundColor = "#F5F4ED"
+textColor = "#2D2D2A"
+borderColor = "#D6D4C8"
