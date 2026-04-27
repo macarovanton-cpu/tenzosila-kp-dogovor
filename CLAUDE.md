@@ -41,7 +41,11 @@ pytest tests/ -v
 - Type hints везде. Комментарии на русском, имена на английском.
 - Файлы ≤200 строк, при разрастании — разбивай.
 - Новые зависимости в requirements.txt — только с моего одобрения.
-- Git: Conventional Commits на русском (`feat: ...`, `fix: ...`). Один коммит = один шаг из STATUS.md.
+- Git: Conventional Commits на русском (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `test:`). Один коммит = один шаг из STATUS.md.
+- Code сам делает `git add` и `git commit` после закрытия каждого блока работы.
+- Code **НЕ делает `git push`** — пуш только по явному запросу пользователя.
+- Code **НЕ создаёт новые ветки** — работа в `main`.
+- Перед коммитом: `pytest tests/` должен пройти. Если красное — не коммитить.
 
 ## Не делать без согласования
 Битрикс-интеграцию, БД, ORM, сложные валидации ФИО/email (MVP — хватает непустоты), переписывание JSON в data/, правки в 03_knowledge_base/.
@@ -50,5 +54,10 @@ pytest tests/ -v
 ВЕСТА — автовесы Тензосилы. Линейки в MVP: С, СЛ, Ф, ФЛ, П. Обозначение: ВЕСТА-[линейка]-[max_т]-[длина_м]-[Ц]. Терминология — `03_knowledge_base/spravochnik_vesta_fixed.md`.
 
 ## Skills
-   Для работы со Streamlit использовать установленный скилл streamlit/agent-skills 
-   (в ~/.claude/skills/streamlit/). Он покрывает современные API, кэширование, layouts.
+
+Для работы со Streamlit используй установленный скилл в `~/.claude/skills/streamlit/`. Главные материалы:
+- `~/.claude/skills/streamlit/AGENTS.md` — обзор скилла
+- `~/.claude/skills/streamlit/developing-with-streamlit/` — паттерны разработки
+- `~/.claude/skills/streamlit/template/` — шаблоны компонентов
+
+При правке Streamlit-компонентов в `src/ui/` — сначала свериться с актуальными API из этих материалов, не работать "по памяти".
