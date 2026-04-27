@@ -44,11 +44,12 @@ def render_header(state: dict, managers: dict, spec_items: list[dict]) -> None:
         st.caption(f"Действует до: **{valid_until.strftime('%d.%m.%Y')}**")
     with row1[3]:
         st.number_input(
-            "Срок исполнения проекта, рабочих дней",
+            "Срок исполнения, раб. дней",
             min_value=5, max_value=70, step=1,
             key="total_term_days",
             on_change=_on_term_change,
             help=(
+                "Срок исполнения проекта в рабочих днях. "
                 f"Дефолт по составу: {default_term} дн. "
                 "База 20 + 5 (монтаж/поверка) + 5 (ОРИОН) + 10 (фундамент). "
                 "Менеджер может переопределить вручную."
