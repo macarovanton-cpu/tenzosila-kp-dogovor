@@ -37,3 +37,8 @@ secrets.json
 
 # Claude Code (локальные логи сессии, в репо не нужны)
 .claude/
+# Сырьё описаний типа — общедоступно на all-pribors.ru, в репо не нужно
+tenzosila-raw/product-types/
+tenzosila-raw/*.tar.gz
+tenzosila-raw/download_otypes.py
+tenzosila-raw/requirements.txt
