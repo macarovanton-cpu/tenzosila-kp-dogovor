@@ -23,7 +23,7 @@ from src.state import on_cascade_change
 
 
 def render_model_section(state: dict, models_json: dict, prices: dict) -> None:
-    st.subheader("🏗️ Модель")
+    st.subheader(":material/tune: Модель")
     st.caption("Выберите линейку, тоннаж и длину")
 
     # Линейка
@@ -82,21 +82,27 @@ def render_model_section(state: dict, models_json: dict, prices: dict) -> None:
 
     model = get_model_by_id(models_json, state["model_id"])
 
-    has_dual = bool(model and model.get("dual_range"))
-    if not has_dual and st.session_state.get("is_dual_range"):
-        st.session_state["is_dual_range"] = False
-    st.checkbox(
-        "Двухдиапазонные весы",
-        key="is_dual_range",
-        disabled=not has_dual,
-        help=(
-            "Для этой модели двухдиапазонная конфигурация не предусмотрена"
-            if not has_dual
-            else "Включает многодиапазонный режим (W1/W2) согласно Таблице 6 "
-            "описания типа"
-        ),
-    )
-    st.caption(_render_metrology_caption(model, st.session_state.get("is_dual_range", False)))
+    with st.container(border=True):
+        st.markdown(
+            ":material/info: **Влияет на стоимость и метрологию**"
+        )
+        has_dual = bool(model and model.get("dual_range"))
+        if not has_dual and st.session_state.get("is_dual_range"):
+            st.session_state["is_dual_range"] = False
+        st.checkbox(
+            "Двухдиапазонные весы",
+            key="is_dual_range",
+            disabled=not has_dual,
+            help=(
+                "Для этой модели двухдиапазонная конфигурация не предусмотрена"
+                if not has_dual
+                else "Включает многодиапазонный режим (W1/W2) согласно "
+                "Таблице 6 описания типа"
+            ),
+        )
+        st.caption(_render_metrology_caption(
+            model, st.session_state.get("is_dual_range", False)
+        ))
 
     _render_model_card(model, models_json, line)
 

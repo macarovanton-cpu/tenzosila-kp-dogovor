@@ -25,7 +25,7 @@ def render_options_section(
     models_json: dict,
     options_meta: dict,
 ) -> None:
-    st.subheader("➕ Опции и услуги")
+    st.subheader(":material/add_circle: Опции и услуги")
     st.caption("Фундамент, монтаж, доставка, поверка и дополнительные услуги")
     line = state.get("model_line", "С")
     length = int(state.get("model_length", 18))

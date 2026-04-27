@@ -7,6 +7,7 @@ import streamlit as st
 
 from src.data_loader import get_default_manager_id, get_manager_by_id
 from src.spec_builder import calculate_default_term_days
+from src.utils.format import format_phone
 
 
 def _on_term_change() -> None:
@@ -71,11 +72,17 @@ def render_header(state: dict, managers: dict, spec_items: list[dict]) -> None:
             key="manager_id",
         )
     with row2[1]:
-        st.text_input("Название клиента", key="client_name")
+        st.text_input(
+            "Название клиента",
+            key="client_name",
+            placeholder="Например: ООО «Ромашка» или АО «Завод Кировский»",
+        )
 
     # Контактная подпись менеджера под строкой 2
     mgr = get_manager_by_id(managers, state["manager_id"])
     if mgr:
+        phone_fmt = format_phone(mgr.get("phone", ""))
+        email = mgr.get("email", "")
         st.caption(
-            f"📞 {mgr.get('phone', '')} · ✉️ {mgr.get('email', '')}"
+            f":material/call: {phone_fmt} | :material/mail: {email}"
         )

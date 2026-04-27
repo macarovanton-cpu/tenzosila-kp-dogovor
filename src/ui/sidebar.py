@@ -1,8 +1,11 @@
 """Sticky-sidebar: итоги, сроки, валидация, кнопка генерации, брендовый футер."""
 from __future__ import annotations
 
+from datetime import timedelta
+
 import streamlit as st
 
+from src.config import VAT_RATE
 from src.generators.kp_generator import build_filename, generate_kp
 from src.utils.format import fmt_rub
 
@@ -18,43 +21,67 @@ def render_sidebar(
     prices: dict,
 ) -> None:
     with st.sidebar:
-        st.subheader("📋 Итоги")
+        st.subheader(":material/receipt_long: Итоги")
 
         with st.container(border=True):
             st.metric("ИТОГО с НДС", fmt_rub(totals["with_vat"]))
+            st.markdown(
+                "<div style='font-size: 1.4rem; font-weight: 400; "
+                "margin-top: -10px; opacity: 0.85;'>"
+                f"Без НДС: <strong>{fmt_rub(totals['without_vat'])}</strong></div>",
+                unsafe_allow_html=True,
+            )
         st.caption(
-            f"Без НДС: {fmt_rub(totals['without_vat'])}  ·  "
-            f"НДС 22%: {fmt_rub(totals['vat'])}"
+            f"в т.ч. НДС {int(VAT_RATE * 100)}%: {fmt_rub(totals['vat'])}",
+            help="Текущая ставка НДС в РФ с 01.01.2026 — 22%. "
+                 "Задаётся через VAT_RATE в src/config.py.",
         )
 
         st.divider()
 
-        c3, c4 = st.columns(2)
-        with c3:
-            st.metric("🔨 Исполнение", f"{term_days} дн.")
-        with c4:
-            st.metric("📅 Действует", f"{state['kp_valid_days']} дн.")
-        st.caption(f"от {state['kp_date'].strftime('%d.%m.%Y')}")
-
-        if payment_preview:
-            with st.expander("💸 Условия оплаты", expanded=False):
-                st.markdown(payment_preview)
+        valid_until = state["kp_date"] + timedelta(
+            days=int(state["kp_valid_days"])
+        )
+        st.markdown(
+            f":material/event_available: **Действует до:** "
+            f"{valid_until.strftime('%d.%m.%Y')}"
+        )
+        st.markdown(
+            f":material/build: **Срок изготовления:** {term_days} раб. дн."
+        )
 
         st.divider()
 
-        # Статус валидации
+        # Статус валидации — наверху, чтобы менеджер сразу видел незаполненное
         if errors:
             with st.container(border=True):
-                st.markdown(f"**🔴 Ошибки валидации ({len(errors)})**")
+                st.markdown(
+                    f"**:material/error: Ошибки валидации ({len(errors)})**"
+                )
                 for e in errors:
                     st.markdown(f"- {e}")
         if warnings:
             with st.container(border=True):
-                st.markdown(f"**🟡 Предупреждения ({len(warnings)})**")
+                st.markdown(
+                    f"**:material/warning: Предупреждения ({len(warnings)})**"
+                )
                 for w in warnings:
                     st.markdown(f"- {w}")
         if not errors and not warnings:
-            st.success("✅ Готово к генерации КП")
+            st.success(
+                "Готово к генерации КП",
+                icon=":material/check_circle:",
+            )
+
+        st.divider()
+
+        if payment_preview:
+            with st.expander(
+                "Условия оплаты",
+                icon=":material/credit_card:",
+                expanded=False,
+            ):
+                st.markdown(payment_preview)
 
         # Кнопка генерации DOCX
         _render_generate_button(state, spec_items, errors, prices)
@@ -68,7 +95,7 @@ def _render_generate_button(
     state: dict, spec_items: list[dict], errors: list[str], prices: dict
 ) -> None:
     """Кнопка «Сгенерировать КП» → реальный download_button с DOCX-байтами."""
-    label = "📄 Сгенерировать КП"
+    label = ":material/description: Сгенерировать КП"
     mime = (
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )

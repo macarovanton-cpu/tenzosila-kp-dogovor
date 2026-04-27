@@ -8,7 +8,7 @@ from src.filters import calc_default_deck_mm
 
 
 def render_construction_section(state: dict, models_json: dict) -> None:
-    """Expander «⚙️ Конструкция».
+    """Expander «Конструкция».
 
     Автогенерируемое описание (read-only) + 6 редактируемых полей.
     На цену не влияет — только для DOCX-спецификации.
@@ -21,7 +21,9 @@ def render_construction_section(state: dict, models_json: dict) -> None:
     # Первичная инициализация при пустом state (а также fallback после сброса)
     _ensure_construction_defaults(state, model, ld)
 
-    with st.expander("⚙️ Конструкция", expanded=False):
+    with st.expander(
+        "Конструкция", icon=":material/architecture:", expanded=False
+    ):
         st.markdown(_build_description_md(state, is_rail))
 
         cols = st.columns(2)

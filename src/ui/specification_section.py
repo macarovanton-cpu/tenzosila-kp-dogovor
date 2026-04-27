@@ -13,7 +13,7 @@ def render_specification_section(state: dict, spec_items: list[dict]) -> None:
     5 колонок: №, Позиция, Кол-во, Цена, Сумма. item_key скрыта.
     Редактируемые: qty и price. Правка молча пишет в spec_items_overrides.
     """
-    st.subheader("📊 Спецификация")
+    st.subheader(":material/list_alt: Спецификация")
     st.caption(
         "Итоговый состав КП с возможностью ручной корректировки перед генерацией"
     )
