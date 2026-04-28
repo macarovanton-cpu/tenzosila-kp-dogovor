@@ -442,127 +442,6 @@
       "notes": "Цифровой вариант с ADC. Аналоговые параметры (Rin/Rout, Uout) не нормированы. IP69K — опциональное исполнение."
     },
     {
-      "manufacturer": "CAS",
-      "model": "WBK-C3",
-      "registration_number": "56685-14",
-      "type": "analog",
-      "accuracy_class": "C3",
-      "n_max": 3000,
-      "v_min_divisor": 6000,
-      "max_load_options_t": [
-        10,
-        20,
-        25,
-        30,
-        50
-      ],
-      "max_load_min_t": 10,
-      "max_load_max_t": 50,
-      "temperature_min_c": -40,
-      "temperature_max_c": 50,
-      "ip_rating": null,
-      "material": "нержавеющая или окрашенная сталь",
-      "rated_output_mv_v": "2",
-      "input_resistance_ohm": "350±3,5 или 1000±10",
-      "output_resistance_ohm": "350±3,5 или 1000±10",
-      "protection": "герметизация измерительного элемента",
-      "additional_specs": {
-        "p_lc": 0.7,
-        "e_lim_percent": 150,
-        "humidity_class": "CH",
-        "power_supply_v": "10-15",
-        "load_application": "сжатие",
-        "dimensions_mm": "Emax 10-25т: 107×84×145; Emax 30-50т: 128×100×190",
-        "weight_kg_max": "Emax 10-25т: 4; Emax 30-50т: 7,66"
-      },
-      "data_gaps": [
-        "ip_rating"
-      ],
-      "source_md": "sensors/wbk.md",
-      "notes": "Семейство WBK, исполнение для класса точности C3."
-    },
-    {
-      "manufacturer": "CAS",
-      "model": "WBK-C4",
-      "registration_number": "56685-14",
-      "type": "analog",
-      "accuracy_class": "C4",
-      "n_max": 4000,
-      "v_min_divisor": 10000,
-      "max_load_options_t": [
-        10,
-        20,
-        25,
-        30,
-        50
-      ],
-      "max_load_min_t": 10,
-      "max_load_max_t": 50,
-      "temperature_min_c": -20,
-      "temperature_max_c": 50,
-      "ip_rating": null,
-      "material": "нержавеющая или окрашенная сталь",
-      "rated_output_mv_v": "2",
-      "input_resistance_ohm": "350±3,5 или 1000±10",
-      "output_resistance_ohm": "350±3,5 или 1000±10",
-      "protection": "герметизация измерительного элемента",
-      "additional_specs": {
-        "p_lc": 0.7,
-        "e_lim_percent": 150,
-        "humidity_class": "CH",
-        "power_supply_v": "10-15",
-        "load_application": "сжатие",
-        "dimensions_mm": "Emax 10-25т: 107×84×145; Emax 30-50т: 128×100×190",
-        "weight_kg_max": "Emax 10-25т: 4; Emax 30-50т: 7,66"
-      },
-      "data_gaps": [
-        "ip_rating"
-      ],
-      "source_md": "sensors/wbk.md",
-      "notes": "Семейство WBK, исполнение для класса точности C4 (зауженный температурный диапазон)."
-    },
-    {
-      "manufacturer": "CAS",
-      "model": "WBKC-C3",
-      "registration_number": "56685-14",
-      "type": "analog",
-      "accuracy_class": "C3",
-      "n_max": 3000,
-      "v_min_divisor": 6000,
-      "max_load_options_t": [
-        6,
-        10,
-        20,
-        25,
-        30
-      ],
-      "max_load_min_t": 6,
-      "max_load_max_t": 30,
-      "temperature_min_c": -40,
-      "temperature_max_c": 40,
-      "ip_rating": null,
-      "material": "нержавеющая или окрашенная сталь",
-      "rated_output_mv_v": "2",
-      "input_resistance_ohm": "350±3,5 или 700±7",
-      "output_resistance_ohm": "350±3,5 или 700±7",
-      "protection": "герметизация измерительного элемента",
-      "additional_specs": {
-        "p_lc": 0.7,
-        "e_lim_percent": 150,
-        "humidity_class": "CH",
-        "power_supply_v": "10-15",
-        "load_application": "сжатие",
-        "form": "цилиндрический",
-        "dimensions_mm": "Ø76×150",
-        "weight_kg_max": 4
-      },
-      "data_gaps": [
-        "ip_rating"
-      ],
-      "source_md": "sensors/wbk.md",
-      "notes": "Подсемейство WBKC — цилиндрический корпус, отличается от WBK формой и установочными размерами."
-    },
-    {
       "manufacturer": "Тензо-М",
       "model": "МВ-150",
       "registration_number": "44780-10",
@@ -615,13 +494,13 @@
       "model": "ТИТАН 3ЦС",
       "registration_number": "83635-21",
       "compatible_sensors": "digital",
-      "max_sensors_count": null,
+      "max_sensors_count": 16,
       "power_ac_v": "195.5-253",
       "power_ac_frequency_hz": "49-51",
       "power_dc_v": "4-12",
       "temperature_min_c": -10,
       "temperature_max_c": 40,
-      "ip_rating": null,
+      "ip_rating": "IP65",
       "interfaces": [
         "rs232",
         "rs485",
@@ -647,12 +526,9 @@
         "body_material": "сталь",
         "interfaces_raw": "RS232, RS422/485, USB, WiFi, Ethernet/IP"
       },
-      "data_gaps": [
-        "ip_rating",
-        "max_sensors_count"
-      ],
+      "data_gaps": [],
       "source_md": "terminals/titan-new.md",
-      "notes": "Модификация ТИТАН Ц (3Ц = подключение цифровых датчиков; С = стальной корпус; индекс Ж отсутствует — светодиодный дисплей)."
+      "notes": "Модификация ТИТАН Ц (3Ц = подключение цифровых датчиков; С = стальной корпус; индекс Ж отсутствует — светодиодный дисплей). IP взят из каталога производителя (zemicusa.info), в ОТ не указан."
     },
     {
       "manufacturer": "Тензосила",
@@ -667,7 +543,7 @@
       "power_dc_v": "4-12",
       "temperature_min_c": -10,
       "temperature_max_c": 40,
-      "ip_rating": null,
+      "ip_rating": "IP54",
       "interfaces": [
         "rs232",
         "rs485",
@@ -695,11 +571,10 @@
         "interfaces_raw": "RS232, RS422/485, USB, WiFi, Ethernet/IP"
       },
       "data_gaps": [
-        "ip_rating",
         "max_sensors_count"
       ],
       "source_md": "terminals/titan-new.md",
-      "notes": "Базовая модификация ТИТАН: индекс Ц отсутствует — только аналоговые датчики; индекс Ж отсутствует — светодиодный дисплей; индекс С отсутствует — пластиковый корпус."
+      "notes": "Базовая модификация ТИТАН: индекс Ц отсутствует — только аналоговые датчики; индекс Ж отсутствует — светодиодный дисплей; индекс С отсутствует — пластиковый корпус. IP взят из каталога производителя (zemicusa.info), в ОТ не указан."
     },
     {
       "manufacturer": "Тензосила",
@@ -714,7 +589,7 @@
       "power_dc_v": "4-12",
       "temperature_min_c": -10,
       "temperature_max_c": 40,
-      "ip_rating": null,
+      "ip_rating": "IP65",
       "interfaces": [
         "rs232",
         "rs485",
@@ -742,11 +617,10 @@
         "interfaces_raw": "RS232, RS422/485, USB, WiFi, Ethernet/IP"
       },
       "data_gaps": [
-        "ip_rating",
         "max_sensors_count"
       ],
       "source_md": "terminals/titan-new.md",
-      "notes": "Модификация ТИТАН с индексом С — стальной корпус. Аналоговый вход, светодиодный дисплей."
+      "notes": "Модификация ТИТАН с индексом С — стальной корпус. Аналоговый вход, светодиодный дисплей. IP взят из каталога производителя (zemicusa.info), в ОТ не указан."
     },
     {
       "manufacturer": "Метра",
@@ -761,7 +635,7 @@
       "power_dc_v": "10-30",
       "temperature_min_c": -35,
       "temperature_max_c": 40,
-      "ip_rating": null,
+      "ip_rating": "IP65",
       "interfaces": [
         "rs232",
         "rs485",
@@ -787,19 +661,18 @@
         "interfaces_raw": "RS232, RS485, USB, Ethernet, WiFi"
       },
       "data_gaps": [
-        "ip_rating",
         "max_sensors_count",
         "power_ac_v",
         "power_ac_frequency_hz"
       ],
       "source_md": "terminals/microsim.md",
-      "notes": "Производитель: ООО НПП «Метра», Россия. Питание только от DC-адаптера (адаптер из сети 220 В / 50 Гц штатно)."
+      "notes": "Производитель: ООО НПП «Метра», Россия. Питание только от DC-адаптера (адаптер из сети 220 В / 50 Гц штатно). IP взят из каталога производителя (metra.ru), в ОТ не указан."
     }
   ],
   "extracted_at": "2026-04-27",
   "source": "tenzosila-raw/product-types-md/",
   "source_count": {
-    "sensors": 12,
+    "sensors": 9,
     "terminals": 4
   }
 }
