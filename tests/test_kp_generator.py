@@ -365,6 +365,224 @@ def test_payment_block_paragraph_has_no_list_numbering(prices):
     )
 
 
+# --- per-item срок исполнения с vMerge ---
+
+
+def test_generated_docx_term_days_with_vmerge(prices):
+    """Полный набор позиций при total=30 → vMerge для весов+опций, отдельные
+    ячейки для фундамента/монтажа/поверки/доставки.
+
+    Ожидается:
+      - 1-я content-row (модель): cell[2].text="24" + <w:vMerge w:val="restart"/>
+      - 2-я / 3-я (frame, fence): cell[2].text="" + <w:vMerge/> (continue)
+      - 4-я (foundation): "24", без vMerge
+      - 5-я (install): "4", без vMerge
+      - 6-я (verification): "1", без vMerge
+      - 7-я (delivery): "1", без vMerge
+    """
+    state = _state(
+        total_term_days=30,
+        options={
+            "frame_18": {
+                "enabled": True, "price": 130_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 130_000, "dealer_is_synthetic": False,
+                "block": "frames",
+            },
+            "fence_norma_18": {
+                "enabled": True, "price": 128_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 128_000, "dealer_is_synthetic": False,
+                "block": "fences",
+            },
+            "foundation_s_f_18": {
+                "enabled": True, "price": 280_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 280_000, "dealer_is_synthetic": False,
+                "block": "foundations",
+            },
+            "install_default": {
+                "enabled": True, "price": 200_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 200_000, "dealer_is_synthetic": False,
+                "block": "install",
+            },
+            "verification_default": {
+                "enabled": True, "price": 30_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 30_000, "dealer_is_synthetic": False,
+                "block": "verification",
+            },
+            "delivery_default": {
+                "enabled": True, "price": 70_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 70_000, "dealer_is_synthetic": False,
+                "block": "delivery",
+            },
+        },
+    )
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+
+    spec_table = None
+    for t in doc.tables:
+        if t.rows[0].cells[0].text.strip() == "Наименование":
+            spec_table = t
+            break
+    assert spec_table is not None, "Таблица спецификации не найдена"
+
+    # Читаем напрямую из XML: row.cells «склеивает» vMerge-ячейки и
+    # возвращает дубликаты — это сбивает проверку.
+    W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    qn = lambda tag: f"{{{W}}}{tag}"  # noqa: E731
+
+    trs = spec_table._tbl.findall(qn("tr"))
+    assert len(trs) >= 9, f"Ожидалось ≥9 строк, получено {len(trs)}"
+
+    def col2_info(tr):
+        tcs = tr.findall(qn("tc"))
+        tc = tcs[2]
+        text = "".join(t.text or "" for t in tc.iter(qn("t")))
+        tcPr = tc.find(qn("tcPr"))
+        vm = tcPr.find(qn("vMerge")) if tcPr is not None else None
+        if vm is None:
+            return text, "none"
+        val = vm.get(qn("val"))
+        return text, "restart" if val == "restart" else "continue"
+
+    # Порядок content-rows совпадает со spec_items:
+    # vesta-с-80-18 (модель), frame_18, fence_norma_18, foundation_s_f_18,
+    # install_default, delivery_default, verification_default
+    # (OPTION_BLOCKS_ORDER: install → delivery → verification).
+
+    # row 1 = модель: vMerge=restart, value="24"
+    text, vm = col2_info(trs[1])
+    assert vm == "restart"
+    assert text == "24"
+
+    # row 2 = frame, row 3 = fence: vMerge=continue, value=""
+    text, vm = col2_info(trs[2])
+    assert vm == "continue"
+    assert text == ""
+    text, vm = col2_info(trs[3])
+    assert vm == "continue"
+    assert text == ""
+
+    # row 4 = foundation: без vMerge, value="24"
+    text, vm = col2_info(trs[4])
+    assert vm == "none"
+    assert text == "24"
+
+    # row 5 = install: без vMerge, value="4"
+    text, vm = col2_info(trs[5])
+    assert vm == "none"
+    assert text == "4"
+
+    # row 6 = delivery: без vMerge, value="1"
+    text, vm = col2_info(trs[6])
+    assert vm == "none"
+    assert text == "1"
+
+    # row 7 = verification: без vMerge, value="1"
+    text, vm = col2_info(trs[7])
+    assert vm == "none"
+    assert text == "1"
+
+    # Маркеров в спек-таблице нет
+    full_text = "".join(
+        t.text or "" for t in spec_table._tbl.iter(qn("t"))
+    )
+    assert "⟦MERGE" not in full_text
+
+
+def test_generated_docx_no_foundation_term_days(prices):
+    """Без фундамента: T_осталось=24 (фиксированные те же 6), весы=24."""
+    state = _state(
+        total_term_days=30,
+        options={
+            "frame_18": {
+                "enabled": True, "price": 130_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 130_000, "dealer_is_synthetic": False,
+                "block": "frames",
+            },
+            "install_default": {
+                "enabled": True, "price": 200_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 200_000, "dealer_is_synthetic": False,
+                "block": "install",
+            },
+            "verification_default": {
+                "enabled": True, "price": 30_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 30_000, "dealer_is_synthetic": False,
+                "block": "verification",
+            },
+            "delivery_default": {
+                "enabled": True, "price": 70_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 70_000, "dealer_is_synthetic": False,
+                "block": "delivery",
+            },
+        },
+    )
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+
+    spec_table = None
+    for t in doc.tables:
+        if t.rows[0].cells[0].text.strip() == "Наименование":
+            spec_table = t
+            break
+    assert spec_table is not None
+
+    W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    qn = lambda tag: f"{{{W}}}{tag}"  # noqa: E731
+
+    # Модель в первой content-row → "24"
+    trs = spec_table._tbl.findall(qn("tr"))
+    tcs = trs[1].findall(qn("tc"))
+    text = "".join(t.text or "" for t in tcs[2].iter(qn("t")))
+    assert text == "24"
+
+
+def test_generate_kp_raises_term_too_small(prices):
+    """total_term_days=3 при полном наборе → TermDaysTooSmallError из generate_kp."""
+    import pytest as _pytest
+
+    from src.term_days import TermDaysTooSmallError
+
+    state = _state(
+        total_term_days=3,
+        options={
+            "install_default": {
+                "enabled": True, "price": 200_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 200_000, "dealer_is_synthetic": False,
+                "block": "install",
+            },
+            "verification_default": {
+                "enabled": True, "price": 30_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 30_000, "dealer_is_synthetic": False,
+                "block": "verification",
+            },
+            "delivery_default": {
+                "enabled": True, "price": 70_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 70_000, "dealer_is_synthetic": False,
+                "block": "delivery",
+            },
+        },
+    )
+    with _pytest.raises(TermDaysTooSmallError) as exc:
+        generate_kp(state, prices)
+    d = exc.value.details
+    assert d["total"] == 3
+    assert d["min"] == 7
+    assert d["install"] == 4
+
+
 def test_validity_paragraph_uses_pt_sans(prices):
     """Параграф «Срок действия КП» использует PT Sans (не Times New Roman) и жирный."""
     state = _state()

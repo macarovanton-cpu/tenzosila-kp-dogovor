@@ -1,8 +1,8 @@
 # Статус проекта Tenzosila_KP_Dogovor
 
-**Последнее обновление:** 2026-04-27
-**Текущая фаза:** Фаза 1 — шаги 1.1–1.4 + брендирование + UX + 1.5a + 1.5b + 1.5b-fix + 1.5b-fix2 + 1.5b-fix3 + 1.5b-fix4 + микро-фикс шрифт «Срок действия» + двухтемная поддержка + UX-полировка по итогам ревью UI закрыты. Следующий шаг — 1.6 (тестирование на реальных КП) и 1.7 (деплой).
-**Готовность Фазы 1:** ~88%
+**Последнее обновление:** 2026-04-29
+**Текущая фаза:** Фаза 1 — шаги 1.1–1.4 + брендирование + UX + 1.5a + 1.5b + 1.5b-fix + 1.5b-fix2 + 1.5b-fix3 + 1.5b-fix4 + микро-фикс шрифт «Срок действия» + двухтемная поддержка + UX-полировка по итогам ревью UI + per-item срок исполнения с vMerge закрыты. Следующий шаг — 1.6 (тестирование на реальных КП) и 1.7 (деплой).
+**Готовность Фазы 1:** ~90%
 
 ---
 
@@ -95,6 +95,50 @@
     без ошибок (HTTP 200, smoke-проверка через curl).
   - Файлы: `src/ui/sidebar.py`, `src/ui/header.py`, `src/ui/model_section.py`,
     `src/utils/format.py` + замена иконок в 5 секциях UI.
+- [x] **Per-item «Срок исполнения, рабочих дней» с vMerge в DOCX** (2026-04-29):
+  - **Бизнес-модель.** Параллельная: T_фиксированных = (4 если монтаж) +
+    (1 если поверка) + (1 если доставка), T_осталось = T_общий −
+    T_фиксированных. T_весы = T_фундамент = T_parallel_aux = T_осталось.
+    customer_side не вычитается из фиксированных, ячейка пустая.
+    T_общий ≤ T_фиксированных → `TermDaysTooSmallError` блокирует
+    кнопку «Сгенерировать КП».
+  - **Новый модуль `src/term_days.py`** — вся логика срока (в т.ч.
+    переехавшие из spec_builder `calculate_default_term_days` и
+    `resolve_term_days`). Константа `TERM_ROLE_MAP` явно классифицирует
+    item_key → role (scales_main/scales_aux/parallel_aux/foundation/
+    install/verification/delivery). Функция
+    `calculate_term_days_per_item(spec_items, total_days)` возвращает
+    список `{item_key, value, merge}`.
+  - **Перестановка `OPTION_BLOCKS_ORDER`** — блок `foundations`
+    перенесён в конец перед install/delivery/verification, чтобы все
+    scales-aux опции (рама, ограждение, пандусы, ОРИОН, misc, canopy,
+    construction_works и т.п.) шли непрерывно после автовесов и
+    сливались в один vMerge-блок в DOCX. Меняет порядок строк в spec-
+    таблице и UI-секции опций.
+  - **Постобработка DOCX в `src/generators/spec_vmerge.py`** — после
+    `doc.render(context)` декодирует маркеры `⟦MERGE:restart:N⟧` и
+    `⟦MERGE:continue⟧` в третьей колонке, ставит
+    `<w:vMerge w:val="restart"/>` или `<w:vMerge/>` в `<w:tcPr>`.
+    Работа на уровне `<w:tr>`/`<w:tc>` — `row.cells` python-docx
+    «склеивает» merged-ячейки и возвращает дубликаты при чтении после
+    модификации.
+  - **`src/spec_builder.py`:** добавлено поле `customer_side` в каждый
+    spec_item; функции срока удалены (переехали в `term_days.py`).
+  - **`src/ui/sidebar.py`:** `_render_generate_button` ловит
+    `TermDaysTooSmallError` и показывает понятный `st.error`
+    («Общий срок N дн. меньше минимального M дн. (доставка 1 +
+    монтаж 4 + поверка 1)»).
+  - **Тесты:** `test_term_days_per_item.py` — 13 юнит-тестов (полный
+    набор, customer_side install/delivery, T<=fixed, parallel_aux,
+    classify_term_role на 17 ключах, граница T=fixed+1).
+    `test_kp_generator.py` — 3 интеграционных (vMerge restart/continue
+    в XML, отсутствие маркеров в готовом DOCX, без фундамента,
+    `TermDaysTooSmallError` из `generate_kp` при total=3).
+    Импорты в `test_spec_builder.py`/`test_term_days.py` обновлены.
+    **130 PASSED, 1 SKIPPED.**
+  - **Шаблон `templates/kp_template.docx` не трогали** —
+    `{{ item.term_days }}` остался прежним, vMerge ставится
+    постобработкой.
 - [x] **Двухтемная поддержка (light + dark)** (2026-04-27):
   - `.streamlit/config.toml` переписан в dual-mode: `[theme.dark]` сохраняет
     текущую палитру (`#0F1419` / `#1A2028` / `#E8EAED`, primary `#2E7FD9`),

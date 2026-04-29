@@ -1,7 +1,7 @@
 """Тесты calculate_default_term_days — дефолт срока проекта по составу."""
 from __future__ import annotations
 
-from src.spec_builder import calculate_default_term_days
+from src.term_days import calculate_default_term_days
 
 
 def test_default_term_days_only_scales():

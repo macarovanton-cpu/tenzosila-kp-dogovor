@@ -19,11 +19,12 @@ from src.data_loader import (
     load_payment_terms,
 )
 from src.generators.payment_renderer import render_payment_block
+from src.generators.spec_vmerge import apply_spec_vmerge, encode_term_days_marker
 from src.spec_builder import (
     build_construction_description,
     build_spec_items,
-    resolve_term_days,
 )
+from src.term_days import calculate_term_days_per_item, resolve_term_days
 from src.utils.format import fmt_int_spaces, pluralize
 
 TEMPLATE_PATH: Path = Path(__file__).resolve().parent.parent.parent / "templates" / "kp_template.docx"
@@ -84,12 +85,18 @@ def build_template_context(state: dict[str, Any], prices: dict) -> dict[str, Any
     is_dual = bool(state.get("is_dual_range", False))
 
     spec_items = build_spec_items(state, prices, models_json)
+    total_term = resolve_term_days(spec_items, state)
+
+    # Срок исполнения per-item — список той же длины, что spec_items.
+    # Маркеры vMerge ("restart"/"continue") кодируем в текст ячейки;
+    # apply_spec_vmerge() в generate_kp() заменит их на XML <w:vMerge>.
+    per_item_terms = calculate_term_days_per_item(spec_items, total_term)
 
     # Для шаблона передаём только те поля, что есть в spec-таблице (3 колонки).
     # Многострочное имя (модель + датчики/терминал/ограждение) преобразуем в
     # RichText: первая строка обычным размером, остальные 9pt.
     spec_items_fmt = []
-    for item in spec_items:
+    for item, term_info in zip(spec_items, per_item_terms):
         name = item["name"]
         if isinstance(name, str) and "\n" in name:
             name_value = _spec_name_to_richtext(name)
@@ -98,11 +105,12 @@ def build_template_context(state: dict[str, Any], prices: dict) -> dict[str, Any
         spec_items_fmt.append({
             "name": name_value,
             "price": fmt_int_spaces(item["total"]),
-            "term_days": "",
+            "term_days": encode_term_days_marker(
+                term_info["value"] or "", term_info["merge"]
+            ),
         })
 
     total_price = sum(item["total"] for item in spec_items)
-    total_term = resolve_term_days(spec_items, state)
 
     # Платформа
     platform_size = (
@@ -177,6 +185,10 @@ def generate_kp(state: dict[str, Any], prices: dict) -> bytes:
     doc = DocxTemplate(str(TEMPLATE_PATH))
     context = build_template_context(state, prices)
     doc.render(context)
+
+    # Постобработка: заменить маркеры ⟦MERGE:...⟧ в колонке сроков на
+    # реальный текст + <w:vMerge> в tcPr. См. spec_vmerge.py.
+    apply_spec_vmerge(doc.docx)
 
     buf = BytesIO()
     doc.save(buf)

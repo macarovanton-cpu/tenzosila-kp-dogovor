@@ -135,6 +135,7 @@ def build_spec_items(
             "price": price,
             "total": price * qty,
             "is_overridden": is_ov,
+            "customer_side": False,
             "payment_group": resolve_payment_group(model_id),
         })
 
@@ -165,45 +166,11 @@ def build_spec_items(
                 "price": price,
                 "total": price * qty,
                 "is_overridden": is_ov,
+                "customer_side": bool(opt.get("customer_side", False)),
                 "payment_group": resolve_payment_group(key),
             })
 
     return items
-
-
-def calculate_default_term_days(spec_items: list[dict]) -> int:
-    """Дефолтный срок проекта по составу спецификации.
-
-    База 20 + 5 (монтаж/поверка) + 5 (ОРИОН) + 10 (фундамент).
-    Доставка и опции (рамы/ограждения/навес/...) на срок не влияют.
-    """
-    days = 20
-    has_install_or_verification = False
-    has_orion = False
-    has_foundation = False
-    for it in spec_items:
-        key = it.get("item_key", "")
-        if key in ("install_default", "verification_default"):
-            has_install_or_verification = True
-        if key.startswith("orion_"):
-            has_orion = True
-        if key.startswith("foundation_"):
-            has_foundation = True
-    if has_install_or_verification:
-        days += 5
-    if has_orion:
-        days += 5
-    if has_foundation:
-        days += 10
-    return days
-
-
-def resolve_term_days(spec_items: list[dict], state: dict) -> int:
-    """Срок проекта: ручной из state (если задан), иначе дефолт по составу."""
-    manual = state.get("total_term_days")
-    if manual is not None:
-        return int(manual)
-    return calculate_default_term_days(spec_items)
 
 
 def build_construction_description(state: dict) -> str:

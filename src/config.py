@@ -30,18 +30,21 @@ MIN_COEFF_B: float = 0.6               # нижняя граница для кл
 LINES: list[str] = ["С", "СЛ", "Ф", "ФЛ", "П"]
 LENGTHS: list[int] = [18, 20, 22, 24]
 
-# Порядок блоков опций в UI (13 штук)
+# Порядок блоков опций в UI (13 штук).
+# Блок `foundations` вынесен в конец перед сервисными (install/delivery/
+# verification) — это позволяет в DOCX слить весы и все scales-aux опции в
+# один vMerge, а фундамент показать отдельной строкой ниже.
 OPTION_BLOCKS_ORDER: list[str] = [
     "ramps",
     "frames",
     "fences",
     "hatches",
-    "foundations",
     "construction_works",
     "concrete_on_frame",
     "canopy",
     "pak_orion",
     "misc",
+    "foundations",
     "install",
     "delivery",
     "verification",

@@ -6,7 +6,7 @@ from datetime import timedelta
 import streamlit as st
 
 from src.data_loader import get_default_manager_id, get_manager_by_id
-from src.spec_builder import calculate_default_term_days
+from src.term_days import calculate_default_term_days
 from src.utils.format import format_phone
 
 

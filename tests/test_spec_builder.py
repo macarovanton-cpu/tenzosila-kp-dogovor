@@ -5,8 +5,8 @@ from src.spec_builder import (
     build_construction_description,
     build_spec_items,
     resolve_payment_group,
-    resolve_term_days,
 )
+from src.term_days import resolve_term_days
 
 
 def _base_state() -> dict:

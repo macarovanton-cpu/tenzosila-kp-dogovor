@@ -7,6 +7,7 @@ import streamlit as st
 
 from src.config import VAT_RATE
 from src.generators.kp_generator import build_filename, generate_kp
+from src.term_days import TermDaysTooSmallError
 from src.utils.format import fmt_rub
 
 
@@ -130,6 +131,22 @@ def _render_generate_button(
             width="stretch",
             type="primary",
         )
+    except TermDaysTooSmallError as exc:
+        d = exc.details
+        msg = (
+            f"Общий срок {d['total']} дн. меньше минимального "
+            f"{d['min']} дн. (доставка {d['delivery']} + "
+            f"монтаж {d['install']} + поверка {d['verification']}). "
+            "Увеличьте срок проекта в шапке."
+        )
+        st.button(
+            label,
+            disabled=True,
+            help=msg,
+            width="stretch",
+            type="primary",
+        )
+        st.error(msg)
     except Exception as e:  # noqa: BLE001 — UI должен показать ошибку, не падать
         st.button(
             label,
