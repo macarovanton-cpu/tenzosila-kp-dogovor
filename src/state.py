@@ -74,6 +74,14 @@ def initial_state() -> dict[str, Any]:
         "payment_custom_text": "",
         # Для split_by_items: {group_id: {"prepay": int, "postpay": int}}
         "payment_split_state": {},
+        # Параметры новых вариантов оплаты (v0.4 payment_terms.json).
+        # postpay у V1/V2 derived (st.metric), не хранится в state.
+        "payment_v1_prepay": 50,
+        "payment_v2_prepay": 30,
+        "payment_v2_preship": 40,
+        # У V3 семантика days другая (срок постоплаты, не аванса) — отдельный ключ.
+        "payment_v3_days": 15,
+        "payment_v3_trigger_id": "after_installation",
     }
 
 

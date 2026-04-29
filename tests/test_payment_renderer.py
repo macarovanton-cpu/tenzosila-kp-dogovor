@@ -1,4 +1,4 @@
-"""Тесты render_payment_block: 7 пресетов и edge cases."""
+"""Тесты render_payment_block: 6 пресетов (v1/v2/v3 + prepay_100 + split + custom)."""
 from __future__ import annotations
 
 from src.generators.payment_renderer import (
@@ -18,6 +18,11 @@ def _state(preset_id: str, **kwargs) -> dict:
         "payment_percents": {},
         "payment_days": 5,
         "payment_custom_text": "",
+        "payment_v1_prepay": 50,
+        "payment_v2_prepay": 30,
+        "payment_v2_preship": 40,
+        "payment_v3_days": 15,
+        "payment_v3_trigger_id": "after_installation",
     }
     base.update(kwargs)
     return base
@@ -56,7 +61,7 @@ def test_active_groups_full_set():
     assert all(a["groups"].values())
 
 
-# --- Простые пресеты ---
+# --- prepay_100 (единственный оставшийся «простой» пресет) ---
 
 
 def test_prepay_100(payment_terms):
@@ -66,37 +71,87 @@ def test_prepay_100(payment_terms):
     assert "10 банковских дней" in text
 
 
-def test_prepay_50_postpay_50(payment_terms):
-    state = _state("prepay_50_postpay_50")
+# --- Variant 1: Аванс + Постоплата ---
+
+
+def test_v1_default_50_50(payment_terms):
+    """Дефолтные значения: prepay=50, postpay=100−50=50, days=5."""
+    state = _state("v1_prepay_postpay")
     text = render_payment_block(state, [], payment_terms)
     assert "Предоплата: 50%" in text
     assert "Доплата: 50%" in text
+    assert "5 банковских дней" in text
 
 
-def test_prepay_30_postpay_70_with_overrides(payment_terms):
+def test_v1_custom_30_70(payment_terms):
+    """Менеджер ввёл prepay=30 → postpay должен быть 70."""
+    state = _state("v1_prepay_postpay", payment_v1_prepay=30)
+    text = render_payment_block(state, [], payment_terms)
+    assert "Предоплата: 30%" in text
+    assert "Доплата: 70%" in text
+
+
+def test_v1_extreme_99_1(payment_terms):
+    """Граничный случай — 99/1."""
+    state = _state("v1_prepay_postpay", payment_v1_prepay=99)
+    text = render_payment_block(state, [], payment_terms)
+    assert "Предоплата: 99%" in text
+    assert "Доплата: 1%" in text
+
+
+# --- Variant 2: Аванс + Перед отгрузкой + Постоплата ---
+
+
+def test_v2_default_30_40_30(payment_terms):
+    """Дефолт: prepay=30, preship=40, postpay=100−70=30."""
+    state = _state("v2_prepay_preship_postpay")
+    text = render_payment_block(state, [], payment_terms)
+    assert "Предоплата: 30%" in text
+    assert "Перед отгрузкой: 40%" in text
+    assert "Доплата: 30%" in text
+
+
+def test_v2_custom_10_30_60(payment_terms):
+    """Менеджер ввёл prepay=10, preship=30 → postpay=60."""
     state = _state(
-        "prepay_30_postpay_70",
-        payment_percents={"p1": 25, "p2": 75},
+        "v2_prepay_preship_postpay",
+        payment_v2_prepay=10, payment_v2_preship=30,
     )
     text = render_payment_block(state, [], payment_terms)
-    assert "Предоплата: 25%" in text
-    assert "Доплата: 75%" in text
+    assert "Предоплата: 10%" in text
+    assert "Перед отгрузкой: 30%" in text
+    assert "Доплата: 60%" in text
 
 
-def test_postpay_100_15d(payment_terms):
-    state = _state("postpay_100_15d")
+# --- Variant 3: 100% постоплата ---
+
+
+def test_v3_default_15d_after_installation(payment_terms):
+    """Дефолт: 15 дней после монтажа."""
+    state = _state("v3_postpay_only")
     text = render_payment_block(state, [], payment_terms)
-    assert "100% оплаты в течение 5" in text
+    assert "100% оплаты в течение 15 банковских дней" in text
+    assert "после выполнения монтажа" in text
 
 
-def test_postpay_100_30d_default_days(payment_terms):
-    """Для постоплаты 30 дней — если payment_days не задан в state, берётся
-    default_days из пресета (30)."""
-    # Имитируем «дефолтный» state без явного payment_days — но в base уже есть 5.
-    # Здесь проверим, что заданный payment_days перебивает default.
-    state = _state("postpay_100_30d", payment_days=30)
+def test_v3_custom_30d_after_act(payment_terms):
+    """30 дней после подписания акта приёмки."""
+    state = _state(
+        "v3_postpay_only",
+        payment_v3_days=30, payment_v3_trigger_id="after_act",
+    )
     text = render_payment_block(state, [], payment_terms)
     assert "30 банковских дней" in text
+    assert "после подписания акта приёмки" in text
+
+
+def test_v3_after_delivery(payment_terms):
+    """trigger=after_delivery → «после доставки весов»."""
+    state = _state(
+        "v3_postpay_only", payment_v3_trigger_id="after_delivery",
+    )
+    text = render_payment_block(state, [], payment_terms)
+    assert "после доставки весов" in text
 
 
 # --- split_by_items: 4 сценария ---
@@ -228,12 +283,19 @@ def test_split_has_dash_prefix(payment_terms):
         assert line.startswith("— "), f"Missing dash prefix: {line!r}"
 
 
-def test_simple_multiline_preset_has_dash_prefix(payment_terms):
-    """Многострочные простые пресеты (50/50, 30/70): каждая строка с «— »."""
-    for preset_id in ("prepay_50_postpay_50", "prepay_30_postpay_70"):
+def test_v1_v2_have_dash_prefix(payment_terms):
+    """V1 и V2 (многострочные) — каждая строка с «— »."""
+    for preset_id in ("v1_prepay_postpay", "v2_prepay_preship_postpay"):
         state = _state(preset_id)
         text = render_payment_block(state, [], payment_terms)
         for line in text.split("\n"):
             assert line.startswith("— "), (
                 f"{preset_id}: missing dash prefix: {line!r}"
             )
+
+
+def test_v3_has_dash_prefix(payment_terms):
+    """V3 — одна строка, начинается с «— »."""
+    state = _state("v3_postpay_only")
+    text = render_payment_block(state, [], payment_terms)
+    assert text.startswith("— ")

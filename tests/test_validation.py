@@ -21,11 +21,16 @@ def _valid_state() -> dict:
         "model_length": 18,
         "model_price": 1906544,
         "options": {},
-        "payment_preset_id": "prepay_50_postpay_50",
-        "payment_percents": {"p1": 50, "p2": 50},
+        "payment_preset_id": "v1_prepay_postpay",
+        "payment_percents": {},
         "payment_days": 5,
         "payment_custom_text": "",
         "payment_split_state": {},
+        "payment_v1_prepay": 50,
+        "payment_v2_prepay": 30,
+        "payment_v2_preship": 40,
+        "payment_v3_days": 15,
+        "payment_v3_trigger_id": "after_installation",
     }
 
 
@@ -59,9 +64,48 @@ def test_model_40t_not_in_prices(prices, models_json, payment_terms, managers):
     assert any("отсутствует в прайсе" in e for e in errors)
 
 
-def test_percents_not_100_on_prepay_50_postpay_50(prices, models_json, payment_terms, managers):
+def test_v1_invalid_prepay_zero(prices, models_json, payment_terms, managers):
     state = _valid_state()
-    state["payment_percents"] = {"p1": 50, "p2": 40}
+    state["payment_preset_id"] = "v1_prepay_postpay"
+    state["payment_v1_prepay"] = 0
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
+    assert any("Предоплата" in e and "1–99" in e for e in errors)
+
+
+def test_v1_invalid_prepay_100(prices, models_json, payment_terms, managers):
+    """V1 не допускает 100% — это уже prepay_100 пресет."""
+    state = _valid_state()
+    state["payment_preset_id"] = "v1_prepay_postpay"
+    state["payment_v1_prepay"] = 100
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
+    assert any("Предоплата" in e and "1–99" in e for e in errors)
+
+
+def test_v2_invalid_sum_over_99(prices, models_json, payment_terms, managers):
+    """V2: prepay+preship>99 → нечего постоплачивать."""
+    state = _valid_state()
+    state["payment_preset_id"] = "v2_prepay_preship_postpay"
+    state["payment_v2_prepay"] = 50
+    state["payment_v2_preship"] = 50
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
+    assert any("99" in e and "превышать" in e.lower() for e in errors)
+
+
+def test_v3_invalid_days_zero(prices, models_json, payment_terms, managers):
+    state = _valid_state()
+    state["payment_preset_id"] = "v3_postpay_only"
+    state["payment_v3_days"] = 0
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
+    assert any("V3" in e or "постоплат" in e.lower() for e in errors)
+
+
+def test_split_percents_not_100(prices, models_json, payment_terms, managers):
+    """split_by_items: prepay+postpay в любой группе должны давать 100."""
+    state = _valid_state()
+    state["payment_preset_id"] = "split_by_items"
+    state["payment_split_state"] = {
+        "scales": {"prepay": 50, "postpay": 40},
+    }
     errors, _ = validate(state, prices, models_json, payment_terms, managers)
     assert any("не равна 100" in e for e in errors)
 

@@ -206,6 +206,38 @@ def _extract_first_rpr(tc):
     return None
 
 
+def _force_pt_sans_on_run(r_elem, sz_halfpt: int = 22) -> None:
+    """Принудительно установить PT Sans + размер на <w:r>.
+
+    sz_halfpt в half-points: 22 = 11pt, 18 = 9pt, 16 = 8pt.
+    rFonts ставим первым ребёнком rPr (по схеме OOXML), sz — после.
+    Существующие значения перезаписываются, не дублируются.
+    """
+    from docx.oxml import OxmlElement
+    rpr = r_elem.find(qn("rPr"))
+    if rpr is None:
+        rpr = OxmlElement("w:rPr")
+        r_elem.insert(0, rpr)
+    rfonts = rpr.find(qn("rFonts"))
+    if rfonts is None:
+        rfonts = OxmlElement("w:rFonts")
+        rpr.insert(0, rfonts)
+    rfonts.set(qn("ascii"), "PT Sans")
+    rfonts.set(qn("hAnsi"), "PT Sans")
+    rfonts.set(qn("cs"), "PT Sans")
+    sz = rpr.find(qn("sz"))
+    if sz is None:
+        sz = OxmlElement("w:sz")
+        rpr.append(sz)
+    sz.set(qn("val"), str(sz_halfpt))
+
+
+def _force_pt_sans_on_cell(tc, sz_halfpt: int = 22) -> None:
+    """Применить _force_pt_sans_on_run ко всем <w:r> в ячейке."""
+    for r in tc.findall(f'.//{qn("r")}'):
+        _force_pt_sans_on_run(r, sz_halfpt=sz_halfpt)
+
+
 def _set_tc_text(tc, text):
     """Установить текст первой ячейки <w:tc>, сохраняя rPr первого run-а.
 
@@ -271,6 +303,15 @@ def transform_spec_table(doc):
         _set_tc_text(tcs_content[0], '{{ item.name }}')
         _set_tc_text(tcs_content[1], '{{ item.price }}')
         _set_tc_text(tcs_content[2], '{{ item.term_days }}')
+        # Снимаем унаследованный <w:vMerge> со всех ячеек loop-template-row.
+        # Иначе docxtpl клонирует строку с vMerge="restart" из эталона
+        # на каждую отрисованную позицию, и spec_vmerge.py не сможет
+        # отличить scales-row от foundation-row (обе имеют restart).
+        for tc in tcs_content[:3]:
+            tcPr = tc.find(qn("tcPr"))
+            if tcPr is not None:
+                for vm in tcPr.findall(qn("vMerge")):
+                    tcPr.remove(vm)
 
     # endfor_tr → маркер {%tr endfor %}
     endfor_tr = copy.deepcopy(content_tr)
@@ -511,6 +552,10 @@ def make_template():
         tx_table.rows[1].cells[2],
         "{{ sensor_temp_range }}\n{{ indicator_temp_range }}",
     )
+    # Принудительно PT Sans 11pt на runs обеих ячеек: первый run в эталоне
+    # не имеет явных rFonts/sz → Word рендерит Calibri/11pt по дефолту.
+    _force_pt_sans_on_cell(tx_table.rows[1].cells[0]._tc, sz_halfpt=22)
+    _force_pt_sans_on_cell(tx_table.rows[1].cells[2]._tc, sz_halfpt=22)
 
     # Row 9 — Описание весов: подпись восстанавливаем, значение очищаем
     set_cell_text(tx_table.rows[9].cells[0], "Описание весов")

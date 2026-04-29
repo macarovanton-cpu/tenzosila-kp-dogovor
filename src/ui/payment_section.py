@@ -1,4 +1,4 @@
-"""Условия оплаты: 7 пресетов + split_by_items с динамическими группами."""
+"""Условия оплаты: 6 вариантов (v1/v2/v3 + prepay_100 + split_by_items + custom)."""
 from __future__ import annotations
 
 from typing import Any
@@ -31,7 +31,7 @@ def render_payment_section(
             "default_preset_id", preset_ids[0]
         )
 
-    st.selectbox(
+    st.radio(
         "Пресет",
         preset_ids,
         format_func=lambda pid: preset_labels.get(pid, pid),
@@ -44,49 +44,133 @@ def render_payment_section(
 
     st.caption(preset.get("description", ""))
 
+    variant = preset.get("variant")
     if preset.get("is_split"):
         preview = _render_split(state, preset)
     elif preset.get("id") == "custom":
         preview = _render_custom(state, preset)
+    elif variant == "v1":
+        preview = _render_v1(state, preset)
+    elif variant == "v2":
+        preview = _render_v2(state, preset)
+    elif variant == "v3":
+        preview = _render_v3(state, preset)
+    elif preset.get("id") == "prepay_100":
+        preview = _render_prepay_100(state, preset)
     else:
-        preview = _render_simple(state, preset)
+        preview = ""
 
     st.markdown("**Превью условий оплаты:**")
     st.markdown(preview or "_(не определено)_")
     return preview
 
 
-def _render_simple(state: dict, preset: dict) -> str:
-    keys = preset.get("editable_percent_keys", [])
-    defaults = preset.get("default_percents", {})
-    # Инициализируем payment_percents при первом заходе или при смене пресета
-    current = state.get("payment_percents", {}) or {}
-    if set(current.keys()) != set(keys):
-        state["payment_percents"] = {k: int(defaults.get(k, 0)) for k in keys}
+def _render_v1(state: dict, preset: dict) -> str:
+    """Variant 1 — Аванс + Постоплата. Postpay = 100 - prepay (derived)."""
+    cols = st.columns(3)
+    with cols[0]:
+        prepay = st.number_input(
+            "Предоплата, %",
+            min_value=1, max_value=99, step=1,
+            key="payment_v1_prepay",
+        )
+    postpay = 100 - int(prepay)
+    with cols[1]:
+        st.metric("Постоплата, %", postpay)
+    with cols[2]:
+        st.number_input(
+            "Срок аванса, банк. дней",
+            min_value=1, max_value=90, step=1,
+            key="payment_days",
+        )
+    return preset.get("body_template", "").format(
+        prepay=int(prepay), postpay=postpay, days=int(state["payment_days"])
+    )
 
-    if keys:
-        cols = st.columns(len(keys) + 1)
-        for idx, k in enumerate(keys):
-            with cols[idx]:
-                val = st.number_input(
-                    f"{k}, %",
-                    min_value=0, max_value=100, step=1,
-                    value=int(state["payment_percents"].get(k, defaults.get(k, 0))),
-                    key=f"pay_pct_{k}",
-                )
-                state["payment_percents"][k] = int(val)
-        with cols[-1]:
-            if preset.get("editable_days"):
-                st.number_input(
-                    "Срок, банк. дней",
-                    min_value=0, max_value=90, step=1,
-                    key="payment_days",
-                )
-    fmt: dict[str, Any] = {**state["payment_percents"], "days": state["payment_days"]}
-    try:
-        return preset.get("body_template", "").format(**fmt)
-    except KeyError:
-        return preset.get("body_template", "")
+
+def _render_v2(state: dict, preset: dict) -> str:
+    """Variant 2 — Аванс + Перед отгрузкой + Постоплата. Postpay = 100 − prepay − preship."""
+    cols = st.columns(4)
+    with cols[0]:
+        prepay = st.number_input(
+            "Предоплата, %",
+            min_value=1, max_value=98, step=1,
+            key="payment_v2_prepay",
+        )
+    with cols[1]:
+        preship = st.number_input(
+            "Перед отгрузкой, %",
+            min_value=0, max_value=99, step=1,
+            key="payment_v2_preship",
+        )
+    postpay = 100 - int(prepay) - int(preship)
+    with cols[2]:
+        st.metric("Постоплата, %", postpay)
+    with cols[3]:
+        st.number_input(
+            "Срок аванса, банк. дней",
+            min_value=1, max_value=90, step=1,
+            key="payment_days",
+        )
+    if postpay < 1:
+        st.warning(
+            "Сумма «Предоплата + Перед отгрузкой» должна быть ≤ 99%, "
+            "иначе нечего постоплачивать."
+        )
+    return preset.get("body_template", "").format(
+        prepay=int(prepay), preship=int(preship), postpay=postpay,
+        days=int(state["payment_days"]),
+    )
+
+
+def _render_v3(state: dict, preset: dict) -> str:
+    """Variant 3 — 100% постоплата с настраиваемой точкой отсчёта."""
+    triggers = preset.get("trigger_options", [])
+    trigger_ids = [t["id"] for t in triggers]
+    trigger_labels = {t["id"]: t["label"] for t in triggers}
+
+    if state.get("payment_v3_trigger_id") not in trigger_ids and trigger_ids:
+        state["payment_v3_trigger_id"] = preset.get(
+            "default_trigger_id", trigger_ids[0]
+        )
+
+    cols = st.columns(2)
+    with cols[0]:
+        days = st.number_input(
+            "Срок постоплаты, банк. дней",
+            min_value=1, max_value=90, step=1,
+            key="payment_v3_days",
+        )
+    with cols[1]:
+        trigger_id = st.selectbox(
+            "Точка отсчёта",
+            trigger_ids,
+            format_func=lambda i: trigger_labels.get(i, i),
+            key="payment_v3_trigger_id",
+        )
+
+    trigger_text = next(
+        (t["text"] for t in triggers if t["id"] == trigger_id), ""
+    )
+    return preset.get("body_template", "").format(
+        days=int(days), trigger_text=trigger_text
+    )
+
+
+def _render_prepay_100(state: dict, preset: dict) -> str:
+    """100% предоплата — единственное editable поле: срок."""
+    cols = st.columns(2)
+    with cols[0]:
+        st.metric("Предоплата, %", 100)
+    with cols[1]:
+        st.number_input(
+            "Срок, банк. дней",
+            min_value=1, max_value=90, step=1,
+            key="payment_days",
+        )
+    return preset.get("body_template", "").format(
+        p1=100, days=int(state["payment_days"])
+    )
 
 
 def _render_split(state: dict, preset: dict) -> str:
@@ -99,11 +183,13 @@ def _render_split(state: dict, preset: dict) -> str:
         "автоматически скрываются (как на КП)."
     )
     active_lines: list[str] = []
+    active_group_ids: list[str] = []
     for group in groups:
         group_id = group["id"]
         active = _split_group_active(group_id, state)
         if not active:
             continue
+        active_group_ids.append(group_id)
         defaults = group["default_percents"]
         if group_id not in split:
             split[group_id] = {k: int(defaults[k]) for k in defaults}
@@ -128,6 +214,30 @@ def _render_split(state: dict, preset: dict) -> str:
                 f"доплата {postpay}% ({trig})."
             )
             active_lines.append(line)
+
+    # Кнопка «Применить ко всем группам»: копирует scales-проценты в остальные.
+    # Показываем только когда есть что копировать (есть не-scales активная группа).
+    has_other_active = any(gid != "scales" for gid in active_group_ids)
+    if has_other_active and "scales" in split:
+        if st.button(
+            "Применить ко всем группам",
+            help=(
+                "Скопировать prepay/postpay из «Весы» в остальные активные "
+                "группы. Закрывает кейс ручной правки 50→30/70 в четырёх "
+                "местах подряд."
+            ),
+            key="payment_split_apply_all",
+        ):
+            scales_vals = split["scales"]
+            for gid in active_group_ids:
+                if gid == "scales":
+                    continue
+                split[gid] = dict(scales_vals)
+                # Синхронизируем widget-keys, чтобы number_input после rerun
+                # подхватил новые значения (st.number_input управляется ключом).
+                for k, v in scales_vals.items():
+                    st.session_state[f"split_{gid}_{k}"] = int(v)
+            st.rerun()
 
     # Срок авансового платежа
     st.number_input(

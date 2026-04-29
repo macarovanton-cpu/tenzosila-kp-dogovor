@@ -41,11 +41,16 @@ def _state(**overrides) -> dict:
         "construction_underlining_mm": 4,
         "options": {},
         "spec_items_overrides": {},
-        "payment_preset_id": "prepay_50_postpay_50",
+        "payment_preset_id": "v1_prepay_postpay",
         "payment_split_state": {},
-        "payment_percents": {"p1": 50, "p2": 50},
+        "payment_percents": {},
         "payment_days": 5,
         "payment_custom_text": "",
+        "payment_v1_prepay": 50,
+        "payment_v2_prepay": 30,
+        "payment_v2_preship": 40,
+        "payment_v3_days": 15,
+        "payment_v3_trigger_id": "after_installation",
     }
     base.update(overrides)
     return base
@@ -783,3 +788,77 @@ def test_validity_paragraph_uses_pt_sans(prices):
     assert any(run.bold for run in target.runs), (
         "Срок действия КП должен быть жирным"
     )
+
+
+# --- 1.2: PT Sans 11pt в ячейке температурного диапазона ---
+
+
+def test_temperature_cell_uses_pt_sans_11pt(prices):
+    """Tbl 2 (ТХ), row 1 — ячейка с температурными диапазонами должна
+    рендериться в PT Sans 11pt. До фикса (1.2) первый run эталона не имел
+    явных rFonts/sz → Word наследовал Calibri 11pt по дефолту."""
+    state = _state()
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+
+    tx_table = doc.tables[2]
+    cell_2 = tx_table.rows[1].cells[2]  # значения {{ sensor_temp_range }}\n{{ indicator_temp_range }}
+    cell_0 = tx_table.rows[1].cells[0]  # подписи строки
+
+    W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    qn = lambda tag: f"{{{W}}}{tag}"  # noqa: E731
+
+    for cell, label in [(cell_2, "значения температур"), (cell_0, "подписи температур")]:
+        runs = cell._tc.findall(f".//{qn('r')}")
+        assert runs, f"{label}: ни одного <w:r> в ячейке"
+        for r in runs:
+            rpr = r.find(qn("rPr"))
+            assert rpr is not None, f"{label}: <w:r> без rPr"
+            rfonts = rpr.find(qn("rFonts"))
+            assert rfonts is not None, f"{label}: rPr без rFonts"
+            assert rfonts.get(qn("ascii")) == "PT Sans", (
+                f"{label}: rFonts ascii={rfonts.get(qn('ascii'))!r} ≠ 'PT Sans'"
+            )
+            sz = rpr.find(qn("sz"))
+            assert sz is not None, f"{label}: rPr без sz"
+            assert sz.get(qn("val")) == "22", (
+                f"{label}: sz val={sz.get(qn('val'))!r} ≠ '22' (11pt)"
+            )
+
+
+# --- 2.7: V1 в DOCX — текст «— Предоплата 30%» / «— Доплата 70%» ---
+
+
+def test_v1_block_renders_in_docx(prices):
+    """V1 (Аванс+Постоплата) с prepay=30 → в DOCX блок условий поставки
+    содержит «Предоплата: 30%» и «Доплата: 70%»."""
+    state = _state(
+        payment_preset_id="v1_prepay_postpay",
+        payment_v1_prepay=30,
+        payment_days=5,
+    )
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+    text = " ".join(
+        "".join(r.text or "" for r in p.runs) for p in doc.paragraphs
+    )
+    assert "Предоплата: 30%" in text
+    assert "Доплата: 70%" in text
+    assert "5 банковских дней" in text
+
+
+def test_v3_block_renders_in_docx(prices):
+    """V3 (100% постоплата) — 30 дней после акта приёмки."""
+    state = _state(
+        payment_preset_id="v3_postpay_only",
+        payment_v3_days=30,
+        payment_v3_trigger_id="after_act",
+    )
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+    text = " ".join(
+        "".join(r.text or "" for r in p.runs) for p in doc.paragraphs
+    )
+    assert "100% оплаты" in text
+    assert "30 банковских дней" in text
+    assert "после подписания акта приёмки" in text

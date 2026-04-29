@@ -80,18 +80,48 @@ def validate(
             if not str(state.get("payment_custom_text", "")).strip():
                 errors.append("Для индивидуальных условий оплаты укажите текст")
         else:
-            keys = preset.get("editable_percent_keys", [])
-            total = 0
-            for k in keys:
-                total += int(
-                    state.get("payment_percents", {}).get(
-                        k, preset["default_percents"].get(k, 0)
+            variant = preset.get("variant")
+            if variant == "v1":
+                prepay = int(state.get(
+                    "payment_v1_prepay",
+                    preset.get("default_percents", {}).get("prepay", 50),
+                ))
+                if prepay < 1 or prepay > 99:
+                    errors.append(
+                        f"Предоплата должна быть в диапазоне 1–99% "
+                        f"(сейчас {prepay})"
                     )
-                )
-            if keys and total != 100:
-                errors.append(
-                    f"Сумма процентов в условиях оплаты не равна 100 (сейчас {total})"
-                )
+                if int(state.get("payment_days", 5) or 0) < 1:
+                    errors.append("Срок аванса должен быть не меньше 1 банк. дня")
+            elif variant == "v2":
+                defaults = preset.get("default_percents", {})
+                prepay = int(state.get(
+                    "payment_v2_prepay", defaults.get("prepay", 30)
+                ))
+                preship = int(state.get(
+                    "payment_v2_preship", defaults.get("preship", 40)
+                ))
+                if prepay < 1:
+                    errors.append("Предоплата (V2) должна быть ≥ 1%")
+                if preship < 0:
+                    errors.append("Платёж перед отгрузкой не может быть отрицательным")
+                if prepay + preship > 99:
+                    errors.append(
+                        f"Сумма «Предоплата + Перед отгрузкой» не должна "
+                        f"превышать 99% (сейчас {prepay + preship}). "
+                        f"Иначе нечего постоплачивать."
+                    )
+                if int(state.get("payment_days", 5) or 0) < 1:
+                    errors.append("Срок аванса должен быть не меньше 1 банк. дня")
+            elif variant == "v3":
+                v3_days = int(state.get(
+                    "payment_v3_days", preset.get("default_days", 15)
+                ))
+                if v3_days < 1:
+                    errors.append("Срок постоплаты (V3) должен быть не меньше 1 банк. дня")
+            elif preset.get("id") == "prepay_100":
+                if int(state.get("payment_days", 5) or 0) < 1:
+                    errors.append("Срок предоплаты должен быть не меньше 1 банк. дня")
 
     # --- WARNINGS ---
     model = get_model_by_id(models_json, model_id)

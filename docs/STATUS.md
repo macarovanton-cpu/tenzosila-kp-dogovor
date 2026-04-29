@@ -1,8 +1,8 @@
 # Статус проекта Tenzosila_KP_Dogovor
 
 **Последнее обновление:** 2026-04-29
-**Текущая фаза:** Фаза 1 — шаги 1.1–1.4 + брендирование + UX + 1.5a + 1.5b + 1.5b-fix + 1.5b-fix2 + 1.5b-fix3 + 1.5b-fix4 + микро-фикс шрифт «Срок действия» + двухтемная поддержка + UX-полировка по итогам ревью UI + per-item срок исполнения с vMerge закрыты. Следующий шаг — 1.6 (тестирование на реальных КП) и 1.7 (деплой).
-**Готовность Фазы 1:** ~90%
+**Текущая фаза:** Фаза 1 — шаги 1.1–1.4 + брендирование + UX + 1.5a + 1.5b + 1.5b-fix + 1.5b-fix2 + 1.5b-fix3 + 1.5b-fix4 + микро-фикс шрифт «Срок действия» + двухтемная поддержка + UX-полировка по итогам ревью UI + per-item срок исполнения с vMerge + регресс-фиксы DOCX (vMerge на loop-template / PT Sans 11pt температура / dyn-labels в UI) + переделка модели оплаты (3 варианта V1/V2/V3 + apply-to-all для split) закрыты. Следующий шаг — 1.6 (тестирование на реальных КП) и 1.7 (деплой).
+**Готовность Фазы 1:** ~92%
 
 ---
 
@@ -95,6 +95,66 @@
     без ошибок (HTTP 200, smoke-проверка через curl).
   - Файлы: `src/ui/sidebar.py`, `src/ui/header.py`, `src/ui/model_section.py`,
     `src/utils/format.py` + замена иконок в 5 секциях UI.
+- [x] **Регресс-фиксы DOCX + переделка модели оплаты** (2026-04-29 вечер):
+  - **vMerge на loop-template-row.** В `make_template.transform_spec_table`
+    добавлена очистка `<w:vMerge>` со всех 3 ячеек loop-template-row после
+    подстановки jinja-плейсхолдеров. До фикса docxtpl клонировал строку с
+    унаследованным `vMerge="restart"` из эталонного 6-строчного КП на каждую
+    отрисованную позицию — `spec_vmerge.py` не мог отличить scales-row от
+    foundation-row. После фикса каждая отрендеренная строка приходит без
+    vMerge, и пост-процессинг добавляет его ровно там, где есть маркер
+    `⟦MERGE:restart:N⟧` или `⟦MERGE:continue⟧`.
+  - **Шрифт PT Sans 11pt в ячейке температурного диапазона.** Новый хелпер
+    `_force_pt_sans_on_run` (rFonts ascii=hAnsi=cs="PT Sans" + sz=22)
+    применяется к runs ячеек `Tbl 2 row 1 cells [0] и [2]` после
+    `set_cell_text`. До фикса первый run эталона не имел явного rFonts/sz
+    → Word рисовал Calibri/11pt по дефолту.
+  - **Динамические лейблы рам и пандусов в UI.** В
+    `src/ui/options_section.py:_render_option_row` импортирован
+    `resolve_dynamic_option_label` и применяется к labels чекбоксов и
+    `st.warning` (для `is_on_request`). Менеджер с моделью С теперь видит
+    «Рама под весы ВЕСТА-С, 20м» вместо «… ВЕСТА-С(Ф)/ФЛ(СЛ), 20м»;
+    «Комплект пандусов под весы ВЕСТА-С (L=3,9м)» вместо «…ВЕСТА-Ф/С …».
+    В DOCX-спецификации лейбл уже подставлялся правильно (после 087fabe);
+    теперь UI и DOCX согласованы.
+  - **Переделка модели оплаты v0.4.** В `data/payment_terms.json` удалены
+    `prepay_50_postpay_50`, `prepay_30_postpay_70`, `postpay_100_15d`,
+    `postpay_100_30d`. Введены 3 параметризуемых варианта:
+    - `v1_prepay_postpay` (Аванс+Постоплата): дефолт 50/50, postpay
+      derived = 100−prepay.
+    - `v2_prepay_preship_postpay` (Аванс+Перед-отгрузкой+Постоплата):
+      дефолт 30/40/30, postpay derived = 100−prepay−preship; валидация
+      prepay+preship ≤ 99%.
+    - `v3_postpay_only` (100% постоплата): настраиваемые срок (1–90 банк.
+      дней, дефолт 15) и точка отсчёта (selectbox: после доставки /
+      монтажа / акта приёмки).
+    Сохранены без изменений: `prepay_100`, `split_by_items`, `custom`.
+    Default остаётся `split_by_items` (по CLAUDE.md).
+  - **UI — `st.radio` вместо `st.selectbox`** в `payment_section.py`
+    с 6 вариантами. Postpay у V1/V2 показывается как `st.metric` (read-only,
+    derived). В `_render_split` добавлена кнопка
+    «Применить ко всем группам» — копирует scales-проценты во все активные
+    группы (закрывает UX-кейс ручной правки 50→30/70 в 4 местах подряд).
+    Кнопка показывается только когда есть не-scales активная группа.
+  - **`payment_renderer.py`:** удалён `render_simple_preset`, добавлены
+    `render_v1/v2/v3/render_prepay_100`. Диспетчер `render_payment_block`
+    переключается по `preset["variant"]` для V1/V2/V3, по `preset_id` —
+    для остального.
+  - **`validation.py`:** ветка простых пресетов заменена на диспетчер по
+    `variant`. Добавлены проверки: V1 prepay∈[1,99]; V2 prepay≥1, preship≥0,
+    sum≤99; V3 days≥1; prepay_100 — days≥1.
+  - **`state.py`:** добавлены ключи `payment_v1_prepay`, `payment_v2_prepay`,
+    `payment_v2_preship`, `payment_v3_days`, `payment_v3_trigger_id`. На
+    cascade-смене модели не сбрасываются (оплата от модели не зависит).
+    Старые `prepay_50_postpay_50` etc. в state переключаются на default
+    автоматически — payment_section.py уже умел fallback.
+  - **Тесты:** удалено 5 тестов на устаревшие пресеты, добавлено 7 на v1/v2/v3,
+    4 валидационных, 2 на V1/V3 в DOCX, 1 на PT Sans 11pt температуры,
+    1 на dyn-labels рам/пандусов в `build_spec_items`. Итого
+    **165 PASSED, 1 SKIPPED, 20 deselected** (было 130/1).
+  - **Sample DOCX перегенерированы:** Гипсобетон (split), Кирова (V1 30/70 —
+    showcase нового варианта), Stress-max (custom). Шаблон
+    `templates/kp_template.docx` пересобран через `make_template`.
 - [x] **Per-item «Срок исполнения, рабочих дней» с vMerge в DOCX** (2026-04-29):
   - **Бизнес-модель.** Параллельная: T_фиксированных = (4 если монтаж) +
     (1 если поверка) + (1 если доставка), T_осталось = T_общий −

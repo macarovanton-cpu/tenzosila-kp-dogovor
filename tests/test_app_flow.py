@@ -111,10 +111,12 @@ def test_empty_kp_number_blocks_generate_button():
         "model_id": "vesta-с-60-18",
         "model_price": 1_906_000,
         "options": {},
-        "payment_preset_id": "prepay_50_postpay_50",
-        "payment_percents": {"p1": 50, "p2": 50},
+        "payment_preset_id": "v1_prepay_postpay",
+        "payment_percents": {},
         "payment_split_state": {},
         "payment_custom_text": "",
+        "payment_v1_prepay": 50,
+        "payment_days": 5,
     }
     errors, _ = validate(
         state, load_prices(), load_models(), load_payment_terms(), load_managers()

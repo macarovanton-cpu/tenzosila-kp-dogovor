@@ -302,6 +302,39 @@ def test_build_spec_items_uses_dynamic_foundation_label(prices, models_json):
     assert "С/Ф/П" not in foundation["name"]
 
 
+def test_build_spec_items_uses_dynamic_frame_and_ramp_labels(prices, models_json):
+    """Для модели С — frame_20 и ramp_set_f_s в spec_items должны иметь
+    лейбл с конкретной линией («ВЕСТА-С»), а не дженерик («С(Ф)/ФЛ(СЛ)» / «Ф/С»)."""
+    state = _base_state()
+    state["model_id"] = "vesta-с-80-20"
+    state["model_max"] = 80
+    state["model_length"] = 20
+    state["options"] = {
+        "frame_20": {
+            "enabled": True, "price": 160_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 160_000, "dealer_is_synthetic": False,
+            "block": "frames",
+        },
+        "ramp_set_f_s": {
+            "enabled": True, "price": 80_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 80_000, "dealer_is_synthetic": False,
+            "block": "ramps",
+        },
+    }
+    items = build_spec_items(state, prices, models_json)
+    by_key = {i["item_key"]: i for i in items}
+
+    frame_name = by_key["frame_20"]["name"]
+    assert "ВЕСТА-С" in frame_name
+    assert "С(Ф)/ФЛ(СЛ)" not in frame_name
+
+    ramp_name = by_key["ramp_set_f_s"]["name"]
+    assert "ВЕСТА-С" in ramp_name
+    assert "Ф/С" not in ramp_name
+
+
 def test_build_spec_items_includes_term_role(prices, models_json):
     """Каждый item должен иметь поле term_role."""
     state = _base_state()

@@ -89,6 +89,11 @@ def _gipsobeton_state() -> dict:
         "payment_percents": {},
         "payment_days": 5,
         "payment_custom_text": "",
+        "payment_v1_prepay": 50,
+        "payment_v2_prepay": 30,
+        "payment_v2_preship": 40,
+        "payment_v3_days": 15,
+        "payment_v3_trigger_id": "after_installation",
     }
 
 
@@ -129,11 +134,17 @@ def _kirova_state() -> dict:
             },
         },
         "spec_items_overrides": {},
-        "payment_preset_id": "split_by_items",
+        # Кейс v0.4: showcase V1 (Аванс+Постоплата) — менеджер ввёл 30/70.
+        "payment_preset_id": "v1_prepay_postpay",
         "payment_split_state": {},
         "payment_percents": {},
         "payment_days": 5,
         "payment_custom_text": "",
+        "payment_v1_prepay": 30,
+        "payment_v2_prepay": 30,
+        "payment_v2_preship": 40,
+        "payment_v3_days": 15,
+        "payment_v3_trigger_id": "after_installation",
     }
 
 
@@ -201,6 +212,11 @@ def _stress_state() -> dict:
             "— 40% после готовности фундамента.\n"
             "— 30% по факту запуска весов и подписания акта."
         ),
+        "payment_v1_prepay": 50,
+        "payment_v2_prepay": 30,
+        "payment_v2_preship": 40,
+        "payment_v3_days": 15,
+        "payment_v3_trigger_id": "after_installation",
     }
 
 

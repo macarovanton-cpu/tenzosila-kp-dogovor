@@ -91,18 +91,49 @@ def render_split_by_items(
     return "\n".join(lines)
 
 
-def render_simple_preset(state: dict[str, Any], preset: dict) -> str:
-    """Рендеринг простых пресетов (prepay_100, 50/50, 30/70, postpay_*)."""
-    percents = state.get("payment_percents") or {}
-    days = state.get("payment_days") or preset.get("default_days", 5)
+def render_v1(state: dict[str, Any], preset: dict) -> str:
+    """Variant 1 — Аванс + Постоплата. Postpay = 100 − prepay."""
+    default_prepay = int(preset.get("default_percents", {}).get("prepay", 50))
+    prepay = int(state.get("payment_v1_prepay", default_prepay))
+    postpay = 100 - prepay
+    days = int(state.get("payment_days", preset.get("default_days", 5)))
+    return preset.get("body_template", "").format(
+        prepay=prepay, postpay=postpay, days=days
+    )
 
-    template_vars: dict[str, Any] = {"days": days}
+
+def render_v2(state: dict[str, Any], preset: dict) -> str:
+    """Variant 2 — Аванс + Перед отгрузкой + Постоплата. Postpay = 100 − prepay − preship."""
     defaults = preset.get("default_percents", {})
-    for key in preset.get("editable_percent_keys", []):
-        template_vars[key] = percents.get(key, defaults.get(key, 0))
+    prepay = int(state.get("payment_v2_prepay", defaults.get("prepay", 30)))
+    preship = int(state.get("payment_v2_preship", defaults.get("preship", 40)))
+    postpay = 100 - prepay - preship
+    days = int(state.get("payment_days", preset.get("default_days", 5)))
+    return preset.get("body_template", "").format(
+        prepay=prepay, preship=preship, postpay=postpay, days=days
+    )
 
-    body_template = preset.get("body_template", "")
-    return body_template.format(**template_vars)
+
+def render_v3(state: dict[str, Any], preset: dict) -> str:
+    """Variant 3 — 100% постоплата с настраиваемой точкой отсчёта."""
+    days = int(state.get("payment_v3_days", preset.get("default_days", 15)))
+    triggers = preset.get("trigger_options", [])
+    trigger_id = state.get(
+        "payment_v3_trigger_id", preset.get("default_trigger_id", "")
+    )
+    trigger_text = next(
+        (t["text"] for t in triggers if t["id"] == trigger_id),
+        "",
+    )
+    return preset.get("body_template", "").format(
+        days=days, trigger_text=trigger_text
+    )
+
+
+def render_prepay_100(state: dict[str, Any], preset: dict) -> str:
+    """100% предоплата — единственное поле: срок."""
+    days = int(state.get("payment_days", preset.get("default_days", 5)))
+    return preset.get("body_template", "").format(p1=100, days=days)
 
 
 def render_payment_block(
@@ -121,4 +152,15 @@ def render_payment_block(
     if preset.get("is_split"):
         return render_split_by_items(state, spec_items, preset)
 
-    return render_simple_preset(state, preset)
+    variant = preset.get("variant")
+    if variant == "v1":
+        return render_v1(state, preset)
+    if variant == "v2":
+        return render_v2(state, preset)
+    if variant == "v3":
+        return render_v3(state, preset)
+
+    if preset_id == "prepay_100":
+        return render_prepay_100(state, preset)
+
+    return preset.get("body_template", "—")

@@ -17,6 +17,7 @@ from src.pricing import (
     get_slider_params,
     percent_to_retail,
 )
+from src.spec_builder import resolve_dynamic_option_label
 
 
 def render_options_section(
@@ -61,23 +62,29 @@ def _render_option_row(
     params = get_slider_params(entry)
     model_id = state.get("model_id", "base")
     widget_suffix = f"__{model_id}"
+    # Динамический лейбл: подменяем дженерик-обозначение линейки на букву
+    # выбранной модели (С(Ф)/ФЛ(СЛ) → С, Ф/С → С и т.п.). Иначе менеджер
+    # видит «Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 20м» вместо «…ВЕСТА-С, 20м».
+    display_label = resolve_dynamic_option_label(
+        key, entry.get("label", key), state.get("model_line", "С")
+    )
 
     # Чекбокс включения
     checkbox_key = f"opt_{key}_enabled{widget_suffix}"
     if params.is_on_request:
         st.warning(
-            f"**{entry.get('label', key)}** — под запрос у производства. "
+            f"**{display_label}** — под запрос у производства. "
             f"Свяжитесь для уточнения цены."
         )
         enabled = st.checkbox(
-            entry.get("label", key),
+            display_label,
             value=False,
             disabled=True,
             key=checkbox_key,
         )
     else:
         enabled = st.checkbox(
-            entry.get("label", key),
+            display_label,
             value=state.get("options", {}).get(key, {}).get("enabled", False),
             key=checkbox_key,
         )
