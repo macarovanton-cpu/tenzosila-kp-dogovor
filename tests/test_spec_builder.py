@@ -4,6 +4,7 @@ from __future__ import annotations
 from src.spec_builder import (
     build_construction_description,
     build_spec_items,
+    resolve_dynamic_option_label,
     resolve_payment_group,
 )
 from src.term_days import resolve_term_days
@@ -114,8 +115,129 @@ def test_resolve_term_days_falls_back_to_default():
         {"item_key": "install_default"},
         {"item_key": "foundation_s_f_18"},
     ]
-    # 20 + 5 (install) + 10 (foundation) = 35
-    assert resolve_term_days(items, state) == 35
+    # scales(20) + install(3) + foundation(10) = 33
+    assert resolve_term_days(items, state) == 33
+
+
+# --- resolve_dynamic_option_label ---
+
+
+def test_dynamic_label_foundation_s_f_substitutes_line_s():
+    """foundation_s_f_18 + line=С → 'Фундамент под ВЕСТА-С, 18м'."""
+    result = resolve_dynamic_option_label(
+        "foundation_s_f_18",
+        "Фундамент под ВЕСТА-С/Ф/П, 18м",
+        "С",
+    )
+    assert result == "Фундамент под ВЕСТА-С, 18м"
+
+
+def test_dynamic_label_foundation_s_f_substitutes_line_f():
+    """foundation_s_f_24 + line=Ф → 'Фундамент под ВЕСТА-Ф, 24м'."""
+    result = resolve_dynamic_option_label(
+        "foundation_s_f_24",
+        "Фундамент под ВЕСТА-С/Ф/П, 24м",
+        "Ф",
+    )
+    assert result == "Фундамент под ВЕСТА-Ф, 24м"
+
+
+def test_dynamic_label_foundation_s_f_substitutes_line_p():
+    """foundation_s_f_22 + line=П → 'Фундамент под ВЕСТА-П, 22м'."""
+    result = resolve_dynamic_option_label(
+        "foundation_s_f_22",
+        "Фундамент под ВЕСТА-С/Ф/П, 22м",
+        "П",
+    )
+    assert result == "Фундамент под ВЕСТА-П, 22м"
+
+
+def test_dynamic_label_foundation_lite_sl_fl():
+    """foundation_lite_sl_fl_20 + line=СЛ → 'Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ, 20м'."""
+    result = resolve_dynamic_option_label(
+        "foundation_lite_sl_fl_20",
+        "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ/ФЛ, 20м",
+        "СЛ",
+    )
+    assert result == "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ, 20м"
+
+
+def test_dynamic_label_foundation_std_sl_fl():
+    """foundation_std_sl_fl_24 + line=ФЛ → 'Фундамент пандусный «Стандарт» под ВЕСТА-ФЛ, 24м'."""
+    result = resolve_dynamic_option_label(
+        "foundation_std_sl_fl_24",
+        "Фундамент пандусный «Стандарт» под ВЕСТА-СЛ/ФЛ, 24м",
+        "ФЛ",
+    )
+    assert result == "Фундамент пандусный «Стандарт» под ВЕСТА-ФЛ, 24м"
+
+
+def test_dynamic_label_foundation_supervision_unchanged():
+    """foundation_supervision не содержит группового обозначения — без изменений."""
+    label = "Курирование строительства фундамента ВЕСТА"
+    assert resolve_dynamic_option_label("foundation_supervision", label, "С") == label
+    assert resolve_dynamic_option_label("foundation_supervision", label, "СЛ") == label
+
+
+def test_dynamic_label_non_foundation_unchanged():
+    """Не-foundation ключ возвращает label без изменений."""
+    assert resolve_dynamic_option_label(
+        "frame_18", "Рама стандартная 18м", "С"
+    ) == "Рама стандартная 18м"
+    assert resolve_dynamic_option_label(
+        "orion_standard", "ПАК ОРИОН Стандарт", "Ф"
+    ) == "ПАК ОРИОН Стандарт"
+
+
+def test_dynamic_label_unmatched_line_keeps_label():
+    """Линия не подходит к группе — label не меняется (защита от ошибок матчинга)."""
+    # foundation_s_f_18 ожидает {С, Ф, П}, а пришла СЛ — не подменяем
+    result = resolve_dynamic_option_label(
+        "foundation_s_f_18", "Фундамент под ВЕСТА-С/Ф/П, 18м", "СЛ"
+    )
+    assert result == "Фундамент под ВЕСТА-С/Ф/П, 18м"
+
+
+def test_build_spec_items_uses_dynamic_foundation_label(prices, models_json):
+    """В spec_items label фундамента подменяется на конкретную линию модели."""
+    state = _base_state()  # line=С, model=vesta-с-60-18
+    state["options"] = {
+        "foundation_s_f_18": {
+            "enabled": True, "price": 500_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 500_000, "dealer_is_synthetic": False,
+            "block": "foundations",
+        }
+    }
+    items = build_spec_items(state, prices, models_json)
+    foundation = next(i for i in items if i["item_key"] == "foundation_s_f_18")
+    assert "ВЕСТА-С" in foundation["name"]
+    assert "С/Ф/П" not in foundation["name"]
+
+
+def test_build_spec_items_includes_term_role(prices, models_json):
+    """Каждый item должен иметь поле term_role."""
+    state = _base_state()
+    state["options"] = {
+        "foundation_s_f_18": {
+            "enabled": True, "price": 500_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 500_000, "dealer_is_synthetic": False,
+            "block": "foundations",
+        },
+        "frame_18": {
+            "enabled": True, "price": 50_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 50_000, "dealer_is_synthetic": False,
+            "block": "frames",
+        },
+    }
+    items = build_spec_items(state, prices, models_json)
+    by_key = {i["item_key"]: i for i in items}
+    assert by_key["vesta-с-60-18"]["term_role"] == "scales"
+    assert by_key["foundation_s_f_18"]["term_role"] == "foundation"
+    # frame_18 — опция весов, role=None (vMerge с весами)
+    assert by_key["frame_18"]["term_role"] is None
 
 
 # --- payment_group ---

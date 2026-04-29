@@ -24,7 +24,11 @@ from src.spec_builder import (
     build_construction_description,
     build_spec_items,
 )
-from src.term_days import calculate_term_days_per_item, resolve_term_days
+from src.term_days import (
+    FIXED_ROLES,
+    calculate_term_days_per_item,
+    resolve_term_role,
+)
 from src.utils.format import fmt_int_spaces, pluralize
 
 TEMPLATE_PATH: Path = Path(__file__).resolve().parent.parent.parent / "templates" / "kp_template.docx"
@@ -32,6 +36,47 @@ TEMPLATE_PATH: Path = Path(__file__).resolve().parent.parent.parent / "templates
 # Размер шрифта вспомогательных строк имени модели в спецификации.
 # В docxtpl.RichText.add(size=...) — half-points: 18 → 9pt.
 _SPEC_NAME_SUBLINE_HALFPT = 18
+
+
+def _build_term_markers(
+    spec_items: list[dict], days_map: dict[str, int | None]
+) -> list[str]:
+    """Маркеры столбца сроков для каждой spec-строки.
+
+    - role=='scales' → ⟦MERGE:restart:N⟧ (число) и открыть merge-группу.
+    - role is None  → ⟦MERGE:continue⟧ если открыта группа scales,
+                      иначе пустая ячейка без vMerge.
+    - role in {orion, foundation, canopy, install, delivery, verification} →
+      число дней без vMerge; merge-группа scales закрывается.
+    - сервисная позиция с customer_side=True → пустая ячейка (без числа).
+    """
+    markers: list[str] = []
+    in_scales_merge = False
+    for item in spec_items:
+        key = item.get("item_key", "")
+        role = resolve_term_role(key)
+        days = days_map.get(key)
+        customer_side = bool(item.get("customer_side", False))
+
+        if role == "scales":
+            value = str(days) if days is not None else ""
+            markers.append(encode_term_days_marker(value, "restart"))
+            in_scales_merge = True
+            continue
+        if role is None:
+            if in_scales_merge:
+                markers.append(encode_term_days_marker("", "continue"))
+            else:
+                markers.append("")
+            continue
+        # orion / foundation / canopy / install / delivery / verification
+        in_scales_merge = False
+        if role in FIXED_ROLES and customer_side:
+            markers.append("")
+            continue
+        value = str(days) if days is not None else ""
+        markers.append(encode_term_days_marker(value, None))
+    return markers
 
 
 def _spec_name_to_richtext(name: str) -> RichText:
@@ -85,18 +130,22 @@ def build_template_context(state: dict[str, Any], prices: dict) -> dict[str, Any
     is_dual = bool(state.get("is_dual_range", False))
 
     spec_items = build_spec_items(state, prices, models_json)
-    total_term = resolve_term_days(spec_items, state)
 
-    # Срок исполнения per-item — список той же длины, что spec_items.
-    # Маркеры vMerge ("restart"/"continue") кодируем в текст ячейки;
-    # apply_spec_vmerge() в generate_kp() заменит их на XML <w:vMerge>.
-    per_item_terms = calculate_term_days_per_item(spec_items, total_term)
+    # Расчёт сроков по новой модели: per-role дефолты + пропорциональный скейл
+    # вариативных при правке T_общий. Возвращает (item_key → days|None, total).
+    user_total = state.get("total_term_days")
+    days_map, total_term = calculate_term_days_per_item(
+        spec_items,
+        total_days_user=int(user_total) if user_total is not None else None,
+    )
+
+    term_markers = _build_term_markers(spec_items, days_map)
 
     # Для шаблона передаём только те поля, что есть в spec-таблице (3 колонки).
     # Многострочное имя (модель + датчики/терминал/ограждение) преобразуем в
     # RichText: первая строка обычным размером, остальные 9pt.
     spec_items_fmt = []
-    for item, term_info in zip(spec_items, per_item_terms):
+    for item, marker in zip(spec_items, term_markers):
         name = item["name"]
         if isinstance(name, str) and "\n" in name:
             name_value = _spec_name_to_richtext(name)
@@ -105,9 +154,7 @@ def build_template_context(state: dict[str, Any], prices: dict) -> dict[str, Any
         spec_items_fmt.append({
             "name": name_value,
             "price": fmt_int_spaces(item["total"]),
-            "term_days": encode_term_days_marker(
-                term_info["value"] or "", term_info["merge"]
-            ),
+            "term_days": marker,
         })
 
     total_price = sum(item["total"] for item in spec_items)

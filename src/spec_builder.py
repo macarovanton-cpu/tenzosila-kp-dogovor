@@ -13,6 +13,14 @@ from src.data_loader import (
     get_price_by_model_id,
 )
 from src.filters import get_visible_options
+from src.term_days import resolve_term_role
+
+# Дженерик-обозначения групп фундаментов в prices.json. Подменяются на
+# конкретную линейку выбранной модели в имени позиции спецификации.
+_FOUNDATION_S_F_PLACEHOLDER = "С/Ф/П"
+_FOUNDATION_S_F_LINES = frozenset({"С", "Ф", "П"})
+_FOUNDATION_SL_FL_PLACEHOLDER = "СЛ/ФЛ"
+_FOUNDATION_SL_FL_LINES = frozenset({"СЛ", "ФЛ"})
 
 
 def _format_model_name(model: dict | None, model_id: str) -> str:
@@ -66,8 +74,36 @@ def _format_model_full_spec_name(
     return "\n".join(parts)
 
 
-def _option_name(entry: dict, opt_state: dict) -> str:
-    name = entry.get("label", "")
+def resolve_dynamic_option_label(
+    item_key: str, label: str, model_line: str
+) -> str:
+    """Подставить букву линейки выбранной модели в обобщённый лейбл фундамента.
+
+    `foundation_s_f_*`            «… ВЕСТА-С/Ф/П, …»  → «… ВЕСТА-{line}, …»
+    `foundation_lite_sl_fl_*`     «… ВЕСТА-СЛ/ФЛ, …»  → «… ВЕСТА-{line}, …»
+    `foundation_std_sl_fl_*`      «… ВЕСТА-СЛ/ФЛ, …»  → «… ВЕСТА-{line}, …»
+
+    Прочие ключи и лейблы возвращаются без изменений.
+    """
+    if not item_key.startswith("foundation_") or not label:
+        return label
+    if item_key.startswith("foundation_s_f_"):
+        if model_line in _FOUNDATION_S_F_LINES:
+            return label.replace(_FOUNDATION_S_F_PLACEHOLDER, model_line)
+        return label
+    if item_key.startswith(("foundation_lite_sl_fl_", "foundation_std_sl_fl_")):
+        if model_line in _FOUNDATION_SL_FL_LINES:
+            return label.replace(_FOUNDATION_SL_FL_PLACEHOLDER, model_line)
+        return label
+    return label
+
+
+def _option_name(
+    entry: dict, opt_state: dict, item_key: str, model_line: str
+) -> str:
+    name = resolve_dynamic_option_label(
+        item_key, entry.get("label", ""), model_line
+    )
     if opt_state.get("customer_side"):
         name = f"{name} (силами Заказчика)"
     return name
@@ -115,6 +151,7 @@ def build_spec_items(
     overrides: dict = state.get("spec_items_overrides", {}) or {}
 
     model_id = state.get("model_id", "")
+    line = state.get("model_line", "")
     price_entry = get_price_by_model_id(prices, model_id)
     model = get_model_by_id(models_json, model_id)
     model_price = state.get("model_price")
@@ -137,9 +174,9 @@ def build_spec_items(
             "is_overridden": is_ov,
             "customer_side": False,
             "payment_group": resolve_payment_group(model_id),
+            "term_role": resolve_term_role(model_id),
         })
 
-    line = state.get("model_line", "")
     length = int(state.get("model_length", 18))
     prices_options = prices.get("options", {})
     options_state = state.get("options", {})
@@ -160,7 +197,7 @@ def build_spec_items(
             items.append({
                 "num": len(items) + 1,
                 "item_key": key,
-                "name": _option_name(entry, opt),
+                "name": _option_name(entry, opt, key, line),
                 "qty": qty,
                 "unit": UNIT_BY_BLOCK.get(block_id, "шт"),
                 "price": price,
@@ -168,6 +205,7 @@ def build_spec_items(
                 "is_overridden": is_ov,
                 "customer_side": bool(opt.get("customer_side", False)),
                 "payment_group": resolve_payment_group(key),
+                "term_role": resolve_term_role(key),
             })
 
     return items

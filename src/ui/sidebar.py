@@ -134,9 +134,10 @@ def _render_generate_button(
     except TermDaysTooSmallError as exc:
         d = exc.details
         msg = (
-            f"Общий срок {d['total']} дн. меньше минимального "
-            f"{d['min']} дн. (доставка {d['delivery']} + "
-            f"монтаж {d['install']} + поверка {d['verification']}). "
+            f"Общий срок {d['total']} дн. меньше минимума {d['min']} дн. "
+            f"(фикс {d['fixed_total']} = монтаж {d['install']} + "
+            f"доставка {d['delivery']} + поверка {d['verification']}; "
+            f"плюс по 1 дню на каждую вариативную роль: {d['variable_count']}). "
             "Увеличьте срок проекта в шапке."
         )
         st.button(

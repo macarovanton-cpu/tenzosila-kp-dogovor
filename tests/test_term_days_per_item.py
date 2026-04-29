@@ -1,12 +1,14 @@
-"""Тесты calculate_term_days_per_item — per-item срок исполнения с vMerge."""
+"""Тесты term_days: per-role дефолты, пропорциональный скейл, валидация."""
 from __future__ import annotations
 
 import pytest
 
 from src.term_days import (
     TermDaysTooSmallError,
+    calculate_default_term_days,
+    calculate_min_term_days,
     calculate_term_days_per_item,
-    classify_term_role,
+    resolve_term_role,
 )
 
 
@@ -14,189 +16,249 @@ def _item(key: str, customer_side: bool = False) -> dict:
     return {"item_key": key, "customer_side": customer_side}
 
 
-def test_full_set_30_days() -> None:
-    """Модель + рама + ограждение + фундамент + монтаж + поверка + доставка.
-
-    Total=30, fixed=4+1+1=6, remaining=24.
-    Весы → restart/24, frame/fence → continue/"", фундамент 24, monтаж 4,
-    поверка 1, доставка 1.
-    """
+def test_full_set_default_no_user_override() -> None:
+    """Все 4 вариативных + 3 фикс. Дефолтный T_default = 65."""
     spec = [
         _item("vesta-с-80-18"),
         _item("frame_18"),
         _item("fence_norma_18"),
+        _item("orion_standard"),
+        _item("foundation_s_f_18"),
+        _item("canopy_turnkey_18"),
+        _item("install_default"),
+        _item("delivery_default"),
+        _item("verification_default"),
+    ]
+    days, total = calculate_term_days_per_item(spec, total_days_user=None)
+    assert days["vesta-с-80-18"] == 20
+    assert days["frame_18"] is None  # опция весов
+    assert days["fence_norma_18"] is None
+    assert days["orion_standard"] == 5
+    assert days["foundation_s_f_18"] == 10
+    assert days["canopy_turnkey_18"] == 25
+    assert days["install_default"] == 3
+    assert days["delivery_default"] == 1
+    assert days["verification_default"] == 1
+    assert total == 65
+
+
+def test_no_foundation_default() -> None:
+    """scales+orion+install+delivery+verification → 20+5+3+1+1 = 30."""
+    spec = [
+        _item("vesta-с-80-18"),
+        _item("orion_standard"),
+        _item("install_default"),
+        _item("delivery_default"),
+        _item("verification_default"),
+    ]
+    days, total = calculate_term_days_per_item(spec, None)
+    assert total == 30
+    assert days["orion_standard"] == 5
+    assert days["install_default"] == 3
+
+
+def test_no_orion_default() -> None:
+    """scales+foundation+install+delivery+verification → 20+10+3+1+1 = 35."""
+    spec = [
+        _item("vesta-с-80-18"),
         _item("foundation_s_f_18"),
         _item("install_default"),
-        _item("verification_default"),
         _item("delivery_default"),
-    ]
-    out = calculate_term_days_per_item(spec, 30)
-    assert out[0] == {"item_key": "vesta-с-80-18", "value": "24", "merge": "restart"}
-    assert out[1] == {"item_key": "frame_18", "value": "", "merge": "continue"}
-    assert out[2] == {"item_key": "fence_norma_18", "value": "", "merge": "continue"}
-    assert out[3] == {"item_key": "foundation_s_f_18", "value": "24", "merge": None}
-    assert out[4] == {"item_key": "install_default", "value": "4", "merge": None}
-    assert out[5] == {"item_key": "verification_default", "value": "1", "merge": None}
-    assert out[6] == {"item_key": "delivery_default", "value": "1", "merge": None}
-
-
-def test_no_foundation() -> None:
-    """Без фундамента T_осталось не меняется (фундамент шёл параллельно)."""
-    spec = [
-        _item("vesta-с-80-18"),
-        _item("frame_18"),
-        _item("install_default"),
         _item("verification_default"),
-        _item("delivery_default"),
     ]
-    out = calculate_term_days_per_item(spec, 30)
-    assert out[0]["value"] == "24"
-    assert out[0]["merge"] == "restart"
-    assert out[1]["merge"] == "continue"
-    # Поверки фундамента в out нет — это ок, фундамент не в spec.
+    _, total = calculate_term_days_per_item(spec, None)
+    assert total == 35
 
 
-def test_no_verification_in_spec() -> None:
-    """Нет позиции «поверка» в спеке → fixed=4+1=5, remaining=25."""
+def test_scales_only_with_services_default() -> None:
+    """scales+install+delivery+verification → 20+3+1+1 = 25."""
     spec = [
         _item("vesta-с-80-18"),
         _item("install_default"),
         _item("delivery_default"),
+        _item("verification_default"),
     ]
-    out = calculate_term_days_per_item(spec, 30)
-    assert out[0]["value"] == "25"
+    days, total = calculate_term_days_per_item(spec, None)
+    assert total == 25
+    assert days["vesta-с-80-18"] == 20
 
 
-def test_no_install_in_spec() -> None:
-    """Нет «монтажа» (силами заказчика убрали из спеки) → fixed=1+1=2, remaining=28."""
+def test_user_override_up_proportional_scale() -> None:
+    """T_default=40, user=50. fixed=5, variable_target=45, variable_default=35.
+    scales=26, foundation=13, orion=6. Сумма = 50.
+    """
     spec = [
         _item("vesta-с-80-18"),
-        _item("verification_default"),
+        _item("foundation_s_f_18"),
+        _item("orion_standard"),
+        _item("install_default"),
         _item("delivery_default"),
+        _item("verification_default"),
     ]
-    out = calculate_term_days_per_item(spec, 30)
-    assert out[0]["value"] == "28"
+    days, total = calculate_term_days_per_item(spec, total_days_user=50)
+    assert days["vesta-с-80-18"] == 26
+    assert days["foundation_s_f_18"] == 13
+    assert days["orion_standard"] == 6
+    assert days["install_default"] == 3
+    assert days["delivery_default"] == 1
+    assert days["verification_default"] == 1
+    assert total == 50
 
 
-def test_no_delivery_in_spec() -> None:
-    """Нет «доставки» → fixed=4+1=5, remaining=25."""
+def test_user_override_down_proportional_scale() -> None:
+    """T_default=40, user=30. variable_target=25, variable_default=35.
+    scales=14, foundation=7, orion=4. Сумма = 30.
+    """
+    spec = [
+        _item("vesta-с-80-18"),
+        _item("foundation_s_f_18"),
+        _item("orion_standard"),
+        _item("install_default"),
+        _item("delivery_default"),
+        _item("verification_default"),
+    ]
+    days, total = calculate_term_days_per_item(spec, total_days_user=30)
+    assert days["vesta-с-80-18"] == 14
+    assert days["foundation_s_f_18"] == 7
+    assert days["orion_standard"] == 4
+    assert total == 30
+
+
+def test_user_override_at_minimum() -> None:
+    """min_total = fixed_total + len(active_variable). Для scales+install+delivery+verification: 5+1=6."""
     spec = [
         _item("vesta-с-80-18"),
         _item("install_default"),
+        _item("delivery_default"),
         _item("verification_default"),
     ]
-    out = calculate_term_days_per_item(spec, 30)
-    assert out[0]["value"] == "25"
+    days, total = calculate_term_days_per_item(spec, total_days_user=6)
+    assert days["vesta-с-80-18"] == 1
+    assert days["install_default"] == 3
+    assert days["delivery_default"] == 1
+    assert days["verification_default"] == 1
+    assert total == 6
 
 
-def test_customer_side_install_not_subtracted() -> None:
-    """install_default с customer_side=True — не вычитается из общего, в ячейке пусто."""
+def test_user_override_below_minimum_raises() -> None:
+    """user < min_total → TermDaysTooSmallError с разбивкой."""
+    spec = [
+        _item("vesta-с-80-18"),
+        _item("install_default"),
+        _item("delivery_default"),
+        _item("verification_default"),
+    ]
+    with pytest.raises(TermDaysTooSmallError) as exc_info:
+        calculate_term_days_per_item(spec, total_days_user=4)
+    d = exc_info.value.details
+    assert d["total"] == 4
+    assert d["min"] == 6
+    assert d["fixed_total"] == 5
+    assert d["variable_count"] == 1
+    assert d["install"] == 3
+    assert d["delivery"] == 1
+    assert d["verification"] == 1
+
+
+def test_user_override_total_always_matches() -> None:
+    """Дельта округления гарантирует sum(role_days) == user_total для любого user >= min."""
+    spec = [
+        _item("vesta-с-80-18"),
+        _item("foundation_s_f_18"),
+        _item("orion_standard"),
+        _item("canopy_turnkey_18"),
+        _item("install_default"),
+        _item("delivery_default"),
+        _item("verification_default"),
+    ]
+    for user in (10, 15, 20, 33, 47, 65, 80, 99, 120):
+        _, total = calculate_term_days_per_item(spec, total_days_user=user)
+        assert total == user, f"user={user}: total={total}"
+
+
+def test_construction_works_and_foundation_share_role() -> None:
+    """construction_works_* и foundation_* обе с role=foundation.
+
+    Обе позиции получают одинаковый T_foundation, в total роль учитывается один раз.
+    """
+    spec = [
+        _item("vesta-с-80-18"),
+        _item("construction_works_18"),
+        _item("foundation_s_f_18"),
+        _item("install_default"),
+        _item("delivery_default"),
+        _item("verification_default"),
+    ]
+    days, total = calculate_term_days_per_item(spec, None)
+    assert days["construction_works_18"] == 10
+    assert days["foundation_s_f_18"] == 10
+    assert total == 35  # 20+10+3+1+1 (foundation один раз)
+
+
+def test_customer_side_install_excluded() -> None:
+    """customer_side=True для install — позиция не активна, в days_map отсутствует."""
     spec = [
         _item("vesta-с-80-18"),
         _item("install_default", customer_side=True),
-        _item("verification_default"),
         _item("delivery_default"),
+        _item("verification_default"),
     ]
-    out = calculate_term_days_per_item(spec, 30)
-    # fixed = 0 (install customer) + 1 + 1 = 2 → remaining = 28
-    assert out[0]["value"] == "28"
-    install_row = out[1]
-    assert install_row["item_key"] == "install_default"
-    assert install_row["value"] == ""
-    assert install_row["merge"] is None
+    days, total = calculate_term_days_per_item(spec, None)
+    assert "install_default" not in days
+    assert total == 22  # 20+1+1
 
 
-def test_customer_side_delivery_not_subtracted() -> None:
-    """delivery_default customer_side → пустая ячейка, не учитывается."""
+def test_resolve_term_role_typical_keys() -> None:
+    """Маппинг item_key → роль для основных ключей."""
+    assert resolve_term_role("vesta-с-80-18") == "scales"
+    # Опции весов → None
+    assert resolve_term_role("frame_18") is None
+    assert resolve_term_role("fence_norma_20") is None
+    assert resolve_term_role("ramp_set_fl_sl") is None
+    assert resolve_term_role("hatches_24") is None
+    assert resolve_term_role("embedded_parts") is None
+    assert resolve_term_role("rubber_t_6m") is None
+    assert resolve_term_role("factory_calibration") is None
+    # ОРИОН
+    assert resolve_term_role("orion_lite") == "orion"
+    assert resolve_term_role("orion_cable_poles") == "orion"
+    # Фундамент (включая stone-works/concrete)
+    assert resolve_term_role("foundation_s_f_18") == "foundation"
+    assert resolve_term_role("foundation_lite_sl_fl_20") == "foundation"
+    assert resolve_term_role("foundation_supervision") == "foundation"
+    assert resolve_term_role("construction_works_22") == "foundation"
+    assert resolve_term_role("concrete_base_on_frame") == "foundation"
+    # Навес
+    assert resolve_term_role("canopy_turnkey_22") == "canopy"
+    # Сервисные
+    assert resolve_term_role("install_default") == "install"
+    assert resolve_term_role("verification_default") == "verification"
+    assert resolve_term_role("delivery_default") == "delivery"
+    assert resolve_term_role("") is None
+
+
+def test_calculate_min_term_days() -> None:
+    """min = fixed_total + len(active_variable)."""
     spec = [
         _item("vesta-с-80-18"),
+        _item("foundation_s_f_18"),
         _item("install_default"),
-        _item("verification_default"),
-        _item("delivery_default", customer_side=True),
-    ]
-    out = calculate_term_days_per_item(spec, 30)
-    # fixed = 4 + 1 + 0 = 5 → remaining = 25
-    assert out[0]["value"] == "25"
-    assert out[3]["value"] == ""
-
-
-def test_total_equals_fixed_raises() -> None:
-    """T_общий == T_фиксированных → ValueError, расчёт невозможен."""
-    spec = [
-        _item("vesta-с-80-18"),
-        _item("install_default"),
-        _item("verification_default"),
         _item("delivery_default"),
-    ]
-    with pytest.raises(TermDaysTooSmallError) as exc_info:
-        calculate_term_days_per_item(spec, 6)  # 6 == 4+1+1
-    d = exc_info.value.details
-    assert d["total"] == 6
-    assert d["min"] == 7  # минимум, чтобы T_осталось >= 1
-    assert d["install"] == 4
-    assert d["verification"] == 1
-    assert d["delivery"] == 1
-
-
-def test_total_less_than_fixed_raises() -> None:
-    """T_общий < T_фиксированных → ValueError."""
-    spec = [
-        _item("vesta-с-80-18"),
-        _item("install_default"),
         _item("verification_default"),
-        _item("delivery_default"),
     ]
-    with pytest.raises(TermDaysTooSmallError):
-        calculate_term_days_per_item(spec, 3)
+    # fixed=3+1+1=5, variable={scales,foundation}=2 → min=7
+    assert calculate_min_term_days(spec) == 7
 
 
-def test_parallel_aux_canopy_separate_cell() -> None:
-    """canopy_turnkey_18 → отдельная ячейка с T_осталось, без merge."""
+def test_calculate_default_term_days_matches_total() -> None:
+    """calculate_default_term_days == total из calculate_term_days_per_item(None)."""
     spec = [
         _item("vesta-с-80-18"),
-        _item("frame_18"),
+        _item("foundation_s_f_18"),
+        _item("orion_standard"),
         _item("canopy_turnkey_18"),
         _item("install_default"),
-        _item("verification_default"),
         _item("delivery_default"),
-    ]
-    out = calculate_term_days_per_item(spec, 30)
-    assert out[0]["merge"] == "restart"
-    assert out[1]["merge"] == "continue"
-    canopy_row = out[2]
-    assert canopy_row["item_key"] == "canopy_turnkey_18"
-    assert canopy_row["value"] == "24"
-    assert canopy_row["merge"] is None
-
-
-def test_classify_term_role_typical_keys() -> None:
-    """Маппинг item_key → роль для 8 типичных ключей."""
-    assert classify_term_role("vesta-с-80-18") == "scales_main"
-    assert classify_term_role("frame_18") == "scales_aux"
-    assert classify_term_role("fence_norma_20") == "scales_aux"
-    assert classify_term_role("ramp_set_fl_sl") == "scales_aux"
-    assert classify_term_role("orion_lite") == "scales_aux"
-    assert classify_term_role("orion_cable_poles") == "scales_aux"
-    assert classify_term_role("foundation_s_f_18") == "foundation"
-    assert classify_term_role("foundation_supervision") == "foundation"
-    assert classify_term_role("canopy_turnkey_22") == "parallel_aux"
-    assert classify_term_role("construction_works_18") == "parallel_aux"
-    assert classify_term_role("concrete_base_on_frame") == "parallel_aux"
-    assert classify_term_role("install_default") == "install"
-    assert classify_term_role("verification_default") == "verification"
-    assert classify_term_role("delivery_default") == "delivery"
-    assert classify_term_role("embedded_parts") == "scales_aux"
-    assert classify_term_role("rubber_t_6m") == "scales_aux"
-    assert classify_term_role("factory_calibration") == "scales_aux"
-
-
-def test_total_one_more_than_fixed_passes() -> None:
-    """T_общий = fixed+1 → remaining=1, расчёт проходит."""
-    spec = [
-        _item("vesta-с-80-18"),
-        _item("install_default"),
         _item("verification_default"),
-        _item("delivery_default"),
     ]
-    out = calculate_term_days_per_item(spec, 7)  # fixed=6, remaining=1
-    assert out[0]["value"] == "1"
+    assert calculate_default_term_days(spec) == 65

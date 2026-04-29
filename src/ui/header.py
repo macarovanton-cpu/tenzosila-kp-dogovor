@@ -6,7 +6,7 @@ from datetime import timedelta
 import streamlit as st
 
 from src.data_loader import get_default_manager_id, get_manager_by_id
-from src.term_days import calculate_default_term_days
+from src.term_days import calculate_default_term_days, calculate_min_term_days
 from src.utils.format import format_phone
 
 
@@ -21,8 +21,15 @@ def render_header(state: dict, managers: dict, spec_items: list[dict]) -> None:
 
     # Дефолт срока проекта по составу. Если менеджер не правил — следуем за ним.
     default_term = calculate_default_term_days(spec_items)
+    min_term = max(calculate_min_term_days(spec_items), 1)
     if not state.get("total_term_days_user_set"):
         state["total_term_days"] = default_term
+    elif state.get("total_term_days") is not None and int(
+        state["total_term_days"]
+    ) < min_term:
+        # Состав изменился — ручное значение ниже нового минимума, поднимаем.
+        state["total_term_days"] = min_term
+        st.session_state["total_term_days"] = min_term
 
     # Строка 1: лид / дата / сроки
     row1 = st.columns([2, 1, 1, 1])
@@ -46,14 +53,17 @@ def render_header(state: dict, managers: dict, spec_items: list[dict]) -> None:
     with row1[3]:
         st.number_input(
             "Срок исполнения, раб. дней",
-            min_value=5, max_value=70, step=1,
+            min_value=min_term, max_value=120, step=1,
             key="total_term_days",
             on_change=_on_term_change,
             help=(
                 "Срок исполнения проекта в рабочих днях. "
                 f"Дефолт по составу: {default_term} дн. "
-                "База 20 + 5 (монтаж/поверка) + 5 (ОРИОН) + 10 (фундамент). "
-                "Менеджер может переопределить вручную."
+                "Дефолты ролей: весы 20, ОРИОН 5, фундамент 10, навес 25, "
+                "монтаж 3, доставка 1, поверка 1 — суммируются по активным "
+                "позициям. При правке вручную вариативные роли скейлятся "
+                "пропорционально, фиксированные (монтаж/доставка/поверка) "
+                "остаются неизменными."
             ),
         )
 

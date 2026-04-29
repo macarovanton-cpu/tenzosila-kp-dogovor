@@ -372,13 +372,19 @@ def test_generated_docx_term_days_with_vmerge(prices):
     """Полный набор позиций при total=30 → vMerge для весов+опций, отдельные
     ячейки для фундамента/монтажа/поверки/доставки.
 
+    Состав: scales + foundation + install + delivery + verification + opts.
+    T_default = 20+10+3+1+1 = 35. user=30 < T_default → пропорциональный скейл
+    вариативных (variable_target=25, variable_default=30):
+      scales = round(20*25/30) = 17, foundation = round(10*25/30) = 8.
+    Итого total = 17+8+3+1+1 = 30.
+
     Ожидается:
-      - 1-я content-row (модель): cell[2].text="24" + <w:vMerge w:val="restart"/>
+      - 1-я content-row (модель): cell[2].text="17" + <w:vMerge w:val="restart"/>
       - 2-я / 3-я (frame, fence): cell[2].text="" + <w:vMerge/> (continue)
-      - 4-я (foundation): "24", без vMerge
-      - 5-я (install): "4", без vMerge
-      - 6-я (verification): "1", без vMerge
-      - 7-я (delivery): "1", без vMerge
+      - 4-я (foundation): "8", без vMerge
+      - 5-я (install): "3", без vMerge
+      - 6-я (delivery): "1", без vMerge
+      - 7-я (verification): "1", без vMerge
     """
     state = _state(
         total_term_days=30,
@@ -455,10 +461,10 @@ def test_generated_docx_term_days_with_vmerge(prices):
     # install_default, delivery_default, verification_default
     # (OPTION_BLOCKS_ORDER: install → delivery → verification).
 
-    # row 1 = модель: vMerge=restart, value="24"
+    # row 1 = модель: vMerge=restart, value="17"
     text, vm = col2_info(trs[1])
     assert vm == "restart"
-    assert text == "24"
+    assert text == "17"
 
     # row 2 = frame, row 3 = fence: vMerge=continue, value=""
     text, vm = col2_info(trs[2])
@@ -468,15 +474,15 @@ def test_generated_docx_term_days_with_vmerge(prices):
     assert vm == "continue"
     assert text == ""
 
-    # row 4 = foundation: без vMerge, value="24"
+    # row 4 = foundation: без vMerge, value="8"
     text, vm = col2_info(trs[4])
     assert vm == "none"
-    assert text == "24"
+    assert text == "8"
 
-    # row 5 = install: без vMerge, value="4"
+    # row 5 = install: без vMerge, value="3"
     text, vm = col2_info(trs[5])
     assert vm == "none"
-    assert text == "4"
+    assert text == "3"
 
     # row 6 = delivery: без vMerge, value="1"
     text, vm = col2_info(trs[6])
@@ -496,7 +502,11 @@ def test_generated_docx_term_days_with_vmerge(prices):
 
 
 def test_generated_docx_no_foundation_term_days(prices):
-    """Без фундамента: T_осталось=24 (фиксированные те же 6), весы=24."""
+    """Без фундамента, total=30. Состав: scales+install+delivery+verification.
+
+    T_default = 20+3+1+1 = 25. user=30 > T_default → скейл вариативных вверх.
+    variable_target = 25, variable_default = 20, scales = round(20*25/20) = 25.
+    """
     state = _state(
         total_term_days=30,
         options={
@@ -539,11 +549,11 @@ def test_generated_docx_no_foundation_term_days(prices):
     W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
     qn = lambda tag: f"{{{W}}}{tag}"  # noqa: E731
 
-    # Модель в первой content-row → "24"
+    # Модель в первой content-row → "25" (variable_target=25 целиком на scales)
     trs = spec_table._tbl.findall(qn("tr"))
     tcs = trs[1].findall(qn("tc"))
     text = "".join(t.text or "" for t in tcs[2].iter(qn("t")))
-    assert text == "24"
+    assert text == "25"
 
 
 def test_generate_kp_raises_term_too_small(prices):
@@ -579,8 +589,152 @@ def test_generate_kp_raises_term_too_small(prices):
         generate_kp(state, prices)
     d = exc.value.details
     assert d["total"] == 3
-    assert d["min"] == 7
-    assert d["install"] == 4
+    # fixed_total = 3+1+1 = 5; active_variable = {scales}; min = 5+1 = 6
+    assert d["min"] == 6
+    assert d["fixed_total"] == 5
+    assert d["variable_count"] == 1
+    assert d["install"] == 3
+
+
+def test_generated_docx_full_set_with_canopy_and_orion(prices):
+    """Расширенный состав: scales+frame+orion+canopy+foundation+install+delivery+verification.
+
+    T_default = 20+5+25+10+3+1+1 = 65 (без user override → дефолты по ролям).
+    Каждая роль (orion/canopy/foundation/install/delivery/verification) — своя
+    строка со своим числом, без vMerge. ОРИОН НЕ сливается с весами.
+    """
+    state = _state(
+        total_term_days=None,
+        options={
+            "frame_18": {
+                "enabled": True, "price": 130_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 130_000, "dealer_is_synthetic": False,
+                "block": "frames",
+            },
+            "orion_standard": {
+                "enabled": True, "price": 380_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 380_000, "dealer_is_synthetic": False,
+                "block": "pak_orion",
+            },
+            "canopy_turnkey_18": {
+                "enabled": True, "price": 1_500_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 1_500_000, "dealer_is_synthetic": False,
+                "block": "canopy",
+            },
+            "foundation_s_f_18": {
+                "enabled": True, "price": 280_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 280_000, "dealer_is_synthetic": False,
+                "block": "foundations",
+            },
+            "install_default": {
+                "enabled": True, "price": 200_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 200_000, "dealer_is_synthetic": False,
+                "block": "install",
+            },
+            "delivery_default": {
+                "enabled": True, "price": 70_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 70_000, "dealer_is_synthetic": False,
+                "block": "delivery",
+            },
+            "verification_default": {
+                "enabled": True, "price": 30_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 30_000, "dealer_is_synthetic": False,
+                "block": "verification",
+            },
+        },
+    )
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+
+    spec_table = None
+    for t in doc.tables:
+        if t.rows[0].cells[0].text.strip() == "Наименование":
+            spec_table = t
+            break
+    assert spec_table is not None
+
+    W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    qn = lambda tag: f"{{{W}}}{tag}"  # noqa: E731
+
+    def col2(tr):
+        tc = tr.findall(qn("tc"))[2]
+        text = "".join(t.text or "" for t in tc.iter(qn("t")))
+        tcPr = tc.find(qn("tcPr"))
+        vm = tcPr.find(qn("vMerge")) if tcPr is not None else None
+        if vm is None:
+            return text, "none"
+        return text, "restart" if vm.get(qn("val")) == "restart" else "continue"
+
+    trs = spec_table._tbl.findall(qn("tr"))
+
+    # row 1 = модель: restart "20"
+    text, vm = col2(trs[1])
+    assert vm == "restart" and text == "20"
+    # row 2 = frame (роль None) → continue
+    text, vm = col2(trs[2])
+    assert vm == "continue" and text == ""
+    # row 3 = orion → отдельная строка "5"
+    text, vm = col2(trs[3])
+    assert vm == "none" and text == "5"
+    # row 4 = canopy → "25"
+    text, vm = col2(trs[4])
+    assert vm == "none" and text == "25"
+    # row 5 = foundation → "10"
+    text, vm = col2(trs[5])
+    assert vm == "none" and text == "10"
+    # row 6 = install → "3"
+    text, vm = col2(trs[6])
+    assert vm == "none" and text == "3"
+    # row 7 = delivery → "1"
+    text, vm = col2(trs[7])
+    assert vm == "none" and text == "1"
+    # row 8 = verification → "1"
+    text, vm = col2(trs[8])
+    assert vm == "none" and text == "1"
+
+
+def test_generated_docx_foundation_label_uses_model_line(prices):
+    """Лейбл фундамента в DOCX подменён на букву линейки выбранной модели."""
+    state = _state(
+        model_id="vesta-с-80-18",
+        model_line="С",
+        total_term_days=None,
+        options={
+            "foundation_s_f_18": {
+                "enabled": True, "price": 280_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 280_000, "dealer_is_synthetic": False,
+                "block": "foundations",
+            },
+        },
+    )
+    docx = generate_kp(state, prices)
+    doc = Document(BytesIO(docx))
+
+    spec_table = None
+    for t in doc.tables:
+        if t.rows[0].cells[0].text.strip() == "Наименование":
+            spec_table = t
+            break
+    assert spec_table is not None
+
+    # Найти строку фундамента: ищем в первой колонке "Фундамент"
+    foundation_text = ""
+    for row in spec_table.rows[1:]:
+        cell_text = row.cells[0].text
+        if "Фундамент" in cell_text:
+            foundation_text = cell_text
+            break
+    assert foundation_text, "Строка фундамента не найдена в spec-таблице"
+    assert "ВЕСТА-С" in foundation_text
+    assert "С/Ф/П" not in foundation_text
 
 
 def test_validity_paragraph_uses_pt_sans(prices):
