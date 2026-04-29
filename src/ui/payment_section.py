@@ -72,6 +72,7 @@ def _render_v1(state: dict, preset: dict) -> str:
         prepay = st.number_input(
             "Предоплата, %",
             min_value=1, max_value=99, step=1,
+            value=int(st.session_state.get("payment_v1_prepay", 50)),
             key="payment_v1_prepay",
         )
     postpay = 100 - int(prepay)
@@ -95,12 +96,14 @@ def _render_v2(state: dict, preset: dict) -> str:
         prepay = st.number_input(
             "Предоплата, %",
             min_value=1, max_value=98, step=1,
+            value=int(st.session_state.get("payment_v2_prepay", 30)),
             key="payment_v2_prepay",
         )
     with cols[1]:
         preship = st.number_input(
             "Перед отгрузкой, %",
             min_value=0, max_value=99, step=1,
+            value=int(st.session_state.get("payment_v2_preship", 40)),
             key="payment_v2_preship",
         )
     postpay = 100 - int(prepay) - int(preship)
