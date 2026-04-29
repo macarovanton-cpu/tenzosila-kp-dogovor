@@ -78,19 +78,55 @@
           "is_default": false
         },
         {
+          "id": "zemic_hm9b_30t",
+          "label": "Zemic HM9B-30t",
+          "temp_range_c": "-30...+40",
+          "is_default": false
+        },
+        {
+          "id": "zemic_bm14g_30t",
+          "label": "Zemic BM14G-30t",
+          "temp_range_c": "-30...+40",
+          "is_default": false
+        },
+        {
           "id": "mera_cdl_30t",
           "label": "Mera CDL-30t",
           "temp_range_c": "-40...+40",
           "is_default": false
         },
         {
-          "id": "keli_wbk_30t",
-          "label": "Keli WBK-30t (C4)",
-          "temp_range_c": "-20...+50",
+          "id": "keli_zsfy_30t",
+          "label": "Keli ZSFY-30t",
+          "temp_range_c": "-40...+40",
+          "is_default": false
+        },
+        {
+          "id": "keli_zsfy_d_30t",
+          "label": "Keli ZSFY-D-30t",
+          "temp_range_c": "-40...+40",
+          "is_default": false
+        },
+        {
+          "id": "hbm_c16a_30t",
+          "label": "HBM C16A-30t",
+          "temp_range_c": "-50...+50",
+          "is_default": false
+        },
+        {
+          "id": "hbm_c16i_30t",
+          "label": "HBM C16i-30t",
+          "temp_range_c": "-50...+50",
+          "is_default": false
+        },
+        {
+          "id": "mv150_30t",
+          "label": "МВ-150-30t",
+          "temp_range_c": "-50...+50",
           "is_default": false
         }
       ],
-      "notes": "Полный список датчиков из описания типа (15+ моделей) — добавить по запросу в Фазе 1.1+."
+      "notes": "Расширено до 10 моделей (включая Mera CDL). Источник правды для технических данных — data/equipment_specs.json (загружается через get_equipment_info)."
     },
     "indicator": {
       "default": "ТИТАН 3ЦС",
@@ -101,13 +137,6 @@
           "label": "ТИТАН 3ЦС",
           "temp_range_c": "-10...+40",
           "is_default": true,
-          "signal": "digital"
-        },
-        {
-          "id": "titan_3c",
-          "label": "ТИТАН 3Ц",
-          "temp_range_c": "-10...+40",
-          "is_default": false,
           "signal": "digital"
         },
         {
@@ -125,21 +154,14 @@
           "signal": "analog"
         },
         {
-          "id": "dis2116",
-          "label": "DIS2116",
-          "temp_range_c": "-10...+40",
+          "id": "microsim_m0601",
+          "label": "Микросим М0601",
+          "temp_range_c": "-35...+40",
           "is_default": false,
-          "signal": "digital"
-        },
-        {
-          "id": "i30",
-          "label": "i 30",
-          "temp_range_c": "-10...+40",
-          "is_default": false,
-          "signal": "digital"
+          "signal": "analog"
         }
       ],
-      "notes": "Полный список индикаторов/терминалов из описания типа — добавить по запросу в Фазе 1.1+."
+      "notes": "Терминалы: ТИТАН 3ЦС (цифровой), ТИТАН 12/12С и Микросим М0601 (аналоговые). Источник правды для технических данных — data/equipment_specs.json."
     }
   },
   "line_defaults": {
