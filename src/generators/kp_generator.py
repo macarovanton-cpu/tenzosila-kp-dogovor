@@ -34,8 +34,8 @@ from src.utils.format import fmt_int_spaces, pluralize
 TEMPLATE_PATH: Path = Path(__file__).resolve().parent.parent.parent / "templates" / "kp_template.docx"
 
 # Размер шрифта вспомогательных строк имени модели в спецификации.
-# В docxtpl.RichText.add(size=...) — half-points: 18 → 9pt.
-_SPEC_NAME_SUBLINE_HALFPT = 18
+# В docxtpl.RichText.add(size=...) — half-points: 16 → 8pt.
+_SPEC_NAME_SUBLINE_HALFPT = 16
 
 
 def _build_term_markers(

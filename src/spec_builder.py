@@ -22,23 +22,19 @@ _FOUNDATION_S_F_LINES = frozenset({"С", "Ф", "П"})
 _FOUNDATION_SL_FL_PLACEHOLDER = "СЛ/ФЛ"
 _FOUNDATION_SL_FL_LINES = frozenset({"СЛ", "ФЛ"})
 
+# Дженерик-обозначения рам и пандусов.
+_FRAME_PLACEHOLDER = "С(Ф)/ФЛ(СЛ)"
+_FRAME_LINES = frozenset({"С", "Ф", "П", "СЛ", "ФЛ"})
+_RAMP_F_S_PLACEHOLDER = "Ф/С"
+_RAMP_F_S_LINES = frozenset({"С", "Ф", "П"})
+_RAMP_FL_SL_PLACEHOLDER = "ФЛ/СЛ"
+_RAMP_FL_SL_LINES = frozenset({"СЛ", "ФЛ"})
+
 
 def _format_model_name(model: dict | None, model_id: str) -> str:
     if model and model.get("full_name"):
         return f"Весы автомобильные {model['full_name']}"
     return f"Весы автомобильные {model_id}"
-
-
-def _detect_fence_type(options: dict) -> str | None:
-    """Тип ограждения по включённым опциям. None — без ограждения."""
-    for key, opt in options.items():
-        if not opt or not opt.get("enabled"):
-            continue
-        if key.startswith("fence_light_"):
-            return "ЛАЙТ"
-        if key.startswith("fence_norma_"):
-            return "НОРМА"
-    return None
 
 
 def _format_model_full_spec_name(
@@ -53,7 +49,8 @@ def _format_model_full_spec_name(
         Весы автомобильные {full_name}
         Датчики: {sensor_label}, {sensors_count} шт.
         Терминал: {indicator_label}
-        Ограждение {fence_type}   ← опционально, если включено fence_*
+
+    Ограждение, рама, пандусы — отдельные строки spec_items, в имя НЕ включаются.
     """
     parts = [_format_model_name(model, model_id)]
     if model:
@@ -68,32 +65,45 @@ def _format_model_full_spec_name(
             models_json, "indicator", state.get("indicator_id", "")
         )
         parts.append(f"Терминал: {indicator_info['label']}")
-    fence_type = _detect_fence_type(state.get("options", {}) or {})
-    if fence_type:
-        parts.append(f"Ограждение {fence_type}")
     return "\n".join(parts)
 
 
 def resolve_dynamic_option_label(
     item_key: str, label: str, model_line: str
 ) -> str:
-    """Подставить букву линейки выбранной модели в обобщённый лейбл фундамента.
+    """Подставить букву линейки выбранной модели в обобщённый лейбл позиции.
 
-    `foundation_s_f_*`            «… ВЕСТА-С/Ф/П, …»  → «… ВЕСТА-{line}, …»
-    `foundation_lite_sl_fl_*`     «… ВЕСТА-СЛ/ФЛ, …»  → «… ВЕСТА-{line}, …»
-    `foundation_std_sl_fl_*`      «… ВЕСТА-СЛ/ФЛ, …»  → «… ВЕСТА-{line}, …»
+    `foundation_s_f_*`            «… ВЕСТА-С/Ф/П, …»      → «… ВЕСТА-{line}, …»
+    `foundation_lite/std_sl_fl_*` «… ВЕСТА-СЛ/ФЛ, …»      → «… ВЕСТА-{line}, …»
+    `frame_*`                     «… ВЕСТА-С(Ф)/ФЛ(СЛ), …» → «… ВЕСТА-{line}, …»
+    `ramp_set_f_s`                «… ВЕСТА-Ф/С …»          → «… ВЕСТА-{line} …»
+    `ramp_set_fl_sl`              «… ВЕСТА-ФЛ/СЛ …»        → «… ВЕСТА-{line} …»
 
     Прочие ключи и лейблы возвращаются без изменений.
     """
-    if not item_key.startswith("foundation_") or not label:
+    if not label:
         return label
-    if item_key.startswith("foundation_s_f_"):
-        if model_line in _FOUNDATION_S_F_LINES:
-            return label.replace(_FOUNDATION_S_F_PLACEHOLDER, model_line)
+    if item_key.startswith("foundation_"):
+        if item_key.startswith("foundation_s_f_"):
+            if model_line in _FOUNDATION_S_F_LINES:
+                return label.replace(_FOUNDATION_S_F_PLACEHOLDER, model_line)
+            return label
+        if item_key.startswith(("foundation_lite_sl_fl_", "foundation_std_sl_fl_")):
+            if model_line in _FOUNDATION_SL_FL_LINES:
+                return label.replace(_FOUNDATION_SL_FL_PLACEHOLDER, model_line)
+            return label
         return label
-    if item_key.startswith(("foundation_lite_sl_fl_", "foundation_std_sl_fl_")):
-        if model_line in _FOUNDATION_SL_FL_LINES:
-            return label.replace(_FOUNDATION_SL_FL_PLACEHOLDER, model_line)
+    if item_key.startswith("frame_"):
+        if model_line in _FRAME_LINES:
+            return label.replace(_FRAME_PLACEHOLDER, model_line)
+        return label
+    if item_key == "ramp_set_f_s":
+        if model_line in _RAMP_F_S_LINES:
+            return label.replace(_RAMP_F_S_PLACEHOLDER, model_line)
+        return label
+    if item_key == "ramp_set_fl_sl":
+        if model_line in _RAMP_FL_SL_LINES:
+            return label.replace(_RAMP_FL_SL_PLACEHOLDER, model_line)
         return label
     return label
 

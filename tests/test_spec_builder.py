@@ -198,6 +198,93 @@ def test_dynamic_label_unmatched_line_keeps_label():
     assert result == "Фундамент под ВЕСТА-С/Ф/П, 18м"
 
 
+# --- Bonus: dynamic labels для frame_* и ramp_* ---
+
+
+def test_dynamic_label_frame_substitutes_line_s():
+    """frame_20 + line=С → 'Рама под весы ВЕСТА-С, 20м'."""
+    result = resolve_dynamic_option_label(
+        "frame_20",
+        "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 20м",
+        "С",
+    )
+    assert result == "Рама под весы ВЕСТА-С, 20м"
+
+
+def test_dynamic_label_frame_substitutes_line_fl():
+    """frame_18 + line=ФЛ → 'Рама под весы ВЕСТА-ФЛ, 18м'."""
+    result = resolve_dynamic_option_label(
+        "frame_18",
+        "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 18м",
+        "ФЛ",
+    )
+    assert result == "Рама под весы ВЕСТА-ФЛ, 18м"
+
+
+def test_dynamic_label_ramp_f_s_substitutes_line():
+    """ramp_set_f_s + line=С → подмена Ф/С на С."""
+    result = resolve_dynamic_option_label(
+        "ramp_set_f_s",
+        "Комплект пандусов под весы ВЕСТА-Ф/С (L=3,9м)",
+        "С",
+    )
+    assert result == "Комплект пандусов под весы ВЕСТА-С (L=3,9м)"
+
+
+def test_dynamic_label_ramp_fl_sl_substitutes_line():
+    """ramp_set_fl_sl + line=СЛ → подмена ФЛ/СЛ на СЛ."""
+    result = resolve_dynamic_option_label(
+        "ramp_set_fl_sl",
+        "Комплект пандусов под весы ВЕСТА-ФЛ/СЛ (L=2,9м)",
+        "СЛ",
+    )
+    assert result == "Комплект пандусов под весы ВЕСТА-СЛ (L=2,9м)"
+
+
+def test_dynamic_label_frame_no_placeholder_unchanged():
+    """frame_18 с лейблом без плейсхолдера — возвращается без изменений."""
+    assert resolve_dynamic_option_label(
+        "frame_18", "Рама стандартная 18м", "С"
+    ) == "Рама стандартная 18м"
+
+
+def test_dynamic_label_ramp_f_s_wrong_line_unchanged():
+    """ramp_set_f_s + line=СЛ — линия не в группе, label без изменений."""
+    label = "Комплект пандусов под весы ВЕСТА-Ф/С (L=3,9м)"
+    assert resolve_dynamic_option_label("ramp_set_f_s", label, "СЛ") == label
+
+
+# --- Fix 1: ограждение не должно попадать в имя строки весов ---
+
+
+def test_model_name_excludes_fence(prices, models_json):
+    """Имя первой позиции (весы) содержит ровно 3 части: название, датчики, терминал.
+
+    Ограждение — отдельная строка spec_items, НЕ часть имени модели.
+    """
+    state = _base_state()
+    state["options"] = {
+        "fence_norma_20": {
+            "enabled": True,
+            "price": 128_000,
+            "qty": 1,
+            "customer_side": False,
+            "is_on_request": False,
+            "retail": 128_000,
+            "dealer_is_synthetic": False,
+            "block": "fences",
+        }
+    }
+    items = build_spec_items(state, prices, models_json)
+    model_name = items[0]["name"]
+    parts = model_name.split("\n")
+    assert len(parts) == 3, f"Ожидалось 3 части, получено {len(parts)}: {parts}"
+    assert "Ограждение" not in model_name
+    assert "ВЕСТА" in parts[0]
+    assert parts[1].startswith("Датчики:")
+    assert parts[2].startswith("Терминал:")
+
+
 def test_build_spec_items_uses_dynamic_foundation_label(prices, models_json):
     """В spec_items label фундамента подменяется на конкретную линию модели."""
     state = _base_state()  # line=С, model=vesta-с-60-18
@@ -349,35 +436,19 @@ def test_model_name_is_multiline_with_sensors_and_terminal(
     assert "Терминал: ТИТАН 3ЦС" in name
 
 
-def test_fence_norma_appears_in_model_name(prices, models_json):
-    state = _base_state()
-    state["options"] = {
-        "fence_norma_18": {
-            "enabled": True, "price": 100_000, "qty": 1,
-            "customer_side": False, "is_on_request": False,
-            "retail": 100_000, "dealer_is_synthetic": False,
-            "block": "fences",
+def test_fence_never_in_model_name(prices, models_json):
+    """Ограждение не попадает в имя строки весов — ни НОРМА, ни ЛАЙТ."""
+    for fence_key in ("fence_norma_18", "fence_light_18"):
+        state = _base_state()
+        state["options"] = {
+            fence_key: {
+                "enabled": True, "price": 100_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 100_000, "dealer_is_synthetic": False,
+                "block": "fences",
+            }
         }
-    }
-    items = build_spec_items(state, prices, models_json)
-    assert "Ограждение НОРМА" in items[0]["name"]
-
-
-def test_fence_light_appears_in_model_name(prices, models_json):
-    state = _base_state()
-    state["options"] = {
-        "fence_light_18": {
-            "enabled": True, "price": 80_000, "qty": 1,
-            "customer_side": False, "is_on_request": False,
-            "retail": 80_000, "dealer_is_synthetic": False,
-            "block": "fences",
-        }
-    }
-    items = build_spec_items(state, prices, models_json)
-    assert "Ограждение ЛАЙТ" in items[0]["name"]
-
-
-def test_no_fence_line_when_no_fence_option(prices, models_json):
-    state = _base_state()
-    items = build_spec_items(state, prices, models_json)
-    assert "Ограждение" not in items[0]["name"]
+        items = build_spec_items(state, prices, models_json)
+        assert "Ограждение" not in items[0]["name"], (
+            f"{fence_key}: ограждение не должно быть в имени весов"
+        )

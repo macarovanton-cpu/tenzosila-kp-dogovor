@@ -257,9 +257,22 @@ def test_kp_valid_days_paragraph_is_bold(prices):
     assert any(r.bold for r in valid_paras[0].runs)
 
 
-def test_spec_item_name_is_richtext_with_9pt_subline(prices):
-    """Имя модели в spec_items_fmt — RichText, вспомогательные строки 9pt."""
-    state = _state(model_id="vesta-с-80-18")
+def test_spec_item_name_is_richtext_with_8pt_subline(prices):
+    """Имя модели в spec_items_fmt — RichText, вспомогательные строки 8pt.
+
+    Ограждение НЕ должно попадать в имя, даже если fence включён.
+    """
+    state = _state(
+        model_id="vesta-с-80-18",
+        options={
+            "fence_norma_18": {
+                "enabled": True, "price": 128_000, "qty": 1,
+                "customer_side": False, "is_on_request": False,
+                "retail": 128_000, "dealer_is_synthetic": False,
+                "block": "fences",
+            }
+        },
+    )
     ctx = build_template_context(state, prices)
     name = ctx["spec_items"][0]["name"]
     # docxtpl.RichText сериализуется в XML с size в half-points
@@ -267,9 +280,10 @@ def test_spec_item_name_is_richtext_with_9pt_subline(prices):
     assert "ВЕСТА-С-80-18" in xml
     assert "Датчики:" in xml
     assert "Терминал" in xml
-    # 9pt = half-points 18
-    assert 'w:sz w:val="18"' in xml or 'sz w:val="18"' in xml, (
-        f"9pt size не найден в RichText XML: {xml[:300]}"
+    assert "Ограждение" not in xml, f"Ограждение не должно быть в имени весов: {xml[:300]}"
+    # 8pt = half-points 16
+    assert 'w:sz w:val="16"' in xml or 'sz w:val="16"' in xml, (
+        f"8pt size не найден в RichText XML: {xml[:300]}"
     )
 
 
