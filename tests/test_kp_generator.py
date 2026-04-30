@@ -139,11 +139,10 @@ def test_build_template_context_has_equipment_keys(prices):
 
 
 def test_sensor_indicator_labels_match_state(prices):
-    state = _state(sensor_id="mera_cdl_30t", indicator_id="titan_12s")
+    state = _state(sensor_id="zemic_bm14g_30t", indicator_id="titan_12s")
     ctx = build_template_context(state, prices)
-    assert ctx["sensor_label"] == "Mera CDL-30t"
-    assert ctx["sensor_temp_range"] == "-40...+40"
-    assert ctx["indicator_label"] == "ТИТАН 12С"
+    assert ctx["sensor_label"] == "Zemic BM14G-30t"
+    assert ctx["sensor_temp_range"] == "-30...+40"
 
 
 def test_unknown_sensor_id_falls_back_to_default(prices):

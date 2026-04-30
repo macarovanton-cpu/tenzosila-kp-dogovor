@@ -90,13 +90,7 @@
           "is_default": false
         },
         {
-          "id": "mera_cdl_30t",
-          "label": "Mera CDL-30t",
-          "temp_range_c": "-40...+40",
-          "is_default": false
-        },
-        {
-          "id": "keli_zsfy_30t",
+                   "id": "keli_zsfy_30t",
           "label": "Keli ZSFY-30t",
           "temp_range_c": "-40...+40",
           "is_default": false
