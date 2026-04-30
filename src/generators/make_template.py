@@ -337,6 +337,94 @@ def transform_spec_table(doc):
 
 
 # ---------------------------------------------------------------------------
+# Page break streaks
+# ---------------------------------------------------------------------------
+
+def replace_empty_streaks_with_page_breaks(doc) -> None:
+    """Заменяет стрики пустых параграфов между разделами на одиночный page break."""
+    from docx.oxml import OxmlElement
+
+    body = doc.element.body
+    anchors = [
+        ("kp_valid_days",                             "Конструкция весов ВЕСТА"),
+        ("Снижение расходов на весовщика-оператора",  "Доставка"),
+    ]
+
+    for after_anchor, before_anchor in anchors:
+        children = list(body)
+        after_idx = before_idx = None
+
+        for i, elem in enumerate(children):
+            tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+            if tag != "p":
+                continue
+            text = "".join(t.text or "" for t in elem.findall(f".//{qn('t')}"))
+            if after_idx is None and after_anchor in text:
+                after_idx = i
+            elif after_idx is not None and before_anchor in text:
+                before_idx = i
+                break
+
+        if after_idx is None or before_idx is None:
+            print(f"  WARNING: стрик не найден: '{after_anchor}' → '{before_anchor}'")
+            continue
+
+        empty_elems = [
+            children[i] for i in range(after_idx + 1, before_idx)
+            if children[i].tag.split("}")[-1] == "p"
+            and not "".join(
+                t.text or "" for t in children[i].findall(f".//{qn('t')}")
+            ).strip()
+        ]
+        for elem in empty_elems:
+            body.remove(elem)
+
+        before_elem = next(
+            e for e in list(body)
+            if e.tag.split("}")[-1] == "p"
+            and before_anchor in "".join(t.text or "" for t in e.findall(f".//{qn('t')}"))
+        )
+        pb_p = OxmlElement("w:p")
+        pb_r = OxmlElement("w:r")
+        pb_br = OxmlElement("w:br")
+        pb_br.set(qn("type"), "page")
+        pb_r.append(pb_br)
+        pb_p.append(pb_r)
+        before_elem.addprevious(pb_p)
+
+        print(
+            f"  Стрик: удалено {len(empty_elems)} пустых "
+            f"между '{after_anchor}' и '{before_anchor}', вставлен page break"
+        )
+
+    # Убрать хвостовые пустые параграфы в конце тела (оставить не более 1).
+    # sectPr — обязательный последний элемент body; bookmark* и inline-sectPr
+    # параграфы — пропускаем (они определяют секцию/колонтитул, не трогаем).
+    _trailing_skip_tag = {"sectPr", "bookmarkStart", "bookmarkEnd"}
+    children = list(body)
+    tail_p = []
+    for elem in reversed(children):
+        tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+        if tag in _trailing_skip_tag:
+            continue
+        if tag != "p":
+            break
+        # Параграф с встроенным sectPr — разрыв секции, не удалять, но продолжить scan
+        pPr = elem.find(qn("pPr"))
+        if pPr is not None and pPr.find(qn("sectPr")) is not None:
+            continue
+        text = "".join(t.text or "" for t in elem.findall(f".//{qn('t')}"))
+        if not text.strip():
+            tail_p.append(elem)
+        else:
+            break
+    for elem in tail_p[1:]:  # оставляем один пустой параграф в конце
+        body.remove(elem)
+    if len(tail_p) > 1:
+        print(f"  Хвост: удалено {len(tail_p) - 1} пустых параграфов в конце документа")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -584,6 +672,11 @@ def make_template():
     # 4b. Подставляем плейсхолдеры менеджера в колонтитул
     # -----------------------------------------------------------------------
     replace_footer_placeholders(doc)
+
+    # -----------------------------------------------------------------------
+    # 4c. Заменяем стрики пустых параграфов на page break
+    # -----------------------------------------------------------------------
+    replace_empty_streaks_with_page_breaks(doc)
 
     # -----------------------------------------------------------------------
     # 5. Сохраняем
