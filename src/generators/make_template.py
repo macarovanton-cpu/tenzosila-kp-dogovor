@@ -10,10 +10,13 @@ make_template.py — собирает kp_template.docx из эталонного
 """
 import copy
 import os
+import sys
 from lxml import etree
 from docx import Document
 
 BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
+sys.path.insert(0, BASE)
+from src.config import VAT_RATE  # noqa: E402
 SRC  = os.path.join(BASE, "03_knowledge_base/sample_kps/Гипсобетон_ВЕСТА-С-80-18.docx")
 DST  = os.path.join(BASE, "templates/kp_template.docx")
 
@@ -479,9 +482,9 @@ def make_template():
                 # runs[orange_idx] (оранжевая «ВЕСТА») остаётся нетронутой
 
         # vat_percent (body paragraph, not table)
-        elif "НДС 22%" in full:
+        elif f"НДС {VAT_RATE*100:.0f}%" in full:
             merge_runs(para)
-            para.runs[0].text = get_para_text(para).replace("22%", "{{ vat_percent }}%")
+            para.runs[0].text = get_para_text(para).replace(f"{VAT_RATE*100:.0f}%", "{{ vat_percent }}%")
 
         # payment_terms_block (заменяет payment_line_1 в эталоне) — RichText с многострочным
         # содержимым, абзацные переносы добавляет docxtpl при рендере.
@@ -591,11 +594,11 @@ def make_template():
 
 
                 # --- vat_percent ---
-                elif "НДС 22%" in cell_text:
+                elif f"НДС {VAT_RATE*100:.0f}%" in cell_text:
                     merge_runs(paras[0])
                     if paras[0].runs:
                         paras[0].runs[0].text = get_para_text(paras[0]).replace(
-                            "22%", "{{ vat_percent }}%"
+                            f"{VAT_RATE*100:.0f}%", "{{ vat_percent }}%"
                         )
 
             # --- total_price + total_term_days (ИТОГО — split runs) ---

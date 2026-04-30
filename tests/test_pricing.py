@@ -1,12 +1,15 @@
 """Тесты логики расчёта слайдеров и итогов."""
 from __future__ import annotations
 
+import pytest
+
 from src.pricing import (
     calc_slider_step,
     calc_totals,
     color_code,
     get_model_slider_params,
     get_slider_params,
+    percent_to_retail,
 )
 
 
@@ -143,3 +146,19 @@ def test_calc_totals_extracts_vat_from_inclusive_prices():
     assert totals["with_vat"] == 1220000
     assert totals["vat"] == round(1220000 * 0.22 / 1.22)  # ≈ 220000
     assert totals["without_vat"] == 1220000 - totals["vat"]
+
+
+def test_percent_to_retail_at_retail():
+    assert percent_to_retail(1000, 1000) == 0.0
+
+
+def test_percent_to_retail_above_retail():
+    assert percent_to_retail(1100, 1000) == pytest.approx(10.0)
+
+
+def test_percent_to_retail_below_retail():
+    assert percent_to_retail(900, 1000) == pytest.approx(-10.0)
+
+
+def test_percent_to_retail_zero_retail():
+    assert percent_to_retail(500, 0) == 0.0

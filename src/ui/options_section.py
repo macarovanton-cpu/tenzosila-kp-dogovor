@@ -9,6 +9,7 @@ from src.config import (
     BLOCK_LABELS,
     OPTION_BLOCKS_ORDER,
     QTY_ENABLED_BLOCKS,
+    VAT_RATE,
 )
 from src.filters import get_visible_options
 from src.pricing import (
@@ -175,9 +176,9 @@ def _render_price_widget(
         help="Диапазон дилерская ↔ розница +40 %. Значения округлены до тысяч",
     )
     if params.kind == "number_input":
-        value = st.number_input("Цена, ₽ (с НДС 22%)", **common)
+        value = st.number_input(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **common)
     else:
-        value = st.slider("Цена, ₽ (с НДС 22%)", **common)
+        value = st.slider(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **common)
 
     _render_price_caption(int(value), params)
     return int(value)

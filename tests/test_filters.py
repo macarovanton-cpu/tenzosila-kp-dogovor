@@ -4,6 +4,7 @@ from __future__ import annotations
 from src.filters import (
     available_lengths,
     available_max_loads,
+    calc_default_deck_mm,
     get_visible_options,
     model_id_from_cascade,
     model_exists_in_prices,
@@ -54,3 +55,12 @@ def test_model_id_from_cascade_and_exists(prices):
     assert mid == "vesta-с-60-18"
     assert model_exists_in_prices(mid, prices)
     assert not model_exists_in_prices("vesta-с-40-18", prices)
+
+
+def test_calc_default_deck_mm_boundary_60():
+    """≤60 т → 6 мм, >60 т → 8 мм."""
+    assert calc_default_deck_mm(40) == 6
+    assert calc_default_deck_mm(60) == 6
+    assert calc_default_deck_mm(61) == 8
+    assert calc_default_deck_mm(80) == 8
+    assert calc_default_deck_mm(100) == 8

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.config import LINES
+from src.config import LINES, VAT_RATE
 from src.data_loader import (
     get_line_defaults,
     get_model_by_id,
@@ -174,7 +174,7 @@ def _render_model_price_slider(state: dict, price: dict) -> None:
     params = get_model_slider_params(price)
     current = state.get("model_price") or params.default_v
     value = st.slider(
-        "Цена модели, ₽ (с НДС 22%)",
+        f"Цена модели, ₽ (с НДС {VAT_RATE*100:.0f}%)",
         min_value=params.min_v,
         max_value=params.max_v,
         value=int(current),
