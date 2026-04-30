@@ -23,6 +23,7 @@ from src.spec_builder import build_spec_items  # noqa: E402
 from src.state import init_state  # noqa: E402
 from src.term_days import resolve_term_days  # noqa: E402
 from src.ui.construction_section import render_construction_section  # noqa: E402
+from src.ui.mobile import inject_mobile_css  # noqa: E402
 from src.ui.equipment_section import render_equipment_section  # noqa: E402
 from src.ui.header import render_header  # noqa: E402
 from src.ui.model_section import render_model_section  # noqa: E402
@@ -42,6 +43,7 @@ def main() -> None:
     )
 
     init_state()
+    inject_mobile_css()
 
     col_logo, _ = st.columns([1, 4])
     with col_logo:

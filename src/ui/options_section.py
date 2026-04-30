@@ -175,10 +175,7 @@ def _render_price_widget(
         args=(key,),
         help="Диапазон дилерская ↔ розница +40 %. Значения округлены до тысяч",
     )
-    if params.kind == "number_input":
-        value = st.number_input(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **common)
-    else:
-        value = st.slider(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **common)
+    value = st.number_input(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **common)
 
     _render_price_caption(int(value), params)
     return int(value)

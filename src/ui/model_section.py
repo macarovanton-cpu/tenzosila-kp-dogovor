@@ -173,7 +173,7 @@ def _render_model_price_slider(state: dict, price: dict) -> None:
     from src.utils.format import fmt_rub
     params = get_model_slider_params(price)
     current = state.get("model_price") or params.default_v
-    value = st.slider(
+    value = st.number_input(
         f"Цена модели, ₽ (с НДС {VAT_RATE*100:.0f}%)",
         min_value=params.min_v,
         max_value=params.max_v,
