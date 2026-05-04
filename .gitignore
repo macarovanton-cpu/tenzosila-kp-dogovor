@@ -48,3 +48,5 @@ auth/
 
 
 CHAT_INDEX.md
+
+.streamlit/secrets.toml
