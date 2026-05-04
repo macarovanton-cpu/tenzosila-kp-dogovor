@@ -106,7 +106,7 @@ def extract_data_via_ai(kp_text: str, card_text: str) -> dict:
     )
 
     response = client.chat.completions.create(
-        model="qwen/qwen3-235b-a22b:free",
+        model="qwen/qwen3-235b-a22b",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message},

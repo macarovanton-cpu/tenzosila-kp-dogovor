@@ -45,3 +45,8 @@ def format_phone(raw: str) -> str:
     if not m:
         return raw
     return f"+7 ({m.group(1)}) {m.group(2)}-{m.group(3)}-{m.group(4)}"
+
+
+def sanitize_filename(name: str) -> str:
+    """Заменяет запрещённые для имени файла символы на _."""
+    return re.sub(r'[/\\:*?"<>|]', '_', name)
