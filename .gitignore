@@ -26,6 +26,7 @@ output/
 
 # E2e: рантайм-артефакты тестов и эталонные DOCX (PNG-baseline коммитим)
 tests/output/
+tests/contracts/synthetic/output/
 tests/baseline/docx/
 playwright-report/
 test-results/
