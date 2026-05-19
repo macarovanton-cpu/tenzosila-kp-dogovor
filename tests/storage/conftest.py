@@ -41,8 +41,9 @@ def use_test_tables(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def truncate_tables(supabase_client):
+def truncate_tables(supabase_client, use_test_tables):
     """TRUNCATE тестовых таблиц перед каждым тестом."""
-    supabase_client.table("kps_test").delete().gte("created_at", "1900-01-01").execute()
-    supabase_client.table("contracts_test").delete().gte("created_at", "1900-01-01").execute()
+    import src.storage.supabase_client as sc
+    supabase_client.table(sc._KPS_TABLE).delete().gte("created_at", "1900-01-01").execute()
+    supabase_client.table(sc._CONTRACTS_TABLE).delete().gte("created_at", "1900-01-01").execute()
     yield

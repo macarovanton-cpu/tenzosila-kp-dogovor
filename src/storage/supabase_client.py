@@ -100,6 +100,7 @@ def search_kps_by_contractor(query: str, limit: int = 20) -> list[dict]:
             .table(_KPS_TABLE)
             .select(_KP_LIST_COLS)
             .ilike("client_name", f"%{query}%")
+            .order("updated_at", desc=True)
             .limit(limit)
             .execute()
         )
