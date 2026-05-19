@@ -1,140 +1,129 @@
 # STATUS — AI-конфигуратор КП и договоров
 
-Последнее обновление: 2026-05-08
-Текущая фаза: 2.x — миграция на Supabase для устранения AI-парсинга КП
+Последнее обновление: 2026-05-19
+Текущая фаза: 2.x — Шаг 7, storage модуль Supabase
 
 ---
 
 ## Что работает сейчас
 
 ### Конфигуратор КП (стабильно)
-- Streamlit на Cloud, 184+ теста зелёные
+- Streamlit на Cloud, 216 тестов зелёные
 - Полный цикл: выбор модели → опции → цена → схема оплаты → DOCX
 - Все линейки С/СЛ/Ф/ФЛ/П/М, двухдиапазонные
 - 7 пресетов оплаты, 3 модели оплаты (V1/V2/V3), параллельные сроки
 
 ### Модуль договоров (рабочий MVP)
-- src/contracts/{extractor, filler, utils}.py + 18 тестов
-- pages/2_Договор.py — текущий путь: PDF КП + карточка → AI-извлечение → форма → DOCX
-- AI: OpenRouter, пул Qwen3-235b-07-25 → Qwen3-235b → Llama 3.3 70B, reasoning off
-- Шаблоны: contract.docx + spec_foundation_install.docx (один сценарий — Фундамент+Монтаж)
-- На счету OpenRouter $15, лимит 1000 req/day
-- Тег: v0.7 (после правки промта)
+- src/contracts/{extractor, filler, utils, state}.py + 30 тестов
+- pages/2_Договор.py — текущий путь: PDF КП + карточка → AI → форма → DOCX
+- AI: OpenRouter, пул Qwen3-235b-07-25 → Qwen3-235b → Llama 3.3 70B
+- Шаблоны: contract.docx + spec_foundation_install.docx
+- Тег: v0.7
 
 ---
 
-## Что выполнено в текущей итерации
+## Что выполнено
 
-### Сессия 1: правка промта
-- 6 правок, 8 новых/уточнённых правил в `prompts/extract_contract_data.txt`
-- Добавлены поля П6 в JSON-схему
-- Синтетика: 53/70 (76%), реально ~90% (тесты B1/C5 устарели после расширения схемы)
-- Промт стабильно чинит: модель полностью извлекается, тип дней, падежи, замена «Аванс/Оплата»
+### Шаг 6.5 ✅ — Рефакторинг namespace страницы Договор
+- src/contracts/state.py создан
+- 42 ключа ЗАКАЗЧИК_*/СПЕЦ_* изолированы под st.session_state["contract"]
+  Структура: contract.requisites / contract.specification / contract.manual
+- 12 новых тестов, все зелёные
+- 216 тестов суммарно зелёные
+- Закоммичено: feat(contracts): шаг 6.5 — изоляция namespace
 
-### Сессия 2: решение по архитектуре
-**Главное открытие:** AI-парсинг своего же PDF КП — глупость. Данные КП можно брать напрямую из системы.
-
-**Принятое решение:** двухрежимный UI договора с миграцией на Supabase
-- Режим A (новый): данные КП из базы, AI парсит ТОЛЬКО карточку контрагента
-- Режим B (legacy): текущий путь с AI-парсингом PDF — fallback для старых КП
-
-### Сессия 3: подготовка к Supabase
-- Supabase проект создан: `tenzosila-kp-dogovor`, регион Frankfurt
-- Таблица `kps` создана с колонками для индексирования + JSONB поле `данные`
-- Подключение из Python протестировано, anon-ключ работает
-- Аудит session_state выполнен: `docs/session_state_audit.md`
-- Все 7 открытых вопросов закрыты, решения зафиксированы:
-  - Хранить полный снапшот options (включая retail) — защита от изменения прайса
-  - payment_percents оставить как есть (legacy, удалим в чистке кода)
-  - total_term_days хранить с None или числом
-  - cable_m хранить (понадобится в шаблонах договоров)
-  - Изолировать namespace ключей договора под `st.session_state["contract"]`
-  - spec_items_overrides отдельно от options
-  - Снапшот цен в JSONB — версионирование prices.json пока не делаем
-- Архитектура хранения: **две таблицы** kps и contracts со связью по kp_id
+### Supabase готов к интеграции ✅
+- Проект: tenzosila-kp-dogovor, регион Frankfurt
+- URL: https://hwrbwfjjctppeofakuja.supabase.co
+- Таблица kps создана (RLS отключён для MVP)
+- Подключение из Python протестировано, anon-ключ в secrets.toml
+- Архитектура: две таблицы — kps + contracts (FK → kps.id)
+- Вся структура JSONB задокументирована в docs/session_state_audit.md
 
 ---
 
-## Что делаем дальше — план до конца итерации
+## Что делаем дальше
 
-### Шаг 6.5 — Рефакторинг namespace страницы Договор (Code, ~1.5 ч)
-- 42 ключа `ЗАКАЗЧИК_*` / `СПЕЦ_*` собрать под `st.session_state["contract"]`
-- Структура: `contract.requisites` / `contract.specification` / `contract.manual`
-- Имена плейсхолдеров в шаблонах docxtpl остаются прежними
-- Существующие тесты должны пройти
+### Шаг 7 — Storage модуль Supabase (Code, ~3.5 ч) ← ТЕКУЩИЙ
+Создать src/storage/supabase_client.py.
 
-### Шаг 7 — Storage модуль Supabase (Code, ~3.5 ч)
-- src/storage/supabase_client.py: CRUD для двух таблиц
-- Создание второй таблицы contracts (SQL Editor вручную)
-- save_kp / get_kp / list_recent / search_by_contractor / delete_kp
-- save_contract / get_contracts_by_kp_id
-- Тесты на тестовой таблице, обработка StorageError
+Функции для таблицы kps:
+- save_kp(номер_кп, дата_кп, контрагент, модель, сумма_итого, автор, данные)
+- get_kp_by_number(номер_кп) → dict | None
+- list_recent_kps(limit=50) → list[dict]  (без поля данные)
+- search_kps_by_contractor(query, limit=20) → list[dict]
+- delete_kp(номер_кп) → bool
 
-### Шаг 8 — Интеграция Supabase в страницу КП (Code, ~1 ч)
+Функции для таблицы contracts:
+- Сначала создать таблицу contracts в Supabase SQL Editor
+- save_contract(kp_id, contract_number, contract_date, object_address, spec_number, requisites, specification)
+- get_contracts_by_kp_id(kp_id) → list[dict]
+
+Тесты: tests/storage/test_supabase_client.py
+- Тестовая таблица kps_test (отдельная, TRUNCATE перед каждым тестом)
+- test_save_and_retrieve, test_upsert, test_list_recent, test_search, test_delete
+- Обработка StorageError
+
+Требования:
+- supabase>=2.0 в requirements.txt
+- st.secrets["SUPABASE_URL"] и st.secrets["SUPABASE_KEY"]
+- UPSERT по номер_кп (не INSERT — один КП может сохраняться повторно)
+
+### Шаг 8 — Интеграция в страницу КП (Code, ~1 ч)
 - После генерации DOCX → save_kp с полным снапшотом state
-- Сообщения успеха/ошибки в UI
-- Не блокировать генерацию если Supabase упал
+- st.success / st.warning в UI
+- НЕ блокировать генерацию если Supabase упал
 
 ### Шаг 9 — Двухрежимный UI договора (Code, ~2.5 ч)
-- Разделить extractor.py: extract_card_data + extract_kp_data_legacy
-- Создать prompts/extract_card_data.txt (только реквизиты карточки)
-- В pages/2_Договор.py — st.radio: «Из базы» / «Из PDF файла»
-- Режим A: поиск КП по номеру/контрагенту → данные из Supabase
-- Режим B: текущий путь без изменений
+- Разделить extractor.py: extract_card_data (новый) + extract_kp_data_legacy
+- prompts/extract_card_data.txt — только 16 полей карточки
+- st.radio в pages/2_Договор.py: «Из базы» / «Из PDF файла»
+- Режим A: поиск по номеру/контрагенту → данные из Supabase + AI для карточки
+- Режим B: текущий legacy-путь без изменений
+- Правка шаблонов: убрать «29.05.2026», «Компания Тензосила»
 
-### Шаг 10 — Прогон синтетики (Code, ~15 мин)
+### Шаг 10 — Прогон синтетики + тег (Code, ~15 мин)
 - test_e2e_synthetic.py на новой архитектуре
-- Обновление findings: «Сессия 4 — после двухрежимного UI»
+- Обновить тесты B1/C5 под П6
+- findings: «Сессия 4 — после двухрежимного UI»
 - Тег v0.8
 
 ### Шаг 11 — Деплой на Streamlit Cloud (ты, ~10 мин)
 - SUPABASE_URL и SUPABASE_KEY в Cloud Secrets
 - Push в main
-- Проверка обоих режимов в проде
 
-### Шаг 12 — Миграция старых КП (Code, опционально, ~30 мин)
-- scripts/migrate_old_kps.py
-- Прогон по архиву PDF КП → save_kp
-- Запуск один раз руками
+### Шаг 12 — Миграция старых КП (опционально, ~30 мин)
+- scripts/migrate_old_kps.py — прогон архива PDF → save_kp
 
 ---
 
-## После итерации Supabase
+## После итерации Supabase → Этап 3
 
-### Этап 3 — Архитектурный (отложен до завершения Supabase)
 - Вынос ТТХ в плейсхолдеры из JSON-справочников КП
-- Разметка остальных 8 шаблонов спецификаций по сценариям
-- Селектор шаблона спеки в UI
-
-### Эффект текущей итерации на синтетику
-В режиме A большинство багов из contracts_findings_synthetic.md закрыты автоматически:
-- B1 арифметика — данные из state, всегда корректны
-- C1 усечение модели — берётся как есть из выбранного КП
-- P3.3 галлюцинации модели — невозможны
-- P2.4 «Аванс/Оплата» — из payment_terms.json напрямую
-
-Промт extractor продолжает использоваться только для парсинга карточки (16 полей вместо 60). Меньше схема — стабильнее результат.
+- 9 шаблонов спецификаций по сценариям комплектации
+- Селектор шаблона в UI
 
 ---
 
-## Открытые баги
+## Открытые баги (не блокируют Шаг 7)
 
-### docs/contracts_findings.md (ручная проверка, не закрыты)
-- P1.1 строка «Ограждение» в таблице спеки — закроется в Шаге 9
-- P1.2 ТТХ статичны — Этап 3
-- P1.3 хвост «110/2026 от 29.05.2026г» в шаблоне — закроется в Шаге 9
-- P1.4 плейсхолдер ЗАКАЗЧИК_ДИРЕКТОР_ФИО_КРАТКОЕ — закроется в Шаге 9
-- P1.5 «Компания Тензосила» в шаблоне — закроется в Шаге 9
+### Шаблоны (закроются в Шаге 9)
+- A2: «29.05.2026» зашита в contract.docx
+- A3: «Компания Тензосила» в spec_foundation_install.docx
+- P1.1: строка «Ограждение» не добавляется в таблицу спеки
+- P1.3: хвост «110/2026 от 29.05.2026г» в спеке
+- P1.4: незамещённый {{ЗАКАЗЧИК_ДИРЕКТОР_ФИО_КРАТКОЕ}}
+- P1.2: ТТХ статичны → Этап 3
 
-### docs/contracts_findings_synthetic.md (синтетика)
-- B1 / C5 тесты устарели после расширения до П6 — обновить в Шаге 10
-- Арифметика 3/5 в legacy — закроется в режиме A (данные из state)
-- A2 «29.05.2026» в contract.docx — закроется в Шаге 9 (правка шаблона)
+### Синтетика (legacy-режим)
+- B1: арифметика 3/5 (закроется в режиме A — данные из state)
+- B3: парсер теста не справляется с многострочными суммами
+- C5: AI дропает поверку когда позиций >5
 
 ---
 
-## Технический долг (несвежий, не блокирует)
-- Git-конфликт дом↔Codespaces (5 vs 5 коммитов) — backup-ветка → force-push
-- Рефакторинг data_loader: дублирование equipment_specs.json ↔ models.json
+## Технический долг
+- Git-конфликт дом↔Codespaces (backup-ветка → force-push)
+- data_loader: дублирование equipment_specs.json ↔ models.json
 - vMerge слияние ячеек в таблице спецификации DOCX
 - Удаление legacy ключа payment_percents из state
