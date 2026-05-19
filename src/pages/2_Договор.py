@@ -14,6 +14,14 @@ if str(_ROOT) not in sys.path:
 
 from src.contracts.extractor import extract_from_files  # noqa: E402
 from src.contracts.filler import fill_template, get_unfilled_placeholders  # noqa: E402
+from src.contracts.state import (  # noqa: E402
+    collect_for_template,
+    init_contract_state,
+    is_extracted,
+    set_extracted_data,
+    sync_field,
+    sync_manual_field,
+)
 from src.contracts.utils import format_date_parts  # noqa: E402
 from src.utils.format import sanitize_filename  # noqa: E402
 
@@ -22,6 +30,7 @@ SPEC_TEMPLATE = Path("templates/contracts/spec_foundation_install.docx")
 OUTPUT_DIR = Path("output/contracts")
 
 st.set_page_config(page_title="Договор", page_icon="📄", layout="wide")
+init_contract_state()
 
 # ---------------------------------------------------------------------------
 # Определения полей
@@ -94,11 +103,6 @@ WIDE_FIELDS: set[str] = {
     "СПЕЦ_ОПЛАТА_П6",
 }
 
-ALL_FIELD_KEYS: list[str] = (
-    [k for k, _ in REQUISITE_FIELDS] + [k for k, _ in SPEC_FIELDS]
-)
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -112,17 +116,28 @@ def _save_uploaded(uploaded_file) -> str:
     return tmp.name
 
 
-def _render_field_group(title: str, fields: list[tuple[str, str]]) -> None:
-    """Рисует блок полей в две колонки."""
+def _render_field_group(
+    title: str, fields: list[tuple[str, str]], section: str,
+) -> None:
+    """Рисует блок полей в две колонки. section = 'requisites' | 'specification'."""
     st.subheader(title)
+    ns = st.session_state["contract"][section]
     col1, col2 = st.columns(2)
     for i, (key, label) in enumerate(fields):
+        wkey = f"w_{key}"
+        st.session_state.setdefault(wkey, ns.get(key, ""))
         col = col1 if i % 2 == 0 else col2
         with col:
             if key in WIDE_FIELDS:
-                st.text_area(label, key=key, height=68)
+                st.text_area(
+                    label, key=wkey, height=68,
+                    on_change=sync_field, args=(section, key),
+                )
             else:
-                st.text_input(label, key=key)
+                st.text_input(
+                    label, key=wkey,
+                    on_change=sync_field, args=(section, key),
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -149,12 +164,7 @@ if st.button("Извлечь данные через AI", disabled=extract_disab
             kp_path = _save_uploaded(kp_file)
             card_path = _save_uploaded(card_file)
             raw = extract_from_files(kp_path, card_path)
-            flat: dict[str, str] = {}
-            flat.update(raw.get("requisites", {}))
-            flat.update(raw.get("specification", {}))
-            st.session_state["contract_data"] = flat
-            for k, v in flat.items():
-                st.session_state[k] = v if v else ""
+            set_extracted_data(raw)
             st.success("Данные извлечены")
         except Exception as exc:
             st.error(f"Ошибка извлечения: {exc}")
@@ -165,10 +175,10 @@ st.divider()
 # Секция 2 — Форма проверки и правки
 # ---------------------------------------------------------------------------
 
-if st.session_state.get("contract_data"):
-    _render_field_group("Реквизиты заказчика", REQUISITE_FIELDS)
+if is_extracted():
+    _render_field_group("Реквизиты заказчика", REQUISITE_FIELDS, "requisites")
     st.divider()
-    _render_field_group("Из коммерческого предложения", SPEC_FIELDS)
+    _render_field_group("Из коммерческого предложения", SPEC_FIELDS, "specification")
     st.divider()
 
 # ---------------------------------------------------------------------------
@@ -176,20 +186,35 @@ if st.session_state.get("contract_data"):
 # ---------------------------------------------------------------------------
 
 st.subheader("Параметры договора")
+_manual = st.session_state["contract"]["manual"]
 manual_col1, manual_col2 = st.columns(2)
 with manual_col1:
+    st.session_state.setdefault("w_contract_number", _manual["contract_number"])
     contract_number = st.text_input(
-        "Номер договора", placeholder="1-2026", key="manual_contract_number"
+        "Номер договора", placeholder="1-2026",
+        key="w_contract_number",
+        on_change=sync_manual_field, args=("contract_number",),
+    )
+    st.session_state.setdefault(
+        "w_contract_date", _manual["contract_date"] or date.today(),
     )
     contract_date = st.date_input(
-        "Дата договора", value=date.today(), key="manual_contract_date"
+        "Дата договора",
+        key="w_contract_date",
+        on_change=sync_manual_field, args=("contract_date",),
     )
 with manual_col2:
+    st.session_state.setdefault("w_object_address", _manual["object_address"])
     object_address = st.text_input(
-        "Адрес объекта монтажа", key="manual_object_address"
+        "Адрес объекта монтажа",
+        key="w_object_address",
+        on_change=sync_manual_field, args=("object_address",),
     )
+    st.session_state.setdefault("w_spec_number", _manual["spec_number"])
     spec_number = st.text_input(
-        "Номер спецификации", value="1", key="manual_spec_number"
+        "Номер спецификации",
+        key="w_spec_number",
+        on_change=sync_manual_field, args=("spec_number",),
     )
 
 st.divider()
@@ -199,7 +224,7 @@ st.divider()
 # ---------------------------------------------------------------------------
 
 generate_disabled = (
-    not st.session_state.get("contract_data")
+    not is_extracted()
     or not contract_number
     or not object_address
 )
@@ -209,9 +234,7 @@ if st.button(
 ):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    data: dict[str, str] = {}
-    for key in ALL_FIELD_KEYS:
-        data[key] = st.session_state.get(key, "")
+    data = collect_for_template()
 
     date_parts = format_date_parts(str(contract_date))
     data.update(date_parts)

@@ -51,3 +51,6 @@ auth/
 CHAT_INDEX.md
 
 .streamlit/secrets.toml
+
+.codex/
+AGENTS.md

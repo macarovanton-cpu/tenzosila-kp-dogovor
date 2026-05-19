@@ -1,0 +1,159 @@
+"""Тесты для src/contracts/state.py — namespace договора в session_state."""
+from __future__ import annotations
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def mock_session_state():
+    """Мокаем st.session_state как обычный dict."""
+    state: dict = {}
+    with patch("src.contracts.state.st") as mock_st:
+        mock_st.session_state = state
+        yield state
+
+
+# ------------------------------------------------------------------
+# init_contract_state
+# ------------------------------------------------------------------
+
+class TestInitContractState:
+    def test_creates_namespace(self, mock_session_state):
+        from src.contracts.state import init_contract_state
+        init_contract_state()
+        cs = mock_session_state["contract"]
+        assert "requisites" in cs
+        assert "specification" in cs
+        assert "manual" in cs
+        assert "uploads" in cs
+        assert cs["ai_raw"] is None
+
+    def test_idempotent(self, mock_session_state):
+        from src.contracts.state import init_contract_state
+        init_contract_state()
+        mock_session_state["contract"]["requisites"]["ЗАКАЗЧИК_ИНН"] = "123"
+        init_contract_state()
+        assert mock_session_state["contract"]["requisites"]["ЗАКАЗЧИК_ИНН"] == "123"
+
+    def test_manual_defaults(self, mock_session_state):
+        from src.contracts.state import init_contract_state
+        init_contract_state()
+        manual = mock_session_state["contract"]["manual"]
+        assert manual["contract_number"] == ""
+        assert manual["contract_date"] is None
+        assert manual["spec_number"] == "1"
+
+
+# ------------------------------------------------------------------
+# set_extracted_data
+# ------------------------------------------------------------------
+
+class TestSetExtractedData:
+    def test_writes_to_namespace(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_extracted_data
+        init_contract_state()
+        raw = {
+            "requisites": {"ЗАКАЗЧИК_ИНН": "7701234567"},
+            "specification": {"СПЕЦ_НДС": "22"},
+        }
+        set_extracted_data(raw)
+        cs = mock_session_state["contract"]
+        assert cs["requisites"]["ЗАКАЗЧИК_ИНН"] == "7701234567"
+        assert cs["specification"]["СПЕЦ_НДС"] == "22"
+        assert cs["ai_raw"] is raw
+
+    def test_pushes_widget_keys(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_extracted_data
+        init_contract_state()
+        raw = {
+            "requisites": {"ЗАКАЗЧИК_ИНН": "7701234567"},
+            "specification": {"СПЕЦ_ИТОГО": "1 000 000"},
+        }
+        set_extracted_data(raw)
+        assert mock_session_state["w_ЗАКАЗЧИК_ИНН"] == "7701234567"
+        assert mock_session_state["w_СПЕЦ_ИТОГО"] == "1 000 000"
+
+    def test_none_values_become_empty_string(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_extracted_data
+        init_contract_state()
+        raw = {"requisites": {"ЗАКАЗЧИК_EMAIL": None}, "specification": {}}
+        set_extracted_data(raw)
+        assert mock_session_state["contract"]["requisites"]["ЗАКАЗЧИК_EMAIL"] == ""
+
+
+# ------------------------------------------------------------------
+# sync_field
+# ------------------------------------------------------------------
+
+class TestSyncField:
+    def test_widget_to_namespace(self, mock_session_state):
+        from src.contracts.state import init_contract_state, sync_field
+        init_contract_state()
+        mock_session_state["contract"]["requisites"]["ЗАКАЗЧИК_ИНН"] = ""
+        mock_session_state["w_ЗАКАЗЧИК_ИНН"] = "9999999999"
+        sync_field("requisites", "ЗАКАЗЧИК_ИНН")
+        assert mock_session_state["contract"]["requisites"]["ЗАКАЗЧИК_ИНН"] == "9999999999"
+
+
+# ------------------------------------------------------------------
+# sync_manual_field
+# ------------------------------------------------------------------
+
+class TestSyncManualField:
+    def test_widget_to_manual(self, mock_session_state):
+        from src.contracts.state import init_contract_state, sync_manual_field
+        init_contract_state()
+        mock_session_state["w_contract_number"] = "42-2026"
+        sync_manual_field("contract_number")
+        assert mock_session_state["contract"]["manual"]["contract_number"] == "42-2026"
+
+
+# ------------------------------------------------------------------
+# collect_for_template
+# ------------------------------------------------------------------
+
+class TestCollectForTemplate:
+    def test_flat_merge(self, mock_session_state):
+        from src.contracts.state import init_contract_state, collect_for_template
+        init_contract_state()
+        cs = mock_session_state["contract"]
+        cs["requisites"] = {"ЗАКАЗЧИК_ИНН": "123", "ЗАКАЗЧИК_КПП": "456"}
+        cs["specification"] = {"СПЕЦ_НДС": "22", "СПЕЦ_ИТОГО": "100"}
+        data = collect_for_template()
+        assert data == {
+            "ЗАКАЗЧИК_ИНН": "123",
+            "ЗАКАЗЧИК_КПП": "456",
+            "СПЕЦ_НДС": "22",
+            "СПЕЦ_ИТОГО": "100",
+        }
+
+    def test_includes_all_ai_keys(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_extracted_data, collect_for_template
+        init_contract_state()
+        raw = {
+            "requisites": {"ЗАКАЗЧИК_ИНН": "1"},
+            "specification": {"СПЕЦ_П6_НАИМЕНОВАНИЕ": "Поверка", "СПЕЦ_П6_СУММА": "50000"},
+        }
+        set_extracted_data(raw)
+        data = collect_for_template()
+        assert "СПЕЦ_П6_НАИМЕНОВАНИЕ" in data
+        assert "СПЕЦ_П6_СУММА" in data
+
+
+# ------------------------------------------------------------------
+# is_extracted
+# ------------------------------------------------------------------
+
+class TestIsExtracted:
+    def test_false_initially(self, mock_session_state):
+        from src.contracts.state import init_contract_state, is_extracted
+        init_contract_state()
+        assert is_extracted() is False
+
+    def test_true_after_extraction(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_extracted_data, is_extracted
+        init_contract_state()
+        set_extracted_data({"requisites": {}, "specification": {}})
+        assert is_extracted() is True
