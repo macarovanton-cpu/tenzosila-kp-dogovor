@@ -26,6 +26,8 @@ def _get_client() -> Client:
         url = st.secrets["SUPABASE_URL"]
         key = st.secrets["SUPABASE_KEY"]
     except Exception:
-        url = os.environ["SUPABASE_URL"]
-        key = os.environ["SUPABASE_KEY"]
+        url = os.environ.get("SUPABASE_URL", "")
+        key = os.environ.get("SUPABASE_KEY", "")
+    if not url or not key:
+        raise StorageError("SUPABASE_URL / SUPABASE_KEY не заданы")
     return create_client(url, key)

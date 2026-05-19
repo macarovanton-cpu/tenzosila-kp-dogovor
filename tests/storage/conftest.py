@@ -19,8 +19,10 @@ def pytest_configure(config) -> None:
         return
     with open(secrets_file, "rb") as f:
         secrets = tomllib.load(f)
-    os.environ.setdefault("SUPABASE_URL", secrets.get("SUPABASE_URL", ""))
-    os.environ.setdefault("SUPABASE_KEY", secrets.get("SUPABASE_KEY", ""))
+    if url := secrets.get("SUPABASE_URL"):
+        os.environ.setdefault("SUPABASE_URL", url)
+    if key := secrets.get("SUPABASE_KEY"):
+        os.environ.setdefault("SUPABASE_KEY", key)
 
 
 @pytest.fixture(scope="session")
