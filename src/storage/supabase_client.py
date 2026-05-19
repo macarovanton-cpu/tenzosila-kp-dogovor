@@ -140,6 +140,8 @@ def save_contract(
             "specification": specification,
         }
         result = _get_client().table(_CONTRACTS_TABLE).insert(row).execute()
+        if not result.data:
+            raise StorageError("save_contract: INSERT вернул пустой результат")
         return result.data[0]
     except Exception as e:
         logger.error("save_contract failed: %s", e)
