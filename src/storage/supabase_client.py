@@ -58,6 +58,8 @@ def save_kp(
         }
         _get_client().table(_KPS_TABLE).upsert(row, on_conflict="kp_number").execute()
         result = _get_client().table(_KPS_TABLE).select("*").eq("kp_number", kp_number).execute()
+        if not result.data:
+            raise StorageError(f"save_kp: строка не найдена после upsert (kp_number={kp_number})")
         return result.data[0]
     except Exception as e:
         logger.error("save_kp failed: %s", e)
@@ -81,7 +83,7 @@ def list_recent_kps(limit: int = 50) -> list[dict]:
             _get_client()
             .table(_KPS_TABLE)
             .select(_KP_LIST_COLS)
-            .order("created_at", desc=True)
+            .order("updated_at", desc=True)
             .limit(limit)
             .execute()
         )
