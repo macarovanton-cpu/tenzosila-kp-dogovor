@@ -118,3 +118,40 @@ def delete_kp(kp_number: str) -> bool:
     except Exception as e:
         logger.error("delete_kp failed: %s", e)
         raise StorageError(f"delete_kp: {e}") from e
+
+
+def save_contract(
+    kp_id: str,
+    contract_number: str,
+    contract_date: date,
+    object_address: str,
+    spec_number: str,
+    requisites: dict[str, Any],
+    specification: dict[str, Any],
+) -> dict:
+    try:
+        row = {
+            "kp_id": kp_id,
+            "contract_number": contract_number,
+            "contract_date": contract_date.isoformat(),
+            "object_address": object_address,
+            "spec_number": spec_number,
+            "requisites": requisites,
+            "specification": specification,
+        }
+        result = _get_client().table(_CONTRACTS_TABLE).insert(row).execute()
+        return result.data[0]
+    except Exception as e:
+        logger.error("save_contract failed: %s", e)
+        raise StorageError(f"save_contract: {e}") from e
+
+
+def get_contracts_by_kp_id(kp_id: str) -> list[dict]:
+    try:
+        result = (
+            _get_client().table(_CONTRACTS_TABLE).select("*").eq("kp_id", kp_id).execute()
+        )
+        return result.data
+    except Exception as e:
+        logger.error("get_contracts_by_kp_id failed: %s", e)
+        raise StorageError(f"get_contracts_by_kp_id: {e}") from e

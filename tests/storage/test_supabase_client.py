@@ -143,3 +143,79 @@ class TestStorageErrorHandling:
         monkeypatch.setattr(sc, "_KPS_TABLE", "kps_table_does_not_exist_xyz")
         with pytest.raises(sc.StorageError):
             sc.get_kp_by_number("КП-2026-001")
+
+
+# ---------------------------------------------------------------------------
+# contract helpers
+# ---------------------------------------------------------------------------
+
+_REQUISITES = {
+    "ЗАКАЗЧИК_ИНН": "7701234567",
+    "ЗАКАЗЧИК_КПП": "770101001",
+    "ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ": "ООО Ромашка",
+}
+
+_SPECIFICATION = {
+    "СПЕЦ_НДС": "22",
+    "СПЕЦ_ИТОГО": "2 450 000",
+    "СПЕЦ_П1_НАИМЕНОВАНИЕ": "Автовесы ВЕСТА-С-60-18",
+}
+
+
+# ---------------------------------------------------------------------------
+# test_contracts
+# ---------------------------------------------------------------------------
+
+class TestContracts:
+    def _saved_kp_id(self) -> str:
+        row = sc.save_kp(**_kp())
+        return row["id"]
+
+    def test_save_contract_returns_row_with_id(self):
+        kp_id = self._saved_kp_id()
+        row = sc.save_contract(
+            kp_id=kp_id,
+            contract_number="1-2026",
+            contract_date=date(2026, 5, 20),
+            object_address="г. Москва, ул. Ленина, 1",
+            spec_number="1",
+            requisites=_REQUISITES,
+            specification=_SPECIFICATION,
+        )
+        assert "id" in row
+        assert row["contract_number"] == "1-2026"
+
+    def test_get_contracts_by_kp_id_returns_saved(self):
+        kp_id = self._saved_kp_id()
+        sc.save_contract(
+            kp_id=kp_id,
+            contract_number="1-2026",
+            contract_date=date(2026, 5, 20),
+            object_address="г. Москва, ул. Ленина, 1",
+            spec_number="1",
+            requisites=_REQUISITES,
+            specification=_SPECIFICATION,
+        )
+        rows = sc.get_contracts_by_kp_id(kp_id)
+        assert len(rows) == 1
+        assert rows[0]["requisites"]["ЗАКАЗЧИК_ИНН"] == "7701234567"
+        assert rows[0]["specification"]["СПЕЦ_НДС"] == "22"
+
+    def test_get_contracts_by_kp_id_empty(self):
+        rows = sc.get_contracts_by_kp_id("00000000-0000-0000-0000-000000000000")
+        assert rows == []
+
+    def test_multiple_contracts_for_one_kp(self):
+        kp_id = self._saved_kp_id()
+        for i in range(3):
+            sc.save_contract(
+                kp_id=kp_id,
+                contract_number=f"{i}-2026",
+                contract_date=date(2026, 5, 20),
+                object_address="Адрес",
+                spec_number=str(i),
+                requisites=_REQUISITES,
+                specification=_SPECIFICATION,
+            )
+        rows = sc.get_contracts_by_kp_id(kp_id)
+        assert len(rows) == 3
