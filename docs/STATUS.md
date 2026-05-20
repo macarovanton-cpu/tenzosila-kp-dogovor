@@ -1,14 +1,14 @@
 # STATUS — AI-конфигуратор КП и договоров
 
-Последнее обновление: 2026-05-19
-Текущая фаза: 2.x — Шаг 7, storage модуль Supabase
+Последнее обновление: 2026-05-20
+Текущая фаза: 2.x — Шаг 9, двухрежимный UI договора
 
 ---
 
 ## Что работает сейчас
 
 ### Конфигуратор КП (стабильно)
-- Streamlit на Cloud, 216 тестов зелёные
+- Streamlit на Cloud, 234 теста зелёные (216 KП + 18 storage)
 - Полный цикл: выбор модели → опции → цена → схема оплаты → DOCX
 - Все линейки С/СЛ/Ф/ФЛ/П/М, двухдиапазонные
 - 7 пресетов оплаты, 3 модели оплаты (V1/V2/V3), параллельные сроки
@@ -20,6 +20,13 @@
 - Шаблоны: contract.docx + spec_foundation_install.docx
 - Тег: v0.7
 
+### Storage модуль Supabase (новый)
+- src/storage/supabase_client.py создан
+- Таблицы: kps + contracts (UUID PK, RLS отключён)
+- Тестовые таблицы: kps_test + contracts_test
+- 18 тестов зелёные (save/get/upsert/list/search/delete/contracts)
+- Supabase: hwrbwfjjctppeofakuja.supabase.co, Frankfurt
+
 ---
 
 ## Что выполнено
@@ -27,54 +34,26 @@
 ### Шаг 6.5 ✅ — Рефакторинг namespace страницы Договор
 - src/contracts/state.py создан
 - 42 ключа ЗАКАЗЧИК_*/СПЕЦ_* изолированы под st.session_state["contract"]
-  Структура: contract.requisites / contract.specification / contract.manual
 - 12 новых тестов, все зелёные
-- 216 тестов суммарно зелёные
-- Закоммичено: feat(contracts): шаг 6.5 — изоляция namespace
 
-### Supabase готов к интеграции ✅
-- Проект: tenzosila-kp-dogovor, регион Frankfurt
-- URL: https://hwrbwfjjctppeofakuja.supabase.co
-- Таблица kps создана (RLS отключён для MVP)
-- Подключение из Python протестировано, anon-ключ в secrets.toml
-- Архитектура: две таблицы — kps + contracts (FK → kps.id)
-- Вся структура JSONB задокументирована в docs/session_state_audit.md
+### Шаг 7 ✅ — Storage модуль Supabase
+- src/storage/supabase_client.py: save_kp, get_kp_by_number, list_recent_kps,
+  search_kps_by_contractor, delete_kp, save_contract, get_contracts_by_kp_id
+- StorageError кастомный класс, try/except на всех функциях
+- 18 тестов зелёные на реальном Supabase
+- Схема таблиц пересоздана с английскими именами колонок (UUID, not BIGSERIAL)
+
+### Шаг 8 ✅ — Интеграция save_kp в страницу КП
+- src/storage/snapshot_builder.py: build_kp_snapshot(state) → JSONB по §6.2
+- sidebar.py: download_button-click guard + _save_kp_to_storage
+- Ошибки Supabase не блокируют генерацию DOCX (st.warning)
+- 5 новых unit-тестов (tests/test_snapshot_builder.py), итого 221 зелёных без сети
 
 ---
 
 ## Что делаем дальше
 
-### Шаг 7 — Storage модуль Supabase (Code, ~3.5 ч) ← ТЕКУЩИЙ
-Создать src/storage/supabase_client.py.
-
-Функции для таблицы kps:
-- save_kp(номер_кп, дата_кп, контрагент, модель, сумма_итого, автор, данные)
-- get_kp_by_number(номер_кп) → dict | None
-- list_recent_kps(limit=50) → list[dict]  (без поля данные)
-- search_kps_by_contractor(query, limit=20) → list[dict]
-- delete_kp(номер_кп) → bool
-
-Функции для таблицы contracts:
-- Сначала создать таблицу contracts в Supabase SQL Editor
-- save_contract(kp_id, contract_number, contract_date, object_address, spec_number, requisites, specification)
-- get_contracts_by_kp_id(kp_id) → list[dict]
-
-Тесты: tests/storage/test_supabase_client.py
-- Тестовая таблица kps_test (отдельная, TRUNCATE перед каждым тестом)
-- test_save_and_retrieve, test_upsert, test_list_recent, test_search, test_delete
-- Обработка StorageError
-
-Требования:
-- supabase>=2.0 в requirements.txt
-- st.secrets["SUPABASE_URL"] и st.secrets["SUPABASE_KEY"]
-- UPSERT по номер_кп (не INSERT — один КП может сохраняться повторно)
-
-### Шаг 8 — Интеграция в страницу КП (Code, ~1 ч)
-- После генерации DOCX → save_kp с полным снапшотом state
-- st.success / st.warning в UI
-- НЕ блокировать генерацию если Supabase упал
-
-### Шаг 9 — Двухрежимный UI договора (Code, ~2.5 ч)
+### Шаг 9 — Двухрежимный UI договора (Code, ~2.5 ч) ← ТЕКУЩИЙ
 - Разделить extractor.py: extract_card_data (новый) + extract_kp_data_legacy
 - prompts/extract_card_data.txt — только 16 полей карточки
 - st.radio в pages/2_Договор.py: «Из базы» / «Из PDF файла»
@@ -105,7 +84,7 @@
 
 ---
 
-## Открытые баги (не блокируют Шаг 7)
+## Открытые баги (не блокируют Шаг 8)
 
 ### Шаблоны (закроются в Шаге 9)
 - A2: «29.05.2026» зашита в contract.docx
@@ -115,8 +94,9 @@
 - P1.4: незамещённый {{ЗАКАЗЧИК_ДИРЕКТОР_ФИО_КРАТКОЕ}}
 - P1.2: ТТХ статичны → Этап 3
 
-### Синтетика (legacy-режим)
-- B1: арифметика 3/5 (закроется в режиме A — данные из state)
+### Синтетика (legacy-режим, 5 падений — ожидаемо)
+- A2/A3: артефакты шаблонов → Шаг 9
+- B1: арифметика 3/5 → закроется в режиме A
 - B3: парсер теста не справляется с многострочными суммами
 - C5: AI дропает поверку когда позиций >5
 
