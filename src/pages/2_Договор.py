@@ -16,6 +16,7 @@ from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  #
 from src.contracts.filler import fill_template, get_unfilled_placeholders  # noqa: E402
 from src.contracts.from_kp import build_specification_from_kp_snapshot  # noqa: E402
 from src.contracts.state import (  # noqa: E402
+    clear_generated,
     collect_for_template,
     init_contract_state,
     is_extracted,
@@ -322,61 +323,75 @@ st.divider()
 # ---------------------------------------------------------------------------
 
 cs = st.session_state["contract"]
-generate_disabled = (
-    not (bool(cs.get("specification")) and bool(cs.get("requisites")))
-    or not contract_number
-    or not object_address
-)
+generated = cs.get("generated")
 
-if st.button(
-    "Сгенерировать договор и спецификацию", disabled=generate_disabled
-):
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+if not generated:
+    generate_disabled = (
+        not (bool(cs.get("specification")) and bool(cs.get("requisites")))
+        or not contract_number
+        or not object_address
+    )
 
-    data = collect_for_template()
-    date_parts = format_date_parts(str(contract_date))
-    data.update(date_parts)
-    data["ДОГОВОР_НОМЕР"] = contract_number
-    data["СПЕЦ_АДРЕС_ОБЪЕКТА"] = object_address
-    data["СПЕЦ_НОМЕР"] = spec_number
+    if st.button(
+        "Сгенерировать договор и спецификацию", disabled=generate_disabled
+    ):
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    nds = data.get("СПЕЦ_НДС", "")
-    if not nds or "20" in nds:
-        data["СПЕЦ_НДС"] = nds.replace("20", "22") if nds else "22"
+        data = collect_for_template()
+        date_parts = format_date_parts(str(contract_date))
+        data.update(date_parts)
+        data["ДОГОВОР_НОМЕР"] = contract_number
+        data["СПЕЦ_АДРЕС_ОБЪЕКТА"] = object_address
+        data["СПЕЦ_НОМЕР"] = spec_number
 
-    safe_name = sanitize_filename(data.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ", ""))
-    safe_number = sanitize_filename(contract_number)
-    contract_fname = f"Договор_{safe_number}_{safe_name}.docx"
-    spec_fname = f"Спецификация_{safe_number}_{safe_name}.docx"
+        nds = data.get("СПЕЦ_НДС", "")
+        if not nds or "20" in nds:
+            data["СПЕЦ_НДС"] = nds.replace("20", "22") if nds else "22"
 
-    contract_path = OUTPUT_DIR / contract_fname
-    spec_path = OUTPUT_DIR / spec_fname
+        safe_name = sanitize_filename(data.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ", ""))
+        safe_number = sanitize_filename(contract_number)
+        contract_fname = f"Договор_{safe_number}_{safe_name}.docx"
+        spec_fname = f"Спецификация_{safe_number}_{safe_name}.docx"
 
-    try:
-        fill_template(str(CONTRACT_TEMPLATE), data, str(contract_path))
-        fill_template(str(SPEC_TEMPLATE), data, str(spec_path))
+        contract_path = OUTPUT_DIR / contract_fname
+        spec_path = OUTPUT_DIR / spec_fname
 
-        for label, path in [("Договор", contract_path), ("Спецификация", spec_path)]:
-            unfilled = get_unfilled_placeholders(str(path))
-            if unfilled:
-                st.warning(f"{label} — не заполнены: {', '.join(unfilled)}")
+        try:
+            fill_template(str(CONTRACT_TEMPLATE), data, str(contract_path))
+            fill_template(str(SPEC_TEMPLATE), data, str(spec_path))
 
-        dl_col1, dl_col2 = st.columns(2)
-        with dl_col1:
-            st.download_button(
-                f"Скачать {contract_fname}",
-                data=contract_path.read_bytes(),
-                file_name=contract_fname,
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            )
-        with dl_col2:
-            st.download_button(
-                f"Скачать {spec_fname}",
-                data=spec_path.read_bytes(),
-                file_name=spec_fname,
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            )
+            for label, path in [("Договор", contract_path), ("Спецификация", spec_path)]:
+                unfilled = get_unfilled_placeholders(str(path))
+                if unfilled:
+                    st.warning(f"{label} — не заполнены: {', '.join(unfilled)}")
 
-        st.success("Документы сгенерированы")
-    except Exception as exc:
-        st.error(f"Ошибка генерации: {exc}")
+            cs["generated"] = {
+                "contract_bytes": contract_path.read_bytes(),
+                "contract_filename": contract_fname,
+                "spec_bytes": spec_path.read_bytes(),
+                "spec_filename": spec_fname,
+            }
+            generated = cs["generated"]
+        except Exception as exc:
+            st.error(f"Ошибка генерации: {exc}")
+
+if generated:
+    dl_col1, dl_col2 = st.columns(2)
+    with dl_col1:
+        st.download_button(
+            f"Скачать {generated['contract_filename']}",
+            data=generated["contract_bytes"],
+            file_name=generated["contract_filename"],
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    with dl_col2:
+        st.download_button(
+            f"Скачать {generated['spec_filename']}",
+            data=generated["spec_bytes"],
+            file_name=generated["spec_filename"],
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    st.success("Документы сгенерированы")
+    if st.button("Сгенерировать заново"):
+        clear_generated()
+        st.rerun()
