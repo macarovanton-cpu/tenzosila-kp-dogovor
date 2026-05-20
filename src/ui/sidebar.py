@@ -7,6 +7,9 @@ import streamlit as st
 
 from src.config import VAT_RATE
 from src.generators.kp_generator import build_filename, generate_kp
+from src.pricing import calc_totals
+from src.storage.snapshot_builder import build_kp_snapshot
+from src.storage.supabase_client import StorageError, save_kp
 from src.term_days import TermDaysTooSmallError
 from src.utils.format import fmt_rub
 
@@ -92,6 +95,23 @@ def render_sidebar(
         st.caption("© ООО «ТПК «Тензосила», Воронеж")
 
 
+def _save_kp_to_storage(state: dict, total_price: int) -> None:
+    """Сохраняет снапшот КП в Supabase. Ошибки не блокируют генерацию."""
+    try:
+        save_kp(
+            kp_number=state["kp_number"],
+            kp_date=state["kp_date"],
+            client_name=state["client_name"],
+            model_id=state["model_id"],
+            total_price=total_price,
+            manager_id=state["manager_id"],
+            data=build_kp_snapshot(state),
+        )
+        st.success("КП сохранён в базу")
+    except StorageError as e:
+        st.warning(f"Не удалось сохранить в базу: {e}")
+
+
 def _render_generate_button(
     state: dict, spec_items: list[dict], errors: list[str], prices: dict
 ) -> None:
@@ -123,7 +143,8 @@ def _render_generate_button(
 
     try:
         docx_bytes = generate_kp(dict(state), prices)
-        st.download_button(
+        total_price = calc_totals(spec_items)["with_vat"]
+        clicked = st.download_button(
             label,
             data=docx_bytes,
             file_name=build_filename(dict(state)),
@@ -131,6 +152,8 @@ def _render_generate_button(
             width="stretch",
             type="primary",
         )
+        if clicked:
+            _save_kp_to_storage(dict(state), total_price)
     except TermDaysTooSmallError as exc:
         d = exc.details
         msg = (
