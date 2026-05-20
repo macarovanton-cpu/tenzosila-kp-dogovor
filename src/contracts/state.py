@@ -67,6 +67,26 @@ def collect_for_template() -> dict[str, str]:
     return data
 
 
+def set_specification(spec: dict[str, str]) -> None:
+    """Записать данные спецификации из КП снапшота (режим A)."""
+    cs = st.session_state["contract"]
+    cs["specification"] = {k: (v or "") for k, v in spec.items()}
+    for key, val in cs["specification"].items():
+        st.session_state[f"w_{key}"] = val
+
+
+def set_requisites(requisites: dict[str, str]) -> None:
+    """Записать реквизиты из карточки контрагента (режим A)."""
+    cs = st.session_state["contract"]
+    cs["requisites"] = {k: (v or "") for k, v in requisites.items()}
+    for key, val in cs["requisites"].items():
+        st.session_state[f"w_{key}"] = val
+
+
 def is_extracted() -> bool:
-    """Есть ли данные AI-извлечения."""
-    return bool(st.session_state.get("contract", {}).get("ai_raw"))
+    """True если данные готовы для отображения формы.
+    Режим A: specification заполнена из КП снапшота.
+    Режим B: ai_raw установлен после AI-extraction.
+    """
+    cs = st.session_state.get("contract", {})
+    return bool(cs.get("ai_raw")) or bool(cs.get("specification"))

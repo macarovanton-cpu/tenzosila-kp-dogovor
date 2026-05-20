@@ -157,3 +157,69 @@ class TestIsExtracted:
         init_contract_state()
         set_extracted_data({"requisites": {}, "specification": {}})
         assert is_extracted() is True
+
+
+# ------------------------------------------------------------------
+# is_extracted — режим A (specification populated)
+# ------------------------------------------------------------------
+
+class TestIsExtractedModeA:
+    def test_true_when_specification_populated(self, mock_session_state):
+        """Mode A: is_extracted() → True когда specification заполнена."""
+        from src.contracts.state import init_contract_state, is_extracted
+        init_contract_state()
+        mock_session_state["contract"]["specification"]["СПЕЦ_НДС"] = "22"
+        assert is_extracted() is True
+
+    def test_false_when_specification_empty_dict(self, mock_session_state):
+        """is_extracted() → False если specification = {} (пустой)."""
+        from src.contracts.state import init_contract_state, is_extracted
+        init_contract_state()
+        assert is_extracted() is False
+
+
+# ------------------------------------------------------------------
+# set_specification
+# ------------------------------------------------------------------
+
+class TestSetSpecification:
+    def test_writes_spec_to_namespace(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_specification
+        init_contract_state()
+        spec = {"СПЕЦ_НДС": "22", "СПЕЦ_ИТОГО": "1000000"}
+        set_specification(spec)
+        cs = mock_session_state["contract"]
+        assert cs["specification"]["СПЕЦ_НДС"] == "22"
+        assert cs["specification"]["СПЕЦ_ИТОГО"] == "1000000"
+
+    def test_pushes_widget_keys(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_specification
+        init_contract_state()
+        set_specification({"СПЕЦ_НДС": "22"})
+        assert mock_session_state.get("w_СПЕЦ_НДС") == "22"
+
+    def test_none_becomes_empty_string(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_specification
+        init_contract_state()
+        set_specification({"СПЕЦ_ИТОГО": None})
+        assert mock_session_state["contract"]["specification"]["СПЕЦ_ИТОГО"] == ""
+
+
+# ------------------------------------------------------------------
+# set_requisites
+# ------------------------------------------------------------------
+
+class TestSetRequisites:
+    def test_writes_requisites_to_namespace(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_requisites
+        init_contract_state()
+        reqs = {"ЗАКАЗЧИК_ИНН": "7701234567"}
+        set_requisites(reqs)
+        cs = mock_session_state["contract"]
+        assert cs["requisites"]["ЗАКАЗЧИК_ИНН"] == "7701234567"
+
+    def test_pushes_widget_keys(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_requisites
+        init_contract_state()
+        set_requisites({"ЗАКАЗЧИК_ИНН": "7701234567"})
+        assert mock_session_state.get("w_ЗАКАЗЧИК_ИНН") == "7701234567"
