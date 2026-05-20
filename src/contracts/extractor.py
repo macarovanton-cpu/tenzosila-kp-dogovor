@@ -12,6 +12,7 @@ from docx import Document
 from openai import OpenAI
 
 PROMPT_PATH = Path(__file__).parent / "prompts" / "extract_contract_data.txt"
+CARD_PROMPT_PATH = Path(__file__).parent / "prompts" / "extract_card_data.txt"
 
 
 def extract_pdf_text(pdf_path: str, pages: list[int] = None) -> str:
@@ -122,20 +123,51 @@ def extract_data_via_ai(kp_text: str, card_text: str) -> dict:
     return json.loads(raw)
 
 
-def extract_from_files(kp_path: str, card_path: str) -> dict:
+def extract_kp_data_legacy(kp_path: str, card_path: str) -> dict:
     """
-    Главная функция: принимает пути к файлам, возвращает dict с данными.
-    card_path может быть .docx или .pdf
+    Legacy путь: принимает пути к КП (PDF) и карточке, возвращает dict
+    с 'requisites' и 'specification'. Используется только в режиме B.
+    card_path может быть .docx или .pdf.
     """
-    # Извлекаем текст КП
     kp_text = extract_kp_text(kp_path)
+    if card_path.lower().endswith('.pdf'):
+        card_text = extract_pdf_text(card_path)
+    else:
+        card_text = extract_docx_text(card_path)
+    return extract_data_via_ai(kp_text, card_text)
 
-    # Извлекаем текст карточки (поддерживаем оба формата)
+
+def extract_card_data(card_path: str) -> dict:
+    """
+    Парсит только карточку контрагента через AI.
+    Возвращает {"requisites": {...}} с 19 полями ЗАКАЗЧИК_*.
+    Используется в режиме A (КП из базы).
+    card_path может быть .docx или .pdf.
+    """
     if card_path.lower().endswith('.pdf'):
         card_text = extract_pdf_text(card_path)
     else:
         card_text = extract_docx_text(card_path)
 
-    # Получаем данные через AI
-    data = extract_data_via_ai(kp_text, card_text)
-    return data
+    with open(CARD_PROMPT_PATH, 'r', encoding='utf-8') as f:
+        system_prompt = f.read()
+
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=st.secrets["OPENROUTER_API_KEY"],
+    )
+    response = client.chat.completions.create(
+        model="qwen/qwen3-235b-a22b",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"КАРТОЧКА КОНТРАГЕНТА:\n{card_text}"},
+        ],
+    )
+    raw = response.choices[0].message.content.strip()
+    raw = re.sub(r'^```json\s*', '', raw)
+    raw = re.sub(r'\s*```$', '', raw)
+    return json.loads(raw.strip())
+
+
+# Алиас для обратной совместимости
+extract_from_files = extract_kp_data_legacy
