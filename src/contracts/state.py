@@ -20,6 +20,7 @@ _CONTRACT_DEFAULTS: dict[str, Any] = {
         "card": None,
     },
     "ai_raw": None,
+    "generated": None,
 }
 
 
@@ -81,6 +82,11 @@ def set_requisites(requisites: dict[str, str]) -> None:
     cs["requisites"] = {k: (v or "") for k, v in requisites.items()}
     for key, val in cs["requisites"].items():
         st.session_state[f"w_{key}"] = val
+
+
+def clear_generated() -> None:
+    """Очистить сгенерированные файлы — вернуть страницу к форме генерации."""
+    st.session_state["contract"]["generated"] = None
 
 
 def is_extracted() -> bool:

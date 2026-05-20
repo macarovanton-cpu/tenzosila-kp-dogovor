@@ -223,3 +223,37 @@ class TestSetRequisites:
         init_contract_state()
         set_requisites({"ЗАКАЗЧИК_ИНН": "7701234567"})
         assert mock_session_state.get("w_ЗАКАЗЧИК_ИНН") == "7701234567"
+
+
+# ------------------------------------------------------------------
+# generated key
+# ------------------------------------------------------------------
+
+class TestGeneratedKey:
+    def test_init_creates_generated_none(self, mock_session_state):
+        from src.contracts.state import init_contract_state
+        init_contract_state()
+        cs = mock_session_state["contract"]
+        assert "generated" in cs
+        assert cs["generated"] is None
+
+    def test_idempotent_does_not_clear_generated(self, mock_session_state):
+        from src.contracts.state import init_contract_state
+        init_contract_state()
+        cs = mock_session_state["contract"]
+        cs["generated"] = {"contract_bytes": b"x", "spec_bytes": b"y"}
+        init_contract_state()
+        assert cs["generated"] is not None
+        assert cs["generated"]["contract_bytes"] == b"x"
+
+    def test_clear_generated_sets_none(self, mock_session_state):
+        from src.contracts.state import init_contract_state, clear_generated
+        init_contract_state()
+        mock_session_state["contract"]["generated"] = {
+            "contract_bytes": b"x",
+            "contract_filename": "a.docx",
+            "spec_bytes": b"y",
+            "spec_filename": "b.docx",
+        }
+        clear_generated()
+        assert mock_session_state["contract"]["generated"] is None
