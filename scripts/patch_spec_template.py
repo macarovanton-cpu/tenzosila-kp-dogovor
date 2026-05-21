@@ -1,0 +1,115 @@
+"""
+Патч вёрстки спецификации — баги 5 и 6.
+- п.14 (ТХ) начинается с новой страницы и не отрывается от таблицы
+- п.15 (Комплект поставки) заголовок не отрывается от таблицы
+- Приложение №1 начинается с новой страницы
+
+Запускать из корня проекта:
+    python scripts/patch_spec_template.py
+"""
+import sys
+sys.stdout.reconfigure(encoding="utf-8")
+from pathlib import Path
+import shutil
+
+from docx import Document
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+
+TEMPLATE = Path("templates/contracts/spec_foundation_install.docx")
+BACKUP_DIR = Path("templates/contracts/backup")
+
+
+def _set_para_prop(para, prop_name: str) -> None:
+    """Установить boolean-свойство параграфа (idempotent)."""
+    pPr = para._p.get_or_add_pPr()
+    if pPr.find(qn(prop_name)) is None:
+        el = OxmlElement(prop_name)
+        el.set(qn("w:val"), "1")
+        pPr.append(el)
+
+
+def set_page_break_before(para) -> None:
+    _set_para_prop(para, "w:pageBreakBefore")
+
+
+def set_keep_with_next(para) -> None:
+    _set_para_prop(para, "w:keepWithNext")
+
+
+def _body_paras(doc):
+    """Только параграфы верхнего уровня тела документа (не из ячеек таблиц)."""
+    body_tag = qn("w:body")
+    return [p for p in doc.paragraphs if p._p.getparent().tag == body_tag]
+
+
+def _find_body_para(doc, contains: str):
+    for p in _body_paras(doc):
+        if contains in p.text:
+            return p
+    return None
+
+
+def _next_body_para(doc, para):
+    """Следующий body-level параграф после данного."""
+    paras = _body_paras(doc)
+    for i, p in enumerate(paras):
+        if p._p is para._p and i + 1 < len(paras):
+            return paras[i + 1]
+    return None
+
+
+def main() -> None:
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(TEMPLATE, BACKUP_DIR / TEMPLATE.name)
+    print(f"Бэкап: {BACKUP_DIR / TEMPLATE.name}")
+
+    doc = Document(TEMPLATE)
+
+    # Баг 5: п.14 (ТХ) — с новой страницы, заголовок держится с таблицей
+    p14 = _find_body_para(doc, "Технические характеристики")
+    if p14:
+        set_page_break_before(p14)
+        set_keep_with_next(p14)
+        print(f"п.14: pageBreakBefore + keepWithNext: {p14.text[:60]!r}")
+        # Пустой параграф сразу перед TABLE[1] — продолжаем цепочку keepWithNext
+        p14_next = _next_body_para(doc, p14)
+        if p14_next is not None and not p14_next.text.strip():
+            set_keep_with_next(p14_next)
+            print("п.14 next (пустой): keepWithNext")
+    else:
+        print("WARNING: п.14 не найден")
+
+    # TABLE[1] — ТХ таблица: строка-заголовок не отрывается от данных
+    if len(doc.tables) > 1:
+        th_table = doc.tables[1]
+        for cell in th_table.rows[0].cells:
+            for p in cell.paragraphs:
+                set_keep_with_next(p)
+        print(f"TABLE[1] row[0]: keepWithNext на {len(th_table.rows[0].cells)} ячейках")
+    else:
+        print("WARNING: TABLE[1] (ТХ) не найдена")
+
+    # п.15 (Комплект поставки): заголовок не отрывается от таблицы
+    p15 = _find_body_para(doc, "Комплект поставки")
+    if p15:
+        set_keep_with_next(p15)
+        print(f"п.15: keepWithNext: {p15.text[:60]!r}")
+    else:
+        print("WARNING: п.15 не найден")
+
+    # Баг 6: Приложение №1 — с новой страницы
+    # Ищем параграф-заголовок (начинается с «Приложение №{{...»), а не ссылку внутри текста
+    pril = _find_body_para(doc, "Приложение №{{СПЕЦ_НОМЕР}}")
+    if pril:
+        set_page_break_before(pril)
+        print(f"Приложение: pageBreakBefore: {pril.text[:60]!r}")
+    else:
+        print("WARNING: Приложение не найдено")
+
+    doc.save(TEMPLATE)
+    print(f"\nСохранено: {TEMPLATE}")
+
+
+if __name__ == "__main__":
+    main()
