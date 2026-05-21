@@ -26,7 +26,7 @@ from src.contracts.state import (  # noqa: E402
     sync_field,
     sync_manual_field,
 )
-from src.contracts.utils import format_date_parts  # noqa: E402
+from src.contracts.utils import format_date_parts, infer_director_gender  # noqa: E402
 from src.data_loader import load_models, load_payment_terms, load_prices  # noqa: E402
 from src.storage.supabase_client import StorageError, get_kp_by_number, list_recent_kps  # noqa: E402
 from src.utils.format import sanitize_filename  # noqa: E402
@@ -276,6 +276,24 @@ st.divider()
 
 if is_extracted():
     _render_field_group("Реквизиты заказчика", REQUISITE_FIELDS, "requisites")
+
+    # Пол директора — предзаполняем из ФИО, пользователь может изменить вручную
+    _req = st.session_state["contract"]["requisites"]
+    _stored_gender = _req.get("ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", "")
+    if not _stored_gender:
+        _fio = _req.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", "")
+        _stored_gender = infer_director_gender(_fio) if _fio else "male"
+        _req["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = _stored_gender
+    st.session_state.setdefault("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", _stored_gender)
+    st.selectbox(
+        "Пол директора (для согласования «действующего/действующей»)",
+        options=["male", "female"],
+        format_func=lambda x: {"male": "мужской", "female": "женский"}[x],
+        key="w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ",
+        on_change=sync_field,
+        args=("requisites", "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"),
+    )
+
     st.divider()
     _render_field_group("Из коммерческого предложения", SPEC_FIELDS, "specification")
     st.divider()
@@ -343,6 +361,8 @@ if not generated:
         data["ДОГОВОР_НОМЕР"] = contract_number
         data["СПЕЦ_АДРЕС_ОБЪЕКТА"] = object_address
         data["СПЕЦ_НОМЕР"] = spec_number
+        pol = data.get("ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", "male")
+        data["ДИРЕКТОР_ПРИЧАСТИЕ"] = "действующей" if pol == "female" else "действующего"
 
         nds = data.get("СПЕЦ_НДС", "")
         if not nds or "20" in nds:

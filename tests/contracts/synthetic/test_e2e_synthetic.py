@@ -17,7 +17,7 @@ from docx import Document
 
 from src.contracts.extractor import extract_from_files
 from src.contracts.filler import fill_template, get_unfilled_placeholders
-from src.contracts.utils import format_date_parts, number_to_words
+from src.contracts.utils import format_date_parts, infer_director_gender, number_to_words
 
 from tests.contracts.synthetic.generate_card import CARDS, generate_all as gen_cards
 from tests.contracts.synthetic.generate_kp import CASES, generate_all as gen_kp
@@ -287,6 +287,11 @@ def test_contract_e2e(kp_case, card_data):
     flat["ДОГОВОР_НОМЕР"] = f"Т-{kp_case.case_id:03d}/2026"
     flat["СПЕЦ_АДРЕС_ОБЪЕКТА"] = f"г. Тестовый, промзона №{kp_case.case_id}"
     flat["СПЕЦ_НОМЕР"] = "1"
+    _pol = flat.get("ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", "")
+    if not _pol:
+        _fio = flat.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", "")
+        _pol = infer_director_gender(_fio) if _fio else "male"
+    flat["ДИРЕКТОР_ПРИЧАСТИЕ"] = "действующей" if _pol == "female" else "действующего"
 
     # 3. Заполнение шаблонов
     contract_out = str(OUTPUT_DIR / f"case_{kp_case.case_id}_contract.docx")

@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from src.contracts.utils import format_date_parts, number_to_words
+from src.contracts.utils import format_date_parts, infer_director_gender, number_to_words
 
 
 class TestNumberToWords:
@@ -50,6 +50,32 @@ class TestNumberToWords:
 
     def test_hundreds_remainder(self):
         assert number_to_words(501) == 'пятьсот один'
+
+
+class TestInferDirectorGender:
+    def test_female_ovna(self):
+        assert infer_director_gender('Иванова Мария Петровна') == 'female'
+
+    def test_female_evna(self):
+        assert infer_director_gender('Сидорова Анна Андреевна') == 'female'
+
+    def test_female_ichna(self):
+        assert infer_director_gender('Кузнецова Ольга Ильинична') == 'female'
+
+    def test_male(self):
+        assert infer_director_gender('Фокин Сергей Владимирович') == 'male'
+
+    def test_no_patronymic(self):
+        assert infer_director_gender('Иванов') == 'male'
+
+    def test_empty(self):
+        assert infer_director_gender('') == 'male'
+
+    def test_two_words_male(self):
+        assert infer_director_gender('Петров Александр') == 'male'
+
+    def test_mixed_case(self):
+        assert infer_director_gender('ИВАНОВА МАРИЯ ПЕТРОВНА') == 'female'
 
 
 class TestFormatDateParts:

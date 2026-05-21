@@ -109,6 +109,22 @@ MONTHS_RU_NOM = {
 }
 
 
+_FEMALE_PATRONYMIC_SUFFIXES = ('овна', 'евна', 'ична', 'инична')
+
+
+def infer_director_gender(full_name: str) -> str:
+    """Определяет род директора по отчеству.
+    Возвращает 'female' если отчество женское, иначе 'male'.
+    """
+    parts = full_name.strip().split()
+    if len(parts) < 2:
+        return 'male'
+    patronymic = parts[-1].lower()
+    if any(patronymic.endswith(s) for s in _FEMALE_PATRONYMIC_SUFFIXES):
+        return 'female'
+    return 'male'
+
+
 def format_date_parts(date_str: str) -> dict:
     """
     Разбирает дату из строки и возвращает словарь с частями.
