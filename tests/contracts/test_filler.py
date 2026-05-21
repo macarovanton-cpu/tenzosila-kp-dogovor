@@ -10,6 +10,47 @@ TEMPLATE_PATH = os.path.join(
     os.path.dirname(__file__), '..', '..', 'templates', 'contracts', 'contract.docx'
 )
 
+SPEC_TEMPLATE_PATH = os.path.join(
+    os.path.dirname(__file__), '..', '..', 'templates', 'contracts',
+    'spec_foundation_install.docx'
+)
+
+SPEC_MOCK_DATA = {
+    "ДОГОВОР_НОМЕР": "Т-001/2026",
+    "ДОГОВОР_ДАТА_ПОЛНАЯ": "15.03.2026",
+    "СПЕЦ_НОМЕР": "1",
+    "СПЕЦ_НДС": "22",
+    "СПЕЦ_ИТОГО": "2 000 000",
+    "СПЕЦ_ИТОГО_ПРОПИСЬ": "два миллиона",
+    "СПЕЦ_П1_НАИМЕНОВАНИЕ": "Весы ВЕСТА-С-60-18-Ц",
+    "СПЕЦ_П1_СУММА": "1 500 000",
+    "СПЕЦ_П2_ПАРАМЕТРЫ": "ВЕСТА-С, 18м",
+    "СПЕЦ_П2_СУММА": "500 000",
+    "СПЕЦ_П3_НАИМЕНОВАНИЕ": "",
+    "СПЕЦ_П3_СУММА": "",
+    "СПЕЦ_П4_НАИМЕНОВАНИЕ": "",
+    "СПЕЦ_П4_СУММА": "",
+    "СПЕЦ_П5_НАИМЕНОВАНИЕ": "",
+    "СПЕЦ_П5_СУММА": "",
+    "СПЕЦ_ОПЛАТА_П1": "Предоплата 30% = 600 000 руб.",
+    "СПЕЦ_ОПЛАТА_П2": "По отгрузке 70% = 1 400 000 руб.",
+    "СПЕЦ_ОПЛАТА_П3": "",
+    "СПЕЦ_ОПЛАТА_П4": "",
+    "СПЕЦ_ОПЛАТА_П5": "",
+    "СПЕЦ_ОПЛАТА_П6": "",
+    "СПЕЦ_СРОК_ПОСТАВКИ": "30",
+    "СПЕЦ_СРОК_ФУНДАМЕНТ": "20",
+    "СПЕЦ_СРОК_МОНТАЖ": "10",
+    "СПЕЦ_АДРЕС_ОБЪЕКТА": "г. Москва, промзона Северная",
+    "СПЕЦ_АДРЕС_ОБЪЕКТА_ПОЛНЫЙ": "г. Москва, промзона Северная, уч. 5",
+    "СПЕЦ_МОДЕЛЬ_КРАТКОЕ": "ВЕСТА-С-60-18",
+    "СПЕЦ_МАКС_НАГРУЗКА": "60",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ": "Директор",
+    "ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ": "ООО «Тест»",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ФИО_КРАТКОЕ": "Тестов Т.Т.",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ": "Т.Т. Тестов",
+}
+
 MOCK_DATA = {
     "requisites": {
         "ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ": "ООО «Тест»",
@@ -100,3 +141,44 @@ def test_fill_template_with_flat_data(output_path):
     fill_template(template, flat, output_path)
 
     assert os.path.exists(output_path)
+
+
+def test_filler_preserves_footer_page_field(tmp_path):
+    """После fill_template поле PAGE в footer сохраняется (merge_runs не уничтожает instrText)."""
+    import zipfile
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_out.docx")
+
+    fill_template(template, SPEC_MOCK_DATA, output)
+
+    with zipfile.ZipFile(output) as z:
+        footer_xml = z.read("word/footer2.xml").decode("utf-8")
+
+    assert "instrText" in footer_xml, "instrText уничтожен в footer — поле PAGE сломано"
+    assert "PAGE" in footer_xml, "Поле PAGE исчезло из footer"
+
+
+def test_filler_removes_empty_payment_rows(tmp_path):
+    """При СПЕЦ_ОПЛАТА_П5='' пустой нумерованный параграф удаляется из вывода."""
+    from docx import Document
+    from docx.oxml.ns import qn
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_empty_payment.docx")
+
+    data = {**SPEC_MOCK_DATA, "СПЕЦ_ОПЛАТА_П5": "", "СПЕЦ_ОПЛАТА_П6": ""}
+    fill_template(template, data, output)
+
+    doc = Document(output)
+    body_tag = qn("w:body")
+    NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    empty_numpr = [
+        p for p in doc.paragraphs
+        if p._p.getparent().tag == body_tag
+        and p.text.strip() == ""
+        and p._p.find(f".//{{{NS}}}numPr") is not None
+    ]
+    assert empty_numpr == [], (
+        f"Найдено {len(empty_numpr)} пустых нумерованных параграфов после fill_template"
+    )
