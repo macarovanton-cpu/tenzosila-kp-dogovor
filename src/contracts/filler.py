@@ -84,12 +84,26 @@ def fill_template(template_path: str, data: dict, output_path: str) -> None:
                 for paragraph in cell.paragraphs:
                     replace_in_paragraph(paragraph, data)
 
-    # Обрабатываем колонтитулы (header/footer)
+    # Обрабатываем колонтитулы — только параграфы с плейсхолдерами.
+    # Guard нужен: merge_runs уничтожает field-runs (fldChar/instrText) если у них
+    # одинаковый rPr, а footer содержит поле PAGE без плейсхолдеров {{...}}.
     for section in doc.sections:
         for paragraph in section.header.paragraphs:
-            replace_in_paragraph(paragraph, data)
+            if '{{' in paragraph.text:
+                replace_in_paragraph(paragraph, data)
         for paragraph in section.footer.paragraphs:
-            replace_in_paragraph(paragraph, data)
+            if '{{' in paragraph.text:
+                replace_in_paragraph(paragraph, data)
+
+    # Удаляем пустые нумерованные параграфы (СПЕЦ_ОПЛАТА_П5/П6 без значения → «2.5 »)
+    _NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+    _body_tag = f'{{{_NS}}}body'
+    for para in list(doc.paragraphs):
+        if para.text.strip() == '':
+            p_el = para._element
+            if (p_el.getparent().tag == _body_tag
+                    and p_el.find(f'.//{{{_NS}}}numPr') is not None):
+                p_el.getparent().remove(p_el)
 
     doc.save(output_path)
 
