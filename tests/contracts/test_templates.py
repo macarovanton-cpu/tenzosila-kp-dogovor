@@ -74,6 +74,16 @@ def _has_para_prop(para, prop_name: str) -> bool:
     return el.get(qn("w:val"), "1") not in ("0", "false", "off")
 
 
+def _row_has_cant_split(row) -> bool:
+    trPr = row._tr.find(qn("w:trPr"))
+    if trPr is None:
+        return False
+    cs = trPr.find(qn("w:cantSplit"))
+    if cs is None:
+        return False
+    return cs.get(qn("w:val"), "1") not in ("0", "false", "off")
+
+
 def test_spec_п14_has_page_break_before():
     doc = Document(CONTRACTS / "spec_foundation_install.docx")
     p = _find_body_para(doc, "Технические характеристики")
@@ -86,3 +96,30 @@ def test_spec_приложение_has_page_break_before():
     p = _find_body_para(doc, "Приложение №{{СПЕЦ_НОМЕР}}")
     assert p is not None, "Параграф 'Приложение №' не найден"
     assert _has_para_prop(p, "w:pageBreakBefore"), "Приложение должно иметь pageBreakBefore"
+
+
+def test_spec_footer_has_page_field():
+    """Шаблон spec_foundation_install.docx содержит поле PAGE в footer2."""
+    import zipfile
+    with zipfile.ZipFile(CONTRACTS / "spec_foundation_install.docx") as z:
+        footer_xml = z.read("word/footer2.xml").decode("utf-8")
+    assert "instrText" in footer_xml, "instrText отсутствует в footer2"
+    assert "PAGE" in footer_xml, "Поле PAGE отсутствует в footer2"
+
+
+def test_spec_п15_has_keep_with_next():
+    """Параграф п.15 (Комплект поставки) имеет keepWithNext."""
+    doc = Document(CONTRACTS / "spec_foundation_install.docx")
+    p = _find_body_para(doc, "Комплект поставки")
+    assert p is not None, "Параграф 'Комплект поставки' не найден"
+    assert _has_para_prop(p, "w:keepWithNext"), "п.15 должен иметь keepWithNext"
+
+
+def test_spec_table2_rows_have_cant_split():
+    """Все строки TABLE[2] (Комплект поставки) имеют cantSplit."""
+    doc = Document(CONTRACTS / "spec_foundation_install.docx")
+    assert len(doc.tables) > 2, "TABLE[2] не найдена в шаблоне"
+    for i, row in enumerate(doc.tables[2].rows):
+        assert _row_has_cant_split(row), (
+            f"TABLE[2] row[{i}] должна иметь cantSplit"
+        )

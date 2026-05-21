@@ -37,6 +37,17 @@ def set_keep_with_next(para) -> None:
     _set_para_prop(para, "w:keepWithNext")
 
 
+def set_table_no_split(table) -> None:
+    """Запретить разрыв строк таблицы между страницами (idempotent)."""
+    for row in table.rows:
+        tr = row._tr
+        trPr = tr.get_or_add_trPr()
+        if trPr.find(qn("w:cantSplit")) is None:
+            cant_split = OxmlElement("w:cantSplit")
+            cant_split.set(qn("w:val"), "1")
+            trPr.append(cant_split)
+
+
 def _body_paras(doc):
     """Только параграфы верхнего уровня тела документа (не из ячеек таблиц)."""
     body_tag = qn("w:body")
@@ -97,6 +108,32 @@ def main() -> None:
         print(f"п.15: keepWithNext: {p15.text[:60]!r}")
     else:
         print("WARNING: п.15 не найден")
+
+    # Продолжаем keepWithNext-цепь: п.15 → пустой → TABLE[2]
+    if p15:
+        p15_next = _next_body_para(doc, p15)
+        if p15_next is not None and not p15_next.text.strip():
+            set_keep_with_next(p15_next)
+            print("п.15 next (пустой): keepWithNext")
+
+    # TABLE[2] — Комплект поставки: keepWithNext на строках кроме последней
+    if len(doc.tables) > 2:
+        kp_table = doc.tables[2]
+        for row in kp_table.rows[:-1]:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    set_keep_with_next(p)
+        print(f"TABLE[2] rows[:-1]: keepWithNext на {len(kp_table.rows) - 1} строках")
+    else:
+        print("WARNING: TABLE[2] (Комплект поставки) не найдена")
+
+    # TABLE[1] и TABLE[2]: cantSplit на всех строках
+    for tbl_idx, tbl_name in [(1, "ТХ"), (2, "Комплект поставки")]:
+        if len(doc.tables) > tbl_idx:
+            set_table_no_split(doc.tables[tbl_idx])
+            print(f"TABLE[{tbl_idx}] ({tbl_name}): cantSplit на {len(doc.tables[tbl_idx].rows)} строках")
+        else:
+            print(f"WARNING: TABLE[{tbl_idx}] ({tbl_name}) не найдена")
 
     # Баг 6: Приложение №1 — с новой страницы
     # Ищем параграф-заголовок (начинается с «Приложение №{{...»), а не ссылку внутри текста
