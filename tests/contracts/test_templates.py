@@ -112,7 +112,7 @@ def test_spec_п15_has_keep_with_next():
     doc = Document(CONTRACTS / "spec_foundation_install.docx")
     p = _find_body_para(doc, "Комплект поставки")
     assert p is not None, "Параграф 'Комплект поставки' не найден"
-    assert _has_para_prop(p, "w:keepWithNext"), "п.15 должен иметь keepWithNext"
+    assert _has_para_prop(p, "w:keepNext"), "п.15 должен иметь keepNext"
 
 
 def test_spec_table2_rows_have_cant_split():
@@ -123,3 +123,57 @@ def test_spec_table2_rows_have_cant_split():
         assert _row_has_cant_split(row), (
             f"TABLE[2] row[{i}] должна иметь cantSplit"
         )
+
+
+def test_spec_no_kratkoe_placeholder():
+    """Плейсхолдер ЗАКАЗЧИК_ДИРЕКТОР_ФИО_КРАТКОЕ отсутствует в шаблоне."""
+    import zipfile
+    with zipfile.ZipFile(CONTRACTS / "spec_foundation_install.docx") as z:
+        for name in z.namelist():
+            if name.endswith(".xml"):
+                text = z.read(name).decode("utf-8")
+                assert "ЗАКАЗЧИК_ДИРЕКТОР_ФИО_КРАТКОЕ" not in text, (
+                    f"Устаревший плейсхолдер найден в {name}"
+                )
+
+
+def test_spec_appendix_has_initsialy():
+    """Приложение №1 содержит {{ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ}} (минимум 2 вхождения в XML)."""
+    import zipfile
+    with zipfile.ZipFile(CONTRACTS / "spec_foundation_install.docx") as z:
+        content = z.read("word/document.xml").decode("utf-8")
+    assert content.count("ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ") >= 2, (
+        "ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ должен встречаться минимум 2 раза: "
+        "таблица подписей + Приложение №1"
+    )
+
+
+def test_spec_kwn_chain_until_signatures():
+    """Цепочка keepNext непрерывна: п.14 → пустые → п.15 → пустой → [61], TABLE[3] cantSplit."""
+    doc = Document(CONTRACTS / "spec_foundation_install.docx")
+    body_paras = _body_paras(doc)
+
+    p14_idx = next(
+        i for i, p in enumerate(body_paras) if "Технические характеристики" in p.text
+    )
+    p15_idx = next(
+        i for i, p in enumerate(body_paras) if "Комплект поставки" in p.text
+    )
+
+    # body_paras от п.14 до пустого после п.15 включительно (p14_idx .. p15_idx+1)
+    for i in range(p14_idx, p15_idx + 2):
+        p = body_paras[i]
+        assert _has_para_prop(p, "w:keepNext"), (
+            f"body_paras[{i}] {p.text[:40]!r} должен иметь keepNext"
+        )
+
+    # body_paras[p15_idx+2] — пустой параграф [61] перед таблицей подписей
+    p61 = body_paras[p15_idx + 2]
+    assert _has_para_prop(p61, "w:keepNext"), (
+        "Параграф перед таблицей подписей (body_paras[p15_idx+2]) должен иметь keepNext"
+    )
+
+    # Таблица подписей (doc.tables[3]) — cantSplit
+    assert len(doc.tables) > 3, "doc.tables[3] (подписи) не найдена"
+    for i, row in enumerate(doc.tables[3].rows):
+        assert _row_has_cant_split(row), f"doc.tables[3] row[{i}] должна иметь cantSplit"
