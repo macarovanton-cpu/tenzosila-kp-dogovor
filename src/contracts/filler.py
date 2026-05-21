@@ -56,6 +56,27 @@ def replace_in_paragraph(paragraph, data: dict) -> None:
             run.text = text
 
 
+def _replace_textbox_placeholders(docx_path: str, data: dict) -> None:
+    """Заменяет {{KEY}} в text box-ах (w:txbxContent), которые python-docx пропускает."""
+    import zipfile
+    import shutil
+
+    tmp = docx_path + '.tmp'
+    with zipfile.ZipFile(docx_path, 'r') as zin:
+        with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data_bytes = zin.read(item.filename)
+                if item.filename.endswith('.xml'):
+                    text = data_bytes.decode('utf-8')
+                    for key, value in data.items():
+                        placeholder = '{{' + key + '}}'
+                        if placeholder in text:
+                            text = text.replace(placeholder, str(value) if value else '')
+                    data_bytes = text.encode('utf-8')
+                zout.writestr(item, data_bytes)
+    shutil.move(tmp, docx_path)
+
+
 def fill_template(template_path: str, data: dict, output_path: str) -> None:
     """
     Главная функция: открывает шаблон .docx, подставляет все плейсхолдеры,
@@ -106,6 +127,7 @@ def fill_template(template_path: str, data: dict, output_path: str) -> None:
                 p_el.getparent().remove(p_el)
 
     doc.save(output_path)
+    _replace_textbox_placeholders(output_path, data)
 
 
 def get_unfilled_placeholders(docx_path: str) -> list[str]:

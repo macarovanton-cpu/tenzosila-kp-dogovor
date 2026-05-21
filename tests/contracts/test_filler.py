@@ -182,3 +182,20 @@ def test_filler_removes_empty_payment_rows(tmp_path):
     assert empty_numpr == [], (
         f"Найдено {len(empty_numpr)} пустых нумерованных параграфов после fill_template"
     )
+
+
+def test_filler_replaces_textbox_placeholders(tmp_path):
+    """fill_template заменяет {{ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ}} в text box Приложения."""
+    import zipfile
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_textbox.docx")
+
+    fill_template(template, SPEC_MOCK_DATA, output)
+
+    with zipfile.ZipFile(output) as z:
+        content = z.read("word/document.xml").decode("utf-8")
+
+    assert "{{ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ}}" not in content, (
+        "Плейсхолдер {{ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ}} не был заменён в text box Приложения"
+    )
