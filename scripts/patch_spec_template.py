@@ -122,7 +122,7 @@ def main() -> None:
     else:
         print("WARNING: TABLE[1] (ТХ) не найдена")
 
-    # Цепочка keepNext: параграфы [55-57] между TABLE[1] и п.15
+    # Цепочка keepNext: параграфы [55-57] между TABLE[1] и п.15; удаляем лишние 2 из 3
     if len(doc.tables) > 1 and p14 and p15:
         all_bp = _body_paras(doc)
         p14_i = next(i for i, p in enumerate(all_bp) if p._p is p14._p)
@@ -131,6 +131,10 @@ def main() -> None:
         for p in intermediates:
             set_keep_with_next(p)
         print(f"Параграфы между TABLE[1] и п.15: keepNext на {len(intermediates)} параграфах")
+        # Оставляем 1 пустой параграф для отступа, удаляем остальные
+        for p in intermediates[:-1]:
+            p._p.getparent().remove(p._p)
+        print(f"Удалено {len(intermediates[:-1])} лишних пустых параграфов между TABLE[1] и п.15")
 
     # п.15 (Комплект поставки): заголовок не отрывается от таблицы
     if p15:

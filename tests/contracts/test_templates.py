@@ -177,3 +177,21 @@ def test_spec_kwn_chain_until_signatures():
     assert len(doc.tables) > 3, "doc.tables[3] (подписи) не найдена"
     for i, row in enumerate(doc.tables[3].rows):
         assert _row_has_cant_split(row), f"doc.tables[3] row[{i}] должна иметь cantSplit"
+
+
+def test_spec_max_empty_paras_between_th_and_kompl():
+    """Между таблицей ТХ и заголовком п.15 не более 1 пустого параграфа."""
+    doc = Document(CONTRACTS / "spec_foundation_install.docx")
+    body_paras = _body_paras(doc)
+    p14_idx = next(
+        i for i, p in enumerate(body_paras) if "Технические характеристики" in p.text
+    )
+    p15_idx = next(
+        i for i, p in enumerate(body_paras) if "Комплект поставки" in p.text
+    )
+    # p14_idx+2 .. p15_idx — параграфы после p.14 и его empty-пары до заголовка п.15
+    between = body_paras[p14_idx + 2 : p15_idx]
+    assert len(between) <= 1, (
+        f"Между таблицей ТХ и заголовком п.15 должно быть не более 1 пустого параграфа, "
+        f"найдено {len(between)}"
+    )
