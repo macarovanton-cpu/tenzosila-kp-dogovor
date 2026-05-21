@@ -60,6 +60,11 @@
 - Кнопки скачивания не теряются при rerun
 - Добавлена кнопка «Сгенерировать заново»
 
+### Промт E ✅ — баги 8b и 9b шаблона спецификации
+- patch_spec_template.py: удаление 2 из 3 пустых параграфов между TABLE[1] и п.15
+- filler.py: _replace_textbox_placeholders() — замена {{KEY}} в txbxContent через zipfile
+- +2 теста (13 в test_templates.py, 5 в test_filler.py)
+
 ### Промт D-prep ✅ — баги 8 и 9 шаблона спецификации
 - patch_spec_template.py: w:keepWithNext→w:keepNext (корень бага), цепочка через TABLE[1]+paras[55-57]+TABLE[2]+para[61]+TABLE[3]
 - patch_spec_template.py: _replace_in_docx_xml — замена КРАТКОЕ→ИНИЦИАЛЫ в text box Приложения
@@ -87,6 +92,8 @@
 | 6 | Приложение №1 не с новой страницы | ✅ Закрыт |
 | 8 | п.14/15 + подписи разрываются по страницам (keepNext-цепь, w:keepWithNext→w:keepNext) | ✅ Закрыт |
 | 9 | Устаревший плейсхолдер ФИО_КРАТКОЕ в text box Приложения №1 | ✅ Закрыт |
+| 8b | Лишний вертикальный отступ — п.15 съезжает на новую страницу (3 пустых параграфа → 1) | ✅ Закрыт |
+| 9b | Плейсхолдер ИНИЦИАЛЫ не рендерится в text box Приложения (docxtpl обходит txbxContent) | ✅ Закрыт |
 
 ---
 
