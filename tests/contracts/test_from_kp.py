@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -170,3 +171,121 @@ class TestBuildSpecFromKpSnapshot:
         )
         zakazchik_keys = [k for k in spec if k.startswith("ЗАКАЗЧИК_")]
         assert zakazchik_keys == []
+
+
+class TestBuildSpecRowsFromSnapshot:
+    """Тесты build_spec_rows_from_snapshot."""
+
+    def _make_full_kp_row(self, line="С", max_t=60, length=18, price=2835000,
+                           foundation_key="foundation_s_f_18",
+                           foundation_price=350000,
+                           verification_customer_side=False) -> dict:
+        options = {
+            foundation_key: {
+                "qty": 1, "price": foundation_price,
+                "retail": foundation_price, "customer_side": False,
+            },
+            "delivery_default": {
+                "qty": 1, "price": 50000,
+                "retail": 50000, "customer_side": False,
+            },
+            "install_default": {
+                "qty": 1, "price": 80000,
+                "retail": 80000, "customer_side": False,
+            },
+            "verification_default": {
+                "qty": 1, "price": 30000,
+                "retail": 30000, "customer_side": verification_customer_side,
+            },
+        }
+        return _make_kp_row(
+            model_line=line, model_max=max_t, model_length=length,
+            model_price=price, options=options,
+        )
+
+    def test_base_case_five_rows(self):
+        """Базовый кейс: модель + фундамент + доставка + монтаж + поверка → 5 строк."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        rows = build_spec_rows_from_snapshot(self._make_full_kp_row())
+        assert len(rows) == 5
+
+    def test_base_case_canonical_names(self):
+        """Проверка канонических формулировок всех 5 строк."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        rows = build_spec_rows_from_snapshot(self._make_full_kp_row())
+        names = [r["name"] for r in rows]
+        assert names[0] == "Весы автомобильные ВЕСТА-С-60-18-Ц, max 60т, размеры платформы 18х3м"
+        assert names[1] == "Фундамент железобетонный под весы автомобильные ВЕСТА-С, 18м"
+        assert names[2] == "Доставка весов до объекта"
+        assert names[3] == "Монтаж автомобильных весов"
+        assert names[4] == "Поверка автомобильных весов с доставкой эталонов"
+
+    def test_customer_side_verification_price_is_zakazchik(self):
+        """customer_side=True → price_display='ЗАКАЗЧИК', не учитывается в итого."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        rows = build_spec_rows_from_snapshot(
+            self._make_full_kp_row(verification_customer_side=True)
+        )
+        assert len(rows) == 5
+        verify_row = next(r for r in rows if "Поверка" in r["name"])
+        assert verify_row["customer_side"] is True
+        assert verify_row["price_display"] == "ЗАКАЗЧИК"
+        # итого не включает поверку
+        total = sum(r["price"] for r in rows if not r["customer_side"])
+        assert total == 2835000 + 350000 + 50000 + 80000
+
+    def test_qty_zero_row_skipped(self):
+        """Опция с qty=0 не попадает в строки."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        kp_row = _make_kp_row(options={
+            "delivery_default": {"qty": 0, "price": 50000, "retail": 50000, "customer_side": False},
+        })
+        rows = build_spec_rows_from_snapshot(kp_row)
+        names = [r["name"] for r in rows]
+        assert not any("Доставка" in n for n in names)
+
+    def test_unknown_option_key_logged_and_included(self, caplog):
+        """Неизвестный ключ → WARNING в логе, строка добавляется с raw-ключом."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        kp_row = _make_kp_row(options={
+            "unknown_future_option_42": {"qty": 1, "price": 99000, "retail": 99000, "customer_side": False},
+        })
+        with caplog.at_level(logging.WARNING, logger="src.contracts.from_kp"):
+            rows = build_spec_rows_from_snapshot(kp_row)
+        assert any("unknown_future_option_42" in msg for msg in caplog.messages)
+        assert any(r["name"] == "unknown_future_option_42" for r in rows)
+
+    def test_foundation_formulations_all_three_types(self):
+        """Проверка формулировок для всех 3 типов фундамента."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+
+        # Тип 1: foundation_s_f_{N} для линейки С
+        rows_sf = build_spec_rows_from_snapshot(
+            self._make_full_kp_row(line="С", length=18, foundation_key="foundation_s_f_18")
+        )
+        f_names_sf = [r["name"] for r in rows_sf if "Фундамент" in r["name"]]
+        assert f_names_sf == ["Фундамент железобетонный под весы автомобильные ВЕСТА-С, 18м"]
+
+        # Тип 2: foundation_lite_sl_fl_{N} для линейки СЛ
+        rows_lite = build_spec_rows_from_snapshot(
+            self._make_full_kp_row(line="СЛ", length=18, foundation_key="foundation_lite_sl_fl_18")
+        )
+        f_names_lite = [r["name"] for r in rows_lite if "Фундамент" in r["name"]]
+        assert f_names_lite == ["Фундамент пандусный «ЛАЙТ» под весы автомобильные ВЕСТА-СЛ, 18м"]
+
+        # Тип 3: foundation_std_sl_fl_{N} для линейки ФЛ
+        rows_std = build_spec_rows_from_snapshot(
+            self._make_full_kp_row(line="ФЛ", length=24, foundation_key="foundation_std_sl_fl_24")
+        )
+        f_names_std = [r["name"] for r in rows_std if "Фундамент" in r["name"]]
+        assert f_names_std == ["Фундамент пандусный «Стандарт» под весы автомобильные ВЕСТА-ФЛ, 24м"]
+
+    def test_model_name_for_all_lines(self):
+        """Формирование имени модели для всех линеек."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        for line in ("С", "СЛ", "Ф", "ФЛ", "П"):
+            kp_row = _make_kp_row(model_line=line, model_max=40, model_length=12)
+            rows = build_spec_rows_from_snapshot(kp_row)
+            model_row = rows[0]
+            expected = f"Весы автомобильные ВЕСТА-{line}-40-12-Ц, max 40т, размеры платформы 12х3м"
+            assert model_row["name"] == expected, f"Line {line}: {model_row['name']!r}"

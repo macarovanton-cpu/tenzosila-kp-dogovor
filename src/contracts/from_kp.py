@@ -1,9 +1,39 @@
 """Маппинг снапшота КП из Supabase в плейсхолдеры спецификации договора."""
 from __future__ import annotations
 
+import logging
+import re
 from typing import Any
 
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item
+
+_logger = logging.getLogger(__name__)
+
+_SIMPLE_OPTION_NAMES: dict[str, str] = {
+    "delivery_default": "Доставка весов до объекта",
+    "install_default": "Монтаж автомобильных весов",
+    "verification_default": "Поверка автомобильных весов с доставкой эталонов",
+}
+
+_FOUNDATION_PATTERNS = [
+    (re.compile(r"^foundation_s_f_(\d+)$"),
+     "Фундамент железобетонный под весы автомобильные ВЕСТА-{line}, {N}м"),
+    (re.compile(r"^foundation_lite_sl_fl_(\d+)$"),
+     "Фундамент пандусный «ЛАЙТ» под весы автомобильные ВЕСТА-{line}, {N}м"),
+    (re.compile(r"^foundation_std_sl_fl_(\d+)$"),
+     "Фундамент пандусный «Стандарт» под весы автомобильные ВЕСТА-{line}, {N}м"),
+]
+
+
+def _resolve_option_name(key: str, line: str) -> str | None:
+    """Вернуть каноническое имя для ключа опции или None если неизвестный."""
+    if key in _SIMPLE_OPTION_NAMES:
+        return _SIMPLE_OPTION_NAMES[key]
+    for pattern, template in _FOUNDATION_PATTERNS:
+        m = pattern.match(key)
+        if m:
+            return template.format(line=line, N=m.group(1))
+    return None
 
 
 def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
@@ -144,3 +174,57 @@ def build_specification_from_kp_snapshot(
         "СПЕЦ_СРОК_ФУНДАМЕНТ": foundation_term,
         "СПЕЦ_СРОК_МОНТАЖ": install_term,
     }
+
+
+def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]]:
+    """Список строк спецификации из снапшота КП.
+
+    Каждая строка: {name, qty, price, price_display, customer_side}.
+    customer_side=True → price_display='ЗАКАЗЧИК', price=0 (не в итого).
+    qty=0 → строка пропускается.
+    Неизвестный ключ → WARNING в логе, добавляется с raw-ключом.
+    """
+    data = kp_row.get("data") or {}
+    model = data.get("model") or {}
+    line = model.get("line", "")
+    max_t = model.get("max", "")
+    length = model.get("length", "")
+    model_price = int(model.get("price") or 0)
+
+    rows: list[dict[str, Any]] = []
+
+    model_name = (
+        f"Весы автомобильные ВЕСТА-{line}-{max_t}-{length}-Ц, "
+        f"max {max_t}т, размеры платформы {length}х3м"
+    )
+    rows.append({
+        "name": model_name,
+        "qty": 1,
+        "price": model_price,
+        "price_display": _fmt(model_price),
+        "customer_side": False,
+    })
+
+    options = data.get("options") or {}
+    for key, opt in options.items():
+        qty = int(opt.get("qty", 1))
+        if qty == 0:
+            continue
+        customer_side = bool(opt.get("customer_side", False))
+        price = 0 if customer_side else int(opt.get("price", 0))
+        price_display = "ЗАКАЗЧИК" if customer_side else _fmt(price)
+
+        name = _resolve_option_name(key, line)
+        if name is None:
+            _logger.warning("build_spec_rows_from_snapshot: неизвестный ключ опции %r", key)
+            name = key
+
+        rows.append({
+            "name": name,
+            "qty": qty,
+            "price": price,
+            "price_display": price_display,
+            "customer_side": customer_side,
+        })
+
+    return rows
