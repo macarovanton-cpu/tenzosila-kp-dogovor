@@ -66,7 +66,7 @@ class TestBuildSpecFromKpSnapshot:
         required = {
             "СПЕЦ_НДС", "СПЕЦ_МОДЕЛЬ_КРАТКОЕ", "СПЕЦ_МАКС_НАГРУЗКА",
             "СПЕЦ_П1_НАИМЕНОВАНИЕ", "СПЕЦ_П1_СУММА",
-            "СПЕЦ_П2_ПАРАМЕТРЫ", "СПЕЦ_П2_СУММА",
+            "СПЕЦ_П2_НАИМЕНОВАНИЕ", "СПЕЦ_П2_СУММА",
             "СПЕЦ_П3_НАИМЕНОВАНИЕ", "СПЕЦ_П3_СУММА",
             "СПЕЦ_П4_НАИМЕНОВАНИЕ", "СПЕЦ_П4_СУММА",
             "СПЕЦ_П5_НАИМЕНОВАНИЕ", "СПЕЦ_П5_СУММА",
@@ -93,18 +93,17 @@ class TestBuildSpecFromKpSnapshot:
         assert spec["СПЕЦ_МОДЕЛЬ_КРАТКОЕ"] == "ВЕСТА-С-60-18"
 
     def test_no_foundation_fields_empty(self):
-        """Без фундамента П2_ПАРАМЕТРЫ и П2_СУММА пустые."""
+        """Без фундамента П2_НАИМЕНОВАНИЕ и П2_СУММА пустые."""
         from src.contracts.from_kp import build_specification_from_kp_snapshot
         spec = build_specification_from_kp_snapshot(
             _make_kp_row(), PRICES, MODELS, PAYMENT_TERMS
         )
-        assert spec["СПЕЦ_П2_ПАРАМЕТРЫ"] == ""
+        assert spec["СПЕЦ_П2_НАИМЕНОВАНИЕ"] == ""
         assert spec["СПЕЦ_П2_СУММА"] == ""
 
     def test_with_foundation_option(self):
-        """С фундаментом П2_ПАРАМЕТРЫ и П2_СУММА заполнены."""
+        """С фундаментом П2_НАИМЕНОВАНИЕ содержит полное имя фундамента."""
         from src.contracts.from_kp import build_specification_from_kp_snapshot
-        # foundation_s_f_* — для линий С/Ф; foundation_lite_sl_fl_* — для СЛ/ФЛ
         foundation_key = None
         for k in PRICES.get("options", {}):
             if k.startswith("foundation_s_f_") and "18" in k:
@@ -119,7 +118,8 @@ class TestBuildSpecFromKpSnapshot:
         }
         kp_row = _make_kp_row(options=options)
         spec = build_specification_from_kp_snapshot(kp_row, PRICES, MODELS, PAYMENT_TERMS)
-        assert spec["СПЕЦ_П2_ПАРАМЕТРЫ"] != ""
+        assert "Фундамент" in spec["СПЕЦ_П2_НАИМЕНОВАНИЕ"]
+        assert "ВЕСТА-С" in spec["СПЕЦ_П2_НАИМЕНОВАНИЕ"]
         assert spec["СПЕЦ_П2_СУММА"] != ""
 
     def test_итого_equals_sum_of_positions(self):

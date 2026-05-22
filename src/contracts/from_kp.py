@@ -25,6 +25,22 @@ _FOUNDATION_PATTERNS = [
 ]
 
 
+def _row_sort_key(row: dict[str, Any]) -> int:
+    """Ключ сортировки для стабильного порядка строк спецификации."""
+    name = row.get("name", "")
+    if name.startswith("Весы автомобильные"):
+        return 0
+    if "Фундамент" in name:
+        return 1
+    if "Монтаж" in name:
+        return 2
+    if "Поверка" in name:
+        return 3
+    if "Доставка" in name:
+        return 4
+    return 5
+
+
 def _resolve_option_name(key: str, line: str) -> str | None:
     """Вернуть каноническое имя для ключа опции или None если неизвестный."""
     if key in _SIMPLE_OPTION_NAMES:
@@ -88,31 +104,34 @@ def build_specification_from_kp_snapshot(
     """Принимает строку из Supabase, возвращает плоский dict {СПЕЦ_* → str}
     для filler.fill_template. ЗАКАЗЧИК_* поля не возвращаются.
 
-    kp_row: строка из таблицы kps (id, kp_number, model_id, data, ...)
-    prices: содержимое data/prices.json
-    models_json: содержимое data/models.json
-    payment_terms: содержимое data/payment_terms.json
+    Строки спецификации берутся из build_spec_rows_from_snapshot (канонические
+    формулировки, отдельные монтаж и поверка). Платёжные строки и сроки —
+    через старый пайплайн spec_items.
     """
     from src.spec_builder import build_spec_items
     from src.contracts.utils import number_to_words
     from src.generators.payment_renderer import render_payment_block
 
-    state = _reconstruct_state(kp_row)
-    spec_items = build_spec_items(state, prices, models_json)
+    rows = build_spec_rows_from_snapshot(kp_row)
+    rows.sort(key=_row_sort_key)
 
-    scales = [i for i in spec_items if i.get("payment_group") == "scales"]
-    foundations = [i for i in spec_items if i.get("payment_group") == "foundation"]
-    install_verify = [
-        i for i in spec_items
-        if i.get("payment_group") == "installation_and_verification"
-    ]
-    delivery = [i for i in spec_items if i.get("payment_group") == "delivery"]
+    if len(rows) > 5:
+        _logger.warning(
+            "build_specification_from_kp_snapshot: %d строк > 5 слотов шаблона",
+            len(rows),
+        )
 
-    scales_total = sum(i["total"] for i in scales)
-    foundation_total = sum(i["total"] for i in foundations)
-    install_total = sum(i["total"] for i in install_verify)
-    delivery_total = sum(i["total"] for i in delivery)
-    grand_total = scales_total + foundation_total + install_total + delivery_total
+    result: dict[str, str] = {}
+    for i in range(1, 6):
+        if i <= len(rows):
+            row = rows[i - 1]
+            result[f"СПЕЦ_П{i}_НАИМЕНОВАНИЕ"] = row["name"]
+            result[f"СПЕЦ_П{i}_СУММА"] = row["price_display"]
+        else:
+            result[f"СПЕЦ_П{i}_НАИМЕНОВАНИЕ"] = ""
+            result[f"СПЕЦ_П{i}_СУММА"] = ""
+
+    grand_total = sum(r["price"] for r in rows if not r["customer_side"])
 
     data = kp_row.get("data") or {}
     model = data.get("model") or {}
@@ -121,10 +140,14 @@ def build_specification_from_kp_snapshot(
     length = model.get("length", "")
     model_short = f"ВЕСТА-{line}-{max_t}-{length}"
 
+    state = _reconstruct_state(kp_row)
+    spec_items = build_spec_items(state, prices, models_json)
+
     item_to_days, _ = calculate_term_days_per_item(spec_items)
     model_id = state.get("model_id", "")
     scales_term = str(item_to_days.get(model_id) or TERM_DAYS_DEFAULTS.get("scales", 20))
 
+    foundations = [i for i in spec_items if i.get("payment_group") == "foundation"]
     foundation_term = ""
     for item in foundations:
         t = item_to_days.get(item["item_key"])
@@ -132,6 +155,10 @@ def build_specification_from_kp_snapshot(
             foundation_term = str(t)
             break
 
+    install_verify = [
+        i for i in spec_items
+        if i.get("payment_group") == "installation_and_verification"
+    ]
     inst_sum = sum(item_to_days.get(i["item_key"], 0) or 0 for i in install_verify)
     install_term = str(inst_sum) if inst_sum else ""
 
@@ -139,29 +166,10 @@ def build_specification_from_kp_snapshot(
     lines = [ln.strip() for ln in payment_text.split("\n") if ln.strip()]
     slots = (lines + [""] * 6)[:6]
 
-    p1_name = ""
-    if scales:
-        model_item = next(
-            (i for i in scales if i["item_key"].startswith("vesta-")), scales[0]
-        )
-        p1_name = model_item["name"].split("\n")[0]
-
-    p2_params = f"ВЕСТА-{line}, {length}м" if foundations else ""
-
-    return {
+    result.update({
         "СПЕЦ_НДС": "22",
         "СПЕЦ_МОДЕЛЬ_КРАТКОЕ": model_short,
         "СПЕЦ_МАКС_НАГРУЗКА": str(max_t),
-        "СПЕЦ_П1_НАИМЕНОВАНИЕ": p1_name,
-        "СПЕЦ_П1_СУММА": _fmt(scales_total),
-        "СПЕЦ_П2_ПАРАМЕТРЫ": p2_params,
-        "СПЕЦ_П2_СУММА": _fmt(foundation_total),
-        "СПЕЦ_П3_НАИМЕНОВАНИЕ": "Монтаж и поверка" if install_verify else "",
-        "СПЕЦ_П3_СУММА": _fmt(install_total),
-        "СПЕЦ_П4_НАИМЕНОВАНИЕ": "Доставка" if delivery else "",
-        "СПЕЦ_П4_СУММА": _fmt(delivery_total),
-        "СПЕЦ_П5_НАИМЕНОВАНИЕ": "",
-        "СПЕЦ_П5_СУММА": "",
         "СПЕЦ_ИТОГО": _fmt(grand_total),
         "СПЕЦ_ИТОГО_ПРОПИСЬ": number_to_words(grand_total),
         "СПЕЦ_ОПЛАТА_П1": slots[0],
@@ -173,7 +181,8 @@ def build_specification_from_kp_snapshot(
         "СПЕЦ_СРОК_ПОСТАВКИ": scales_term,
         "СПЕЦ_СРОК_ФУНДАМЕНТ": foundation_term,
         "СПЕЦ_СРОК_МОНТАЖ": install_term,
-    }
+    })
+    return result
 
 
 def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]]:
