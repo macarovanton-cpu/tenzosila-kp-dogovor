@@ -118,3 +118,53 @@ class TestBuildSpecificationItems:
         items = build_specification_items(_make_kp_row(options=opts))
         inst = next(i for i in items if i["id"] == "installation")
         assert inst["total"] == inst["quantity"] * inst["price_per_unit"]
+
+
+class TestCustomItemFlow:
+    def test_add_custom_item_appears_in_items(self):
+        """Симуляция нажатия '+ Добавить позицию': кастомная позиция появляется в state."""
+        from src.contracts.spec_items import make_custom_item
+
+        initial_items = [
+            {"id": "weights", "name": "Весы ВЕСТА-С-60-18",
+             "unit": "компл", "quantity": 1.0,
+             "price_per_unit": 2_835_000.0, "total": 2_835_000.0,
+             "payment_group": None, "is_custom": False,
+             "source": "preset", "metadata": {}},
+        ]
+        items = list(initial_items)
+        items.append(make_custom_item(name="Тестовая позиция", price_per_unit=10_000.0))
+
+        custom = next(i for i in items if i["is_custom"])
+        assert custom["id"].startswith("custom_")
+        assert custom["name"] == "Тестовая позиция"
+        assert custom["source"] == "custom"
+        assert len(items) == 2
+
+    def test_custom_item_appears_in_docx(self, tmp_path):
+        """Кастомная позиция попадает в Table[0] DOCX."""
+        import os
+        from docx import Document
+        from src.contracts.spec_items import make_custom_item
+        from src.contracts.filler import fill_spec_with_items
+        from tests.contracts.test_filler import SPEC_MOCK_DATA, SPEC_TEMPLATE_PATH
+
+        items = [
+            {"id": "weights", "name": "Весы автомобильные ВЕСТА-С-60-18-Ц",
+             "unit": "компл", "quantity": 1.0,
+             "price_per_unit": 2_835_000.0, "total": 2_835_000.0,
+             "payment_group": None, "is_custom": False,
+             "source": "preset", "metadata": {}},
+            make_custom_item(name="Кастомное оборудование", price_per_unit=100_000.0),
+        ]
+
+        template = os.path.normpath(SPEC_TEMPLATE_PATH)
+        output = str(tmp_path / "spec_custom.docx")
+
+        fill_spec_with_items(template, SPEC_MOCK_DATA, items, output)
+
+        doc = Document(output)
+        table = doc.tables[0]
+        all_text = " ".join(c.text for row in table.rows for c in row.cells)
+        assert "Кастомное оборудование" in all_text
+        assert len(table.rows) == 1 + len(items) + 1  # header + 2 + total
