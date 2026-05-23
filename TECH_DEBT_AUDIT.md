@@ -85,7 +85,7 @@
 | Файл | Строк | Статус |
 |------|-------|--------|
 | generators/make_template.py | 772 | ⚠️ Утилита генерации шаблона |
-| generators/test_generate.py | 283 | ⚠️ Тестовая утилита |
+| scripts/generate_test_kp.py | 283 | ⚠️ Тестовая утилита (перенесена из src/) |
 | ui/payment_section.py | 267 | ⚠️ |
 | generators/kp_generator.py | 264 | ⚠️ |
 | spec_builder.py | 249 | ⚠️ |

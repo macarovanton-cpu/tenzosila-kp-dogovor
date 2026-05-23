@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""test_generate.py — генерирует тестовые КП из шаблона для ручной проверки в Word.
+"""generate_test_kp.py — генерирует тестовые КП из шаблона для ручной проверки в Word.
 
 Использует тот же путь, что и UI: build_template_context(state, prices) →
 DocxTemplate.render(). Это даёт уверенность, что DOCX-генерация согласована
@@ -11,7 +11,7 @@ DocxTemplate.render(). Это даёт уверенность, что DOCX-ге�
   3. Стресс-тест  — ВЕСТА-С-100-24, dual_range, все опции, custom
 
 Запуск:
-    python src/generators/test_generate.py
+    python scripts/generate_test_kp.py
 Результаты сохраняются в output/.
 """
 from __future__ import annotations
@@ -25,7 +25,7 @@ from docx import Document
 from src.data_loader import load_prices
 from src.generators.kp_generator import build_filename, generate_kp
 
-BASE: Path = Path(__file__).resolve().parent.parent.parent
+BASE: Path = Path(__file__).resolve().parent.parent
 OUT_DIR: Path = BASE / "output"
 
 

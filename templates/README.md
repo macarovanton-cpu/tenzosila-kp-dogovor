@@ -85,7 +85,7 @@ python src/generators/make_template.py
 ## Как запустить тесты генерации
 
 ```bash
-python src/generators/test_generate.py
+python scripts/generate_test_kp.py
 ```
 
 Создаёт три файла в `output/`:

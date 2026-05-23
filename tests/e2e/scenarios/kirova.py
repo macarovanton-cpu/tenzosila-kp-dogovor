@@ -1,7 +1,7 @@
 """Сценарий Кирова: ВЕСТА-ФЛ-80-18, без ОРИОН и фундамента.
 
 Два варианта: с поверкой и без — для покрытия обоих источников истины
-(спека пользователя 1.6 vs. test_generate.py reference).
+(спека пользователя 1.6 vs. scripts/generate_test_kp.py reference).
 """
 from __future__ import annotations
 
