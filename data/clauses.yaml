@@ -20,12 +20,16 @@
 sections:
   - id: obligations_supplier
     title: "Обязательства Подрядчика"
+    section_number: 4
   - id: obligations_customer
     title: "Обязательства Заказчика"
+    section_number: 5
   - id: special_conditions
     title: "Особые условия"
+    section_number: 6
   - id: final
     title: "Заключительные положения"
+    section_number: 7
 
 clauses:
 
