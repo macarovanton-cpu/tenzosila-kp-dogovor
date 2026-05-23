@@ -64,7 +64,8 @@ def collect_for_template() -> dict[str, str]:
     cs = st.session_state["contract"]
     data: dict[str, str] = {}
     data.update(cs.get("requisites", {}))
-    data.update(cs.get("specification", {}))
+    spec = cs.get("specification", {})
+    data.update({k: v for k, v in spec.items() if k != "items"})
     return data
 
 
@@ -74,6 +75,18 @@ def set_specification(spec: dict[str, str]) -> None:
     cs["specification"] = {k: (v or "") for k, v in spec.items()}
     for key, val in cs["specification"].items():
         st.session_state[f"w_{key}"] = val
+
+
+def set_spec_items(items: list) -> None:
+    """Записать список SpecItem в specification['items']."""
+    cs = st.session_state["contract"]
+    cs.setdefault("specification", {})["items"] = items
+
+
+def get_spec_items() -> list:
+    """Получить список SpecItem из specification['items']."""
+    cs = st.session_state.get("contract", {})
+    return cs.get("specification", {}).get("items", [])
 
 
 def set_requisites(requisites: dict[str, str]) -> None:
@@ -95,4 +108,6 @@ def is_extracted() -> bool:
     Режим B: ai_raw установлен после AI-extraction.
     """
     cs = st.session_state.get("contract", {})
-    return bool(cs.get("ai_raw")) or bool(cs.get("specification"))
+    spec = cs.get("specification", {})
+    has_spec_fields = any(k != "items" for k in spec)
+    return bool(cs.get("ai_raw")) or has_spec_fields

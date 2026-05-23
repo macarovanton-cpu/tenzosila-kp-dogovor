@@ -257,3 +257,57 @@ class TestGeneratedKey:
         }
         clear_generated()
         assert mock_session_state["contract"]["generated"] is None
+
+
+# ------------------------------------------------------------------
+# set_spec_items / get_spec_items
+# ------------------------------------------------------------------
+
+class TestSetGetSpecItems:
+    def test_set_and_get_items(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_spec_items, get_spec_items
+        init_contract_state()
+        items = [{"id": "weights", "name": "Весы", "unit": "компл",
+                  "quantity": 1.0, "price_per_unit": 100.0, "total": 100.0,
+                  "payment_group": None, "is_custom": False,
+                  "source": "preset", "metadata": {}}]
+        set_spec_items(items)
+        assert get_spec_items() == items
+
+    def test_get_items_empty_by_default(self, mock_session_state):
+        from src.contracts.state import init_contract_state, get_spec_items
+        init_contract_state()
+        assert get_spec_items() == []
+
+    def test_items_stored_in_specification(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_spec_items
+        init_contract_state()
+        set_spec_items([{"id": "x"}])
+        assert mock_session_state["contract"]["specification"]["items"] == [{"id": "x"}]
+
+
+class TestCollectForTemplateExcludesItems:
+    def test_items_key_excluded(self, mock_session_state):
+        from src.contracts.state import init_contract_state, set_spec_items, collect_for_template
+        init_contract_state()
+        mock_session_state["contract"]["specification"]["СПЕЦ_НДС"] = "22"
+        set_spec_items([{"id": "weights"}])
+        data = collect_for_template()
+        assert "items" not in data
+        assert "СПЕЦ_НДС" in data
+
+
+class TestIsExtractedWithItems:
+    def test_false_when_only_items_set(self, mock_session_state):
+        """is_extracted() → False если specification содержит только items=[]."""
+        from src.contracts.state import init_contract_state, is_extracted, set_spec_items
+        init_contract_state()
+        set_spec_items([])
+        assert is_extracted() is False
+
+    def test_true_when_spec_fields_present(self, mock_session_state):
+        from src.contracts.state import init_contract_state, is_extracted, set_spec_items
+        init_contract_state()
+        mock_session_state["contract"]["specification"]["СПЕЦ_НДС"] = "22"
+        set_spec_items([{"id": "weights"}])
+        assert is_extracted() is True
