@@ -1,163 +1,219 @@
-# STATUS — AI-конфигуратор КП и договоров
+# STATUS — Tenzosila KP & Dogovor
 
 Последнее обновление: 2026-05-23
-Текущая фаза: 2.x — готовность к деплою (Шаг 11)
 
 ---
 
-## Что работает сейчас
+## Где мы сейчас
 
-### Конфигуратор КП (стабильно)
-- Streamlit на Cloud, 234+ тестов зелёные
-- Полный цикл: выбор модели → опции → цена → схема оплаты → DOCX
-- Все линейки С/СЛ/Ф/ФЛ/П/М, двухдиапазонные
-- 7 пресетов оплаты, 3 модели оплаты (V1/V2/V3), параллельные сроки
-- save_kp в Supabase после генерации (Шаг 8)
+**Архитектура v2 договоров, Шаг 7 — внедрение clauses library. Задача 5 в процессе (spec_v2.docx).**
 
-### Модуль договоров (рабочий MVP)
-- src/contracts/{extractor, filler, utils, state, from_kp, spec_items}.py
-- pages/2_Договор.py — двухрежимный UI:
-  - Режим A: данные из Supabase + AI только для карточки
-  - Режим B: legacy, AI парсит PDF КП + карточку
-- Кнопки скачивания не теряются при rerun (байты в session_state)
-- Кнопка «Сгенерировать заново»
-- AI: OpenRouter, пул Qwen3-235b-07-25 → Qwen3-235b → Llama 3.3 70B
-- Шаблоны: contract.docx + spec_foundation_install.docx
-- Спецификация: массив SpecItem вместо 5 фиксированных слотов
-- st.data_editor: редактирование, добавление, удаление позиций
-- fill_spec_with_items(): динамическая таблица позиций в DOCX
-
-### Шаблон спецификации (после серии правок)
-- Хардкод дат и «Компания Тензосила» убран (Шаг 9)
-- П.14 начинается с новой страницы (Промт B)
-- П.14 и п.15 держатся вместе с таблицами и блоком подписей
-- Пустые строки оплаты П5/П6 скрываются если не используются
-- Нумерация страниц не ломается при генерации
-- Плейсхолдер в текстбоксе Приложения замещается через пост-обработку
-- Приложение №1 всегда с новой страницы
-- scripts/patch_spec_template.py — патч шаблона (идемпотентный)
-
-### Storage модуль Supabase
-- src/storage/supabase_client.py: save/get/list/search/delete для kps и contracts
-- Таблицы: kps + contracts + kps_test + contracts_test (UUID, RLS отключён)
-- 18 тестов зелёные
-- Supabase: hwrbwfjjctppeofakuja.supabase.co, Frankfurt
+Последний тег: **v0.9** (массив позиций спецификации, data_editor с пересчётом total).
 
 ---
 
-## Что выполнено
+## Что закрыто за последние сессии
 
-### Шаги 6.5, 7, 8, 9 ✅
-- Namespace договора изолирован под st.session_state["contract"]
-- Storage модуль Supabase создан и протестирован
-- save_kp интегрирован в страницу КП
-- Двухрежимный UI договора (режим A + режим B)
+**Архитектурная чистка репо (закрыто):**
+- Удалён дубль `src/data_loaders/`, мёртвый `src/models/`, `test_generate.py` перенесён в `scripts/`
+- Архив старых findings в `docs/archive/`
+- Бэкапы шаблонов в `templates/contracts/backup/`, старые в `templates/backup/` снесены
+- `03_knowledge_base/` → `knowledge_base/`
+- `01_concept/`, `02_plan/` удалены
+- `.gitignore` дополнен (`docs/superpowers/`, `_repo_tree.txt`)
+- CLAUDE.md обновлён: knowledge_base path, Supabase, contract namespace, verification, plan mode, error log
 
-### Баги после ручной проверки КП→договор (ООО «Вера»)
+**Архитектура v2 договоров — теория (закрыто):**
+- `docs/architecture/contracts_v2.md` — концепция «структура vs данные»
+- `docs/contract_templates_v1/` — 9 эталонных шаблонов в Markdown (референс)
+- `data/clauses.yaml` — черновик 24 clauses (пометка: pre-legal-review)
+- Принято решение: два контейнера, `contract.docx` (рамка) и `spec_v2.docx` (спецификация) — отдельные документы
 
-| # | Баг | Статус |
-|---|-----|--------|
-| 1 | Пустые строки 2.5/2.6 в оплате | ✅ Закрыт |
-| 2 | Пустое наименование весов в КП | Снят — артефакт парсинга |
-| 3 | «действующего» вместо «действующей» (род директора) | ✅ Закрыт (Промт C) |
-| 4 | Rerun теряет второй документ | ✅ Закрыт |
-| 5 | П.14 не с новой страницы | ✅ Закрыт |
-| 6 | Приложение №1 не с новой страницы | ✅ Закрыт |
-| 7 | Нумерация страниц ломается при генерации | ✅ Закрыт |
-| 8 | П.14/п.15/подписи не на одной странице | ✅ Закрыт |
-| 9 | Плейсхолдер ИНИЦИАЛЫ не замещался в текстбоксе | ✅ Закрыт |
+**Шаг 6 архитектуры v2 (закрыто, тег v0.9):**
+- `src/contracts/spec_items.py` — SpecItem TypedDict, make_custom_item
+- `build_specification_items()` в `from_kp.py`
+- `set_spec_items()` / `get_spec_items()` в state.py
+- `fill_spec_with_items()` — двухшаговый python-docx рендер
+- UI: st.data_editor с num_rows="dynamic", кнопка «+ Добавить позицию», пересчёт total реактивный
 
----
+**Шаг 7 архитектуры v2 — задачи 1-4 (закрыто, не теговано):**
+- `src/contracts/clauses_dsl.py` — AST-парсер applies_when, whitelist 6 переменных (foundation_scope, installation_scope, verification_scope, has_orion, orion_poles_scope, winter_concrete), security-тесты
+- `src/contracts/clauses_loader.py` — загрузка clauses.yaml через strictyaml, валидация
+- `src/contracts/clauses_context.py` — build_clauses_context(deal), 6 переменных DSL из SpecItems, маппинг fundament_jb/fundament/rama
+- `src/contracts/clauses_renderer.py` — RenderedClause, нумерация 4.1-6.2, jinja-подстановка, obligations_range
+- 53 теста зелёные, 178/178 contract tests, 385/390 общий
+- strictyaml добавлен в requirements.txt
+- В data/clauses.yaml добавлен section_number: 4/5/6/7
 
-## Что делаем дальше
-
-### Шаг 10 — Прогон синтетики + тег v0.8 ✅
-- 1/5 зелёный (case_1), 4/5 с known-issues (B1/B3/C5 — legacy, не блокируют)
-- Сессия 4: Промт C (род директора) и краткое→полное наименование закрыты
-- Тег v0.8 выставлен
-
-### Шаг 11 — Деплой на Streamlit Cloud (ты, ~10 мин) ← ТЕКУЩИЙ
-- SUPABASE_URL и SUPABASE_KEY в Cloud Secrets
-- Push в main
-
-### Промт D — строки оплаты (Этап 3, отложен)
-Реальные спецификации используют 2–5 строк оплаты с суммами и прописями.
-Правильное решение — jinja-цикл + полные тексты строк из payment_renderer.
-Сложность: ~4–5 ч, opus. Отложить до Этапа 3.
-
-### Шаг 12 — Массив позиций спецификации (без clauses) ✅
-- SpecItem TypedDict + build_specification_items() из снапшота КП
-- st.data_editor в UI договора, fill_spec_with_items() в filler
-
-### Шаг 13 — Миграция старых КП (опционально, ~30 мин)
-- scripts/migrate_old_kps.py — прогон архива PDF → save_kp
+**Шаг 7 архитектуры v2 — задача 5 (В ПРОЦЕССЕ):**
+- Создан `templates/contracts/spec_v2.docx` — шаблон с маркерами {{CLAUSE_SECTION_*}}
+- Создан `src/contracts/spec_v2_filler.py` — fill_spec_v2()
+- Создан `scripts/create_spec_v2_template.py`
+- Создан `tests/contracts/test_fill_spec_v2.py` — 10 тестов (но проверяют len, не контент ячеек)
+- Найден баг: ячейки таблицы позиций пустые (`_set_cell_text` не создаёт w:t при их отсутствии)
+- Найдено: ТТХ зашиты под ВЕСТА-СЛ-80-18-Ц, кит зашит, оплата 6 слотов, сроки 3 строки, год 2026 хардкод, лишняя кавычка в «Тензосила»
 
 ---
 
-## После итерации Supabase → Этап 3
+## Открытая работа: план Code сохранён
 
-- Вынос ТТХ в плейсхолдеры из JSON-справочников КП
-- 9 шаблонов спецификаций по сценариям комплектации
-- Селектор шаблона в UI
-- jinja-цикл по строкам оплаты с суммами и прописями
+**Файл:** `docs/spec-v2-docx-curious-kite.md` (план Code на 7 атомарных коммитов).
 
----
+**Что ждёт выполнения:**
 
-## Открытые баги (не блокируют)
-- P1.1: «Ограждение» отдельной строкой → в режиме A агрегируется в П1
-- P1.2: ТТХ статичны → Этап 3
-- Монтаж и поверка в одной строке спецификации → Этап 3 (маппинг П3/П4)
-- Строки оплаты без сумм и прописей → Этап 3 (Промт D)
+| # | Коммит | Файлы |
+|---|---|---|
+| 1 | `fix(contracts): _set_cell_text — создание w:t + тесты контента` | filler.py, test_fill_spec_v2.py |
+| 2 | `refactor(template): патч spec_v2.docx — маркеры, кавычки, год` | scripts/patch_spec_v2_template.py |
+| 3 | `feat(contracts): terms_renderer — динамические сроки` | terms_renderer.py + тесты |
+| 4 | `feat(contracts): tth_context — ТТХ плейсхолдеры` | tth_context.py + тесты |
+| 5 | `feat(contracts): kit_renderer — комплект из модели` | kit_renderer.py + тесты |
+| 6 | `feat(contracts): spec_v2_filler payment/terms/kit/appendix` | spec_v2_filler.py |
+| 7 | `feat(contracts): build_spec_v2_data + integration + 3 DOCX` | from_kp.py, integration tests |
 
-## Синтетика (legacy, ожидаемо)
+**Решения зафиксированы в плане:**
+- `_set_cell_text` фикс: при отсутствии w:t создавать через OxmlElement
+- ТТХ_РАССТОЯНИЕ_ДО_ТЕРМИНАЛА — константа «не более 50 м»
+- ТТХ_ТЕМПЕРАТУРА — формула `_format_temp` со знаком
+- Нумерация приложений v1.0 — фиксированная: №1=Строительное задание, №2=Контрольный лист; ОРИОН, материалы в backlog v1.1
+- Контент контрольного листа из `docs/contract_templates_v1/Автовесы_монтаж_gemini.md:85-101`
+- 3 примера DOCX для верификации: ВЕСТА-СЛ-40-18 / ВЕСТА-С-80-18 / ВЕСТА-С-100-24
 
-### Сессия 4 — 2026-05-22 (после Промта C + фикс наименования)
-| Case | B1 | B3 | C5 | Итог |
-|------|----|----|-----|------|
-| 1    | ✅ | ✅ | ✅  | ✅ PASS |
-| 2    | ❌ | ✅ | ✅  | FAIL (B1) |
-| 3    | ❌ | ❌ | ❌  | FAIL (B1+B3+C5) |
-| 4    | ✅ | ❌ | ✅  | FAIL (B3) |
-| 5    | ❌ | ✅ | ❌  | FAIL (B1+C5) |
+**После коммита 1 — обязательный полный `pytest tests/ -v` (320+ тестов), не только test_fill_spec_v2.**
 
-- B1: арифметика → закроется в режиме A (legacy)
-- B3: парсер теста не справляется с многострочными суммами (legacy)
-- C5: AI дропает поверку когда позиций >5 (legacy)
-- D1: AI иногда теряет кавычки в названии контрагента (legacy)
+**После коммита 7 — стоп, ручная проверка DOCX в Word, потом задача 6.**
 
 ---
 
-## Миграция scope-значений (clauses_context)
+## Следующие задачи (после задачи 5)
 
-`build_clauses_context` в `src/contracts/clauses_context.py` преобразует старые значения из `from_kp.py` в DSL-значения clauses.yaml.
+### Задача 6, 7, 8 архитектуры v2 — промт для Code (модель: sonnet, после ack задачи 5)
+Задачи 6, 7, 8. Модель: sonnet. Subagent-Driven.
+Задача 5 одобрена. spec_v2.docx + fill_spec_v2 работают.
+═══════════════════════════════════════════════════════════════
+Задача 6 — UI override-флаги (src/pages/2_Договор.py)
+═══════════════════════════════════════════════════════════════
+В странице договора, после блока загрузки КП, перед таблицей items:
+st.subheader("Особые условия")
 
-### foundation_scope (через `_FOUNDATION_SCOPE_MAP`)
-| Значение из from_kp.py | DSL-значение clauses |
-|------------------------|----------------------|
-| `fundament_jb`         | `contractor_full`    |
-| `pandus_lite`          | `contractor_full`    |
-| `pandus_std`           | `contractor_full`    |
-| `contractor_full`      | `contractor_full`    |
-| `contractor_with_materials` | `contractor_with_materials` |
-| `customer_builds`      | `customer_builds`    |
-| `(рама item без foundation)` | `rama`          |
-| *(нет foundation/rama в items)* | `none`       |
+st.checkbox "Зимний период (бетонные работы при +5 °C и ниже)"
+→ session_state["contract"]["flags"]["winter_concrete"] (default False)
 
-### installation_scope (inline-логика)
-| Значение из metadata.scope | DSL-значение |
-|----------------------------|--------------|
-| `fundament`                | `full`       |
-| `rama`                     | `full`       |
-| `full`                     | `full`       |
-| `shefmontazh`              | `shefmontazh`|
-| *(нет installation item)*  | `none`       |
+with st.expander("Override-флаги (для нестандартных случаев)", expanded=False):
+st.caption("По умолчанию scope вычисляется из позиций спецификации.
+Здесь можно вручную переопределить.")
 
-Причина: `from_kp.py` писал `scope = "fundament"` / `"rama"` для монтажа с фундаментом/рамой. В clauses DSL эти случаи — просто `full` (тип монтажа не меняется, меняется фундамент).
+st.selectbox "Тип фундамента"
+options: ["Авто (из позиций)", "Заказчик строит", "Подрядчик строит",
+"Подрядчик с материалами Заказчика", "Рама", "Без фундамента"]
+маппинг на: None | "customer_builds" | "contractor_full"
+| "contractor_with_materials" | "rama" | "none"
+→ scope_overrides["foundation_scope"]
+st.selectbox "Тип монтажа"
+options: ["Авто (из позиций)", "Полный монтаж", "Шеф-монтаж", "Без монтажа"]
+маппинг: None | "full" | "shefmontazh" | "none"
+→ scope_overrides["installation_scope"]
+st.selectbox "Поверку организует"
+options: ["Авто (из позиций)", "Подрядчик", "Заказчик", "Без поверки"]
+маппинг: None | "supplier" | "customer" | "none"
+→ scope_overrides["verification_scope"]
+st.selectbox "Опоры ПАК ОРИОН"
+(показывать только если has_orion=True по контексту)
+options: ["Авто (из позиций)", "Заказчик", "Подрядчик"]
+маппинг: None | "by_customer" | "by_contractor"
+→ scope_overrides["orion_poles_scope"]
+
+ПРЕДПРОСМОТР CLAUSES:
+with st.expander("Предпросмотр пунктов договора", expanded=False):
+deal = собрать из текущего session_state
+clauses_by_section = build_contract_clauses(deal)
+для каждой секции:
+st.markdown(f"{section.title} (раздел {section.section_number})")
+для каждого clause в секции:
+st.text(f"  {clause.auto_number}. {clause.text[:60]}...")
+st.caption(f"Всего пунктов: {total_count}")
+ТЕСТЫ:
+
+tests/contracts/test_page_dogovor_overrides.py:
+
+winter_concrete=True → preview содержит "winter_concrete_surcharge"
+foundation_scope override="rama" → preview содержит "flat_area_for_rama"
+verification_scope override="customer" → preview содержит "customer_organizes_verification"
+
+
+
+═══════════════════════════════════════════════════════════════
+Задача 7 — переключение генерации на v2 + fallback
+═══════════════════════════════════════════════════════════════
+Кнопка "Скачать спецификацию" в src/pages/2_Договор.py:
+try:
+output = fill_spec_v2(spec_v2_template_path, data, items, deal, output_path)
+except Exception as e:
+st.warning(f"Не удалось сгенерировать v2-спецификацию: {e}. Использую старый шаблон.")
+output = fill_template(старый путь...)
+Кнопка "Скачать договор" — БЕЗ ИЗМЕНЕНИЙ.
+Старый spec_foundation_install.docx остаётся в репо как fallback.
+Не удалять.
+═══════════════════════════════════════════════════════════════
+Задача 8 — финальная верификация
+═══════════════════════════════════════════════════════════════
+
+Полный pytest -v зелёный (включая новые тесты задач 6 и 7)
+Streamlit smoke:
+
+страница "Договор" открывается
+чекбокс зимний период работает
+expander override-флаги открывается, selectbox-ы работают
+preview clauses обновляется реактивно
+кнопка "Скачать спецификацию" даёт корректный DOCX
+
+
+docs/STATUS.md → Шаг 7 ✅, v1.0 готов, обновить раздел "Текущее состояние"
+docs/architecture/contracts_v2.md → пометить план миграции как реализованный
+git tag v1.0
+финальный коммит chore(release): v1.0 — clauses library + override UI
+
+ОБЩИЕ ТРЕБОВАНИЯ:
+
+Subagent-Driven: после каждой задачи pytest + отчёт + ack.
+НЕ трогать payment_renderer, term_days, snapshot_builder, supabase_client.
+НЕ удалять старый шаблон spec_foundation_install.docx.
+
+Покажи план до правок.
 
 ---
 
-## Технический долг
-- payment_percents legacy ключ — удалить после деплоя
-- Git-конфликт дом↔Codespaces — решить до работы из Codespaces
-- data_loader: дублирование equipment_specs.json ↔ models.json → Этап 3
-- vMerge слияние ячеек в таблице спецификации DOCX → Этап 3
+## Известные ограничения v1.0 (для следующего цикла)
+
+- Нумерация Приложений фиксированная (№1, №2), без учёта ОРИОН-Приложений и материалов — backlog v1.1
+- ТТХ_РАССТОЯНИЕ_ДО_ТЕРМИНАЛА — константа «не более 50 м», не зависит от длины кабеля сделки
+- Контрольный лист только при `foundation_scope == "customer_builds"`
+
+---
+
+## Открытый техдолг (после v1.0)
+
+- [ ] Юридический ревью clauses.yaml (формулировки 24 пунктов)
+- [ ] UI-глюки страницы Договор:
+  - «Последние КП» — клик не загружает snapshot
+  - «Номер КП» — Ctrl+V не работает
+  - Реализовать поиск КП по названию Заказчика
+- [ ] 5 падающих test_e2e_synthetic (с Части 8)
+- [ ] Выбор финальной AI-модели для extractor
+- [ ] Обновление эталонов фикстур под модель items
+- [ ] Архитектурный рефакторинг data_loader: убрать дублирование equipment_specs.json ↔ models.json
+- [ ] vMerge слияние ячеек в таблице спецификации DOCX
+- [ ] Фаза 1.7 — деплой на Streamlit Cloud (или VPS)
+- [ ] Тендерный модуль
+- [ ] База знаний компании (референс-лист 30–50 кейсов)
+- [ ] Bitrix24 REST API
+
+---
+
+## Теги версий
+
+- `v0.6` — стабильный модуль договоров (один шаблон, базовый extractor)
+- `v0.7` — Supabase-интеграция, двухрежимный UI
+- `v0.8` — закрытие багов после ручной проверки КП→договор (Промты A, B, C)
+- `v0.9` — массив позиций спецификации + кастомные позиции + data_editor с пересчётом total
+- `v1.0` (план) — clauses library, override UI, единый spec_v2.docx
