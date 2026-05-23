@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import logging
 import re
+import uuid
 from typing import Any
 
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item
+from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
 
 _logger = logging.getLogger(__name__)
 
@@ -237,3 +239,96 @@ def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]
         })
 
     return rows
+
+
+_ITEM_ORDER: dict[str, int] = {
+    "weights": 0,
+    "foundation": 1,
+    "installation": 2,
+    "verification": 3,
+    "delivery": 4,
+}
+
+
+def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
+    """Собрать список SpecItem из строки КП Supabase.
+
+    Цены хранятся с НДС (та же конвенция что и в prices.json и КП).
+    """
+    data = kp_row.get("data") or {}
+    model = data.get("model") or {}
+    line = model.get("line", "")
+    max_t = model.get("max", "")
+    length = model.get("length", "")
+    model_price = float(model.get("price") or 0)
+    options = data.get("options") or {}
+
+    items: list[SpecItem] = []
+
+    # Позиция весов — всегда первая
+    model_name = (
+        f"Весы автомобильные ВЕСТА-{line}-{max_t}-{length}-Ц, "
+        f"max {max_t}т, размеры платформы {length}х3м"
+    )
+    items.append({  # type: ignore[misc]
+        "id": "weights",
+        "name": model_name,
+        "unit": "компл",
+        "quantity": 1.0,
+        "price_per_unit": model_price,
+        "total": model_price,
+        "payment_group": None,
+        "is_custom": False,
+        "source": "preset",
+        "metadata": {"line": line, "max": max_t, "length": length},
+    })
+
+    for key, opt in options.items():
+        qty = float(opt.get("qty", 1) or 1)
+        if qty == 0:
+            continue
+
+        customer_side = bool(opt.get("customer_side", False))
+        price = 0.0 if customer_side else float(opt.get("price") or 0)
+
+        spec_id = _option_key_to_spec_id(key)
+        is_custom = spec_id is None
+        if is_custom:
+            _logger.warning("build_specification_items: неизвестный ключ %r", key)
+            spec_id = f"custom_{uuid.uuid4().hex[:8]}"
+
+        name = _resolve_option_name(key, line)
+        if name is None:
+            name = key
+
+        metadata: dict[str, Any] = {}
+        if customer_side:
+            metadata["customer_side"] = True
+        if spec_id == "installation":
+            has_foundation = any(k.startswith("foundation_") for k in options)
+            metadata["scope"] = "fundament" if has_foundation else "rama"
+        elif spec_id == "foundation":
+            if "_lite_" in key:
+                metadata["scope"] = "pandus_lite"
+            elif "_std_" in key:
+                metadata["scope"] = "pandus_std"
+            else:
+                metadata["scope"] = "fundament_jb"
+
+        price_per_unit = price / qty if qty > 0 else 0.0
+
+        items.append({  # type: ignore[misc]
+            "id": spec_id,
+            "name": name,
+            "unit": "компл",
+            "quantity": qty,
+            "price_per_unit": price_per_unit,
+            "total": price,
+            "payment_group": None,
+            "is_custom": is_custom,
+            "source": "custom" if is_custom else "preset",
+            "metadata": metadata,
+        })
+
+    items.sort(key=lambda x: _ITEM_ORDER.get(x["id"], 10))
+    return items
