@@ -201,3 +201,151 @@ def test_filler_replaces_textbox_placeholders(tmp_path):
     assert "{{ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ}}" not in content, (
         "Плейсхолдер {{ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ}} не был заменён в text box Приложения"
     )
+
+
+SPEC_MOCK_ITEMS = [
+    {
+        "id": "weights",
+        "name": "Весы автомобильные ВЕСТА-С-60-18-Ц, max 60т, размеры платформы 18х3м",
+        "unit": "компл",
+        "quantity": 1.0,
+        "price_per_unit": 2_835_000.0,
+        "total": 2_835_000.0,
+        "payment_group": None,
+        "is_custom": False,
+        "source": "preset",
+        "metadata": {},
+    },
+    {
+        "id": "foundation",
+        "name": "Фундамент железобетонный под весы ВЕСТА-С, 18м",
+        "unit": "компл",
+        "quantity": 1.0,
+        "price_per_unit": 350_000.0,
+        "total": 350_000.0,
+        "payment_group": None,
+        "is_custom": False,
+        "source": "preset",
+        "metadata": {"scope": "fundament_jb"},
+    },
+    {
+        "id": "verification",
+        "name": "Поверка автомобильных весов с доставкой эталонов",
+        "unit": "компл",
+        "quantity": 1.0,
+        "price_per_unit": 0.0,
+        "total": 0.0,
+        "payment_group": None,
+        "is_custom": False,
+        "source": "preset",
+        "metadata": {"customer_side": True},
+    },
+]
+
+
+def test_fill_spec_with_items_row_count(tmp_path):
+    """Table[0] содержит ровно len(items) строк данных (кроме header и total)."""
+    from docx import Document
+    from src.contracts.filler import fill_spec_with_items
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_items.docx")
+
+    fill_spec_with_items(template, SPEC_MOCK_DATA, SPEC_MOCK_ITEMS, output)
+
+    doc = Document(output)
+    table = doc.tables[0]
+    # Header row + N item rows + total row
+    assert len(table.rows) == 1 + len(SPEC_MOCK_ITEMS) + 1
+
+
+def test_fill_spec_with_items_names_in_table(tmp_path):
+    """Наименования позиций присутствуют в Table[0]."""
+    from docx import Document
+    from src.contracts.filler import fill_spec_with_items
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_items_names.docx")
+
+    fill_spec_with_items(template, SPEC_MOCK_DATA, SPEC_MOCK_ITEMS, output)
+
+    doc = Document(output)
+    table = doc.tables[0]
+    all_text = " ".join(c.text for row in table.rows for c in row.cells)
+
+    assert "Весы автомобильные ВЕСТА-С-60-18-Ц" in all_text
+    assert "Фундамент железобетонный" in all_text
+    assert "ЗАКАЗЧИК" in all_text
+
+
+def test_fill_spec_with_items_total_computed_from_items(tmp_path):
+    """ИТОГО в Table[0] = сумма non-customer-side позиций."""
+    from docx import Document
+    from src.contracts.filler import fill_spec_with_items
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_items_total.docx")
+
+    fill_spec_with_items(template, SPEC_MOCK_DATA, SPEC_MOCK_ITEMS, output)
+
+    doc = Document(output)
+    table = doc.tables[0]
+    total_row = table.rows[-1]
+    # total = 2_835_000 + 350_000 = 3_185_000; join all cells text
+    total_text = " ".join(c.text for c in total_row.cells)
+    assert "3" in total_text
+    assert total_text.strip() != ""
+
+
+def test_fill_spec_with_items_preserves_footer_page_field(tmp_path):
+    """fill_spec_with_items не уничтожает поле PAGE в footer."""
+    import zipfile
+    from src.contracts.filler import fill_spec_with_items
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_items_footer.docx")
+
+    fill_spec_with_items(template, SPEC_MOCK_DATA, SPEC_MOCK_ITEMS, output)
+
+    with zipfile.ZipFile(output) as z:
+        footer_xml = z.read("word/footer2.xml").decode("utf-8")
+
+    assert "PAGE" in footer_xml
+
+
+def test_fill_spec_with_items_e2e_from_kp_snapshot(tmp_path):
+    """E2E: KP snapshot → build_specification_items → fill_spec_with_items → DOCX."""
+    from docx import Document
+    from src.contracts.from_kp import build_specification_items
+    from src.contracts.filler import fill_spec_with_items
+
+    kp_row = {
+        "kp_number": "КП-2026-E2E",
+        "model_id": "vesta-s-60-18",
+        "data": {
+            "model": {"line": "С", "max": 60, "length": 18, "price": 2_835_000},
+            "options": {
+                "foundation_s_f_18": {"qty": 1, "price": 350_000, "customer_side": False},
+                "install_default": {"qty": 1, "price": 80_000, "customer_side": False},
+                "delivery_default": {"qty": 1, "price": 50_000, "customer_side": False},
+            },
+        },
+    }
+
+    items = build_specification_items(kp_row)
+    assert len(items) == 4  # weights + foundation + install + delivery
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_e2e.docx")
+    fill_spec_with_items(template, SPEC_MOCK_DATA, items, output)
+
+    doc = Document(output)
+    table = doc.tables[0]
+    # header + 4 items + total = 6
+    assert len(table.rows) == 6
+
+    item_names = [table.rows[i].cells[0].text for i in range(1, 5)]
+    assert any("Весы" in n for n in item_names)
+    assert any("Фундамент" in n for n in item_names)
+    assert any("Монтаж" in n for n in item_names)
+    assert any("Доставка" in n for n in item_names)

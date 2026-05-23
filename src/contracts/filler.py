@@ -3,6 +3,7 @@ filler.py — подстановка данных в Word-шаблон с пле
 Работает напрямую с python-docx, форматирование сохраняется 100%.
 """
 
+import copy
 import re
 from docx import Document
 from docx.oxml.ns import qn
@@ -176,5 +177,89 @@ def remove_empty_paragraphs(doc_path: str, output_path: str = None) -> None:
                 ppr = p.find('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}numPr')
                 if ppr is not None:
                     parent.remove(p)
+
+    doc.save(output_path)
+
+
+def _fmt(amount: int) -> str:
+    return f"{amount:,}".replace(",", " ") if amount else ""
+
+
+def _clear_row_text(tr_el) -> None:
+    """Обнулить все w:t элементы в строке таблицы."""
+    for t_el in tr_el.findall('.//' + qn('w:t')):
+        t_el.text = ''
+
+
+def _set_cell_text(tc_el, text: str) -> None:
+    """Записать текст в первый w:t элемент ячейки таблицы."""
+    t_els = tc_el.findall('.//' + qn('w:t'))
+    if t_els:
+        t_els[0].text = text
+
+
+def fill_spec_with_items(
+    template_path: str,
+    data: dict,
+    items: list[dict],
+    output_path: str,
+) -> None:
+    """Рендер шаблона спецификации с динамическим массивом позиций.
+
+    Двухшаговый подход:
+    1. fill_template() для всех плейсхолдеров кроме строк таблицы.
+    2. python-docx: заменить строки Table[0] на позиции из items.
+
+    Итого вычисляется из items и передаётся в fill_template.
+    """
+    from src.contracts.utils import number_to_words
+
+    grand_total = sum(
+        int(item.get("total", 0))
+        for item in items
+        if not item.get("metadata", {}).get("customer_side")
+    )
+
+    fill_data = dict(data)
+    fill_data["СПЕЦ_ИТОГО"] = _fmt(grand_total)
+    fill_data["СПЕЦ_ИТОГО_ПРОПИСЬ"] = number_to_words(grand_total)
+    for i in range(1, 6):
+        fill_data.setdefault(f"СПЕЦ_П{i}_НАИМЕНОВАНИЕ", "")
+        fill_data.setdefault(f"СПЕЦ_П{i}_СУММА", "")
+        fill_data.setdefault(f"СПЕЦ_П{i}_СРОК", "")
+
+    fill_template(template_path, fill_data, output_path)
+
+    doc = Document(output_path)
+    table = doc.tables[0]
+    tbl = table._tbl
+
+    all_trs = [c for c in tbl if c.tag == qn('w:tr')]
+    if len(all_trs) < 2:
+        doc.save(output_path)
+        return
+
+    header_tr = all_trs[0]
+    template_tr = copy.deepcopy(all_trs[1])
+
+    for tr in all_trs[1:-1]:
+        tbl.remove(tr)
+
+    for item in reversed(items):
+        new_tr = copy.deepcopy(template_tr)
+        _clear_row_text(new_tr)
+
+        customer_side = item.get("metadata", {}).get("customer_side", False)
+        name_text = item.get("name", "")
+        total_val = int(item.get("total", 0))
+        total_text = "ЗАКАЗЧИК" if customer_side else (_fmt(total_val) if total_val else "")
+
+        tcs = [c for c in new_tr if c.tag == qn('w:tc')]
+        if tcs:
+            _set_cell_text(tcs[0], name_text)
+        if len(tcs) > 1:
+            _set_cell_text(tcs[1], total_text)
+
+        header_tr.addnext(new_tr)
 
     doc.save(output_path)
