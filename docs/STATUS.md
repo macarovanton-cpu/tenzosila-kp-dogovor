@@ -1,6 +1,6 @@
 # STATUS — AI-конфигуратор КП и договоров
 
-Последнее обновление: 2026-05-22
+Последнее обновление: 2026-05-23
 Текущая фаза: 2.x — готовность к деплою (Шаг 11)
 
 ---
@@ -15,7 +15,7 @@
 - save_kp в Supabase после генерации (Шаг 8)
 
 ### Модуль договоров (рабочий MVP)
-- src/contracts/{extractor, filler, utils, state, from_kp}.py
+- src/contracts/{extractor, filler, utils, state, from_kp, spec_items}.py
 - pages/2_Договор.py — двухрежимный UI:
   - Режим A: данные из Supabase + AI только для карточки
   - Режим B: legacy, AI парсит PDF КП + карточку
@@ -23,6 +23,9 @@
 - Кнопка «Сгенерировать заново»
 - AI: OpenRouter, пул Qwen3-235b-07-25 → Qwen3-235b → Llama 3.3 70B
 - Шаблоны: contract.docx + spec_foundation_install.docx
+- Спецификация: массив SpecItem вместо 5 фиксированных слотов
+- st.data_editor: редактирование, добавление, удаление позиций
+- fill_spec_with_items(): динамическая таблица позиций в DOCX
 
 ### Шаблон спецификации (после серии правок)
 - Хардкод дат и «Компания Тензосила» убран (Шаг 9)
@@ -82,7 +85,11 @@
 Правильное решение — jinja-цикл + полные тексты строк из payment_renderer.
 Сложность: ~4–5 ч, opus. Отложить до Этапа 3.
 
-### Шаг 12 — Миграция старых КП (опционально, ~30 мин)
+### Шаг 12 — Массив позиций спецификации (без clauses) ✅
+- SpecItem TypedDict + build_specification_items() из снапшота КП
+- st.data_editor в UI договора, fill_spec_with_items() в filler
+
+### Шаг 13 — Миграция старых КП (опционально, ~30 мин)
 - scripts/migrate_old_kps.py — прогон архива PDF → save_kp
 
 ---
