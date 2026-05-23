@@ -1,6 +1,7 @@
 """Страница генерации договора и спецификации."""
 from __future__ import annotations
 
+import logging
 import sys
 import tempfile
 from datetime import date
@@ -13,15 +14,18 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  # noqa: E402
-from src.contracts.filler import fill_template, get_unfilled_placeholders  # noqa: E402
-from src.contracts.from_kp import build_specification_from_kp_snapshot  # noqa: E402
+from src.contracts.filler import fill_spec_with_items, fill_template, get_unfilled_placeholders  # noqa: E402
+from src.contracts.from_kp import build_specification_from_kp_snapshot, build_specification_items  # noqa: E402
+from src.contracts.spec_items import make_custom_item  # noqa: E402
 from src.contracts.state import (  # noqa: E402
     clear_generated,
     collect_for_template,
+    get_spec_items,
     init_contract_state,
     is_extracted,
     set_extracted_data,
     set_requisites,
+    set_spec_items,
     set_specification,
     sync_field,
     sync_manual_field,
@@ -37,6 +41,7 @@ OUTPUT_DIR = Path("output/contracts")
 
 st.set_page_config(page_title="Договор", page_icon="📄", layout="wide")
 init_contract_state()
+_logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Определения полей
@@ -112,6 +117,47 @@ WIDE_FIELDS: set[str] = {
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _items_to_rows(items: list[dict]) -> list[dict]:
+    """Конвертировать SpecItem list в строки для data_editor."""
+    return [
+        {
+            "Наименование": item.get("name", ""),
+            "Ед.": item.get("unit", "шт"),
+            "Кол-во": item.get("quantity", 1.0),
+            "Цена с НДС, руб.": item.get("price_per_unit", 0.0),
+            "Сумма с НДС, руб.": item.get("total", 0.0),
+        }
+        for item in items
+    ]
+
+
+def _rows_to_items(rows, original_items: list[dict]) -> list[dict]:
+    """Конвертировать строки data_editor обратно в SpecItem list."""
+    import uuid as _uuid
+    result = []
+    rows_list = rows.to_dict("records") if hasattr(rows, "to_dict") else list(rows)
+    for i, row in enumerate(rows_list):
+        if i < len(original_items):
+            item = dict(original_items[i])
+        else:
+            item = {
+                "id": f"custom_{_uuid.uuid4().hex[:8]}",
+                "payment_group": None,
+                "is_custom": True,
+                "source": "custom",
+                "metadata": {},
+            }
+        qty = float(row.get("Кол-во") or 1)
+        price = float(row.get("Цена с НДС, руб.") or 0)
+        item["name"] = str(row.get("Наименование") or "")
+        item["unit"] = str(row.get("Ед.") or "шт")
+        item["quantity"] = qty
+        item["price_per_unit"] = price
+        item["total"] = qty * price
+        result.append(item)
+    return result
+
 
 def _save_uploaded(uploaded_file) -> str:
     suffix = Path(uploaded_file.name).suffix
@@ -219,6 +265,11 @@ if mode == "Из базы (по номеру)":
                 kp_row, prices, models_json, payment_terms
             )
             set_specification(spec)
+            try:
+                items = build_specification_items(kp_row)
+                set_spec_items(items)
+            except Exception as exc:
+                _logger.warning("build_specification_items failed: %s", exc)
             st.success(f"КП «{kp_row.get('kp_number', '')}» загружен из базы.")
         except Exception as exc:
             st.error(f"Ошибка загрузки спецификации: {exc}")
@@ -274,6 +325,8 @@ st.divider()
 # Секция 2 — Форма проверки и правки (общая для обоих режимов)
 # ---------------------------------------------------------------------------
 
+edited_df = None  # Будет установлен в блоке data_editor если items существуют
+
 if is_extracted():
     _render_field_group("Реквизиты заказчика", REQUISITE_FIELDS, "requisites")
 
@@ -295,7 +348,44 @@ if is_extracted():
     )
 
     st.divider()
-    _render_field_group("Из коммерческого предложения", SPEC_FIELDS, "specification")
+    spec_items = get_spec_items()
+    if spec_items:
+        st.subheader("Позиции спецификации")
+        edited_df = st.data_editor(
+            _items_to_rows(spec_items),
+            num_rows="dynamic",
+            column_config={
+                "Наименование": st.column_config.TextColumn("Наименование"),
+                "Ед.": st.column_config.TextColumn("Ед.", width="small"),
+                "Кол-во": st.column_config.NumberColumn("Кол-во", min_value=0, step=1),
+                "Цена с НДС, руб.": st.column_config.NumberColumn(
+                    "Цена с НДС, руб.", min_value=0, format="%d"
+                ),
+                "Сумма с НДС, руб.": st.column_config.NumberColumn(
+                    "Сумма с НДС, руб.", disabled=True, format="%d"
+                ),
+            },
+            key="spec_items_editor",
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        if st.button("+ Добавить позицию"):
+            current_items = _rows_to_items(edited_df, spec_items)
+            current_items.append(make_custom_item())
+            set_spec_items(current_items)
+            if "spec_items_editor" in st.session_state:
+                del st.session_state["spec_items_editor"]
+            st.rerun()
+
+        _synced = _rows_to_items(edited_df, spec_items)
+        for _item in _synced:
+            _item["total"] = _item["quantity"] * _item["price_per_unit"]
+        set_spec_items(_synced)
+
+    else:
+        _render_field_group("Из коммерческого предложения", SPEC_FIELDS, "specification")
+
     st.divider()
 
 # ---------------------------------------------------------------------------
@@ -378,7 +468,15 @@ if not generated:
 
         try:
             fill_template(str(CONTRACT_TEMPLATE), data, str(contract_path))
-            fill_template(str(SPEC_TEMPLATE), data, str(spec_path))
+            items_for_docx = get_spec_items()
+            if items_for_docx:
+                if edited_df is not None and hasattr(edited_df, "to_dict"):
+                    items_for_docx = _rows_to_items(edited_df, items_for_docx)
+                    for _i in items_for_docx:
+                        _i["total"] = _i["quantity"] * _i["price_per_unit"]
+                fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path))
+            else:
+                fill_template(str(SPEC_TEMPLATE), data, str(spec_path))
 
             for label, path in [("Договор", contract_path), ("Спецификация", spec_path)]:
                 unfilled = get_unfilled_placeholders(str(path))
