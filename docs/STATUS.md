@@ -127,6 +127,35 @@
 
 ---
 
+## Миграция scope-значений (clauses_context)
+
+`build_clauses_context` в `src/contracts/clauses_context.py` преобразует старые значения из `from_kp.py` в DSL-значения clauses.yaml.
+
+### foundation_scope (через `_FOUNDATION_SCOPE_MAP`)
+| Значение из from_kp.py | DSL-значение clauses |
+|------------------------|----------------------|
+| `fundament_jb`         | `contractor_full`    |
+| `pandus_lite`          | `contractor_full`    |
+| `pandus_std`           | `contractor_full`    |
+| `contractor_full`      | `contractor_full`    |
+| `contractor_with_materials` | `contractor_with_materials` |
+| `customer_builds`      | `customer_builds`    |
+| `(рама item без foundation)` | `rama`          |
+| *(нет foundation/rama в items)* | `none`       |
+
+### installation_scope (inline-логика)
+| Значение из metadata.scope | DSL-значение |
+|----------------------------|--------------|
+| `fundament`                | `full`       |
+| `rama`                     | `full`       |
+| `full`                     | `full`       |
+| `shefmontazh`              | `shefmontazh`|
+| *(нет installation item)*  | `none`       |
+
+Причина: `from_kp.py` писал `scope = "fundament"` / `"rama"` для монтажа с фундаментом/рамой. В clauses DSL эти случаи — просто `full` (тип монтажа не меняется, меняется фундамент).
+
+---
+
 ## Технический долг
 - payment_percents legacy ключ — удалить после деплоя
 - Git-конфликт дом↔Codespaces — решить до работы из Codespaces
