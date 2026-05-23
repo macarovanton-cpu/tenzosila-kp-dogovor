@@ -40,6 +40,13 @@ def make_custom_item(
     }
 
 
+def recalculate_totals(items: list[dict]) -> list[dict]:
+    """Пересчитать total = quantity * price_per_unit для каждой позиции."""
+    for item in items:
+        item["total"] = item["quantity"] * item["price_per_unit"]
+    return items
+
+
 def _option_key_to_spec_id(key: str) -> str | None:
     """Вернуть canonical id позиции для ключа опции или None (→ custom)."""
     if key == "delivery_default":

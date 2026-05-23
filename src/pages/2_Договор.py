@@ -16,7 +16,7 @@ if str(_ROOT) not in sys.path:
 from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  # noqa: E402
 from src.contracts.filler import fill_spec_with_items, fill_template, get_unfilled_placeholders  # noqa: E402
 from src.contracts.from_kp import build_specification_from_kp_snapshot, build_specification_items  # noqa: E402
-from src.contracts.spec_items import make_custom_item  # noqa: E402
+from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
 from src.contracts.state import (  # noqa: E402
     clear_generated,
     collect_for_template,
@@ -379,9 +379,16 @@ if is_extracted():
             st.rerun()
 
         _synced = _rows_to_items(edited_df, spec_items)
-        for _item in _synced:
-            _item["total"] = _item["quantity"] * _item["price_per_unit"]
+        recalculate_totals(_synced)
+        _totals_changed = len(_synced) == len(spec_items) and any(
+            round(n["total"]) != round(o.get("total", 0))
+            for n, o in zip(_synced, spec_items)
+        )
         set_spec_items(_synced)
+        if _totals_changed:
+            if "spec_items_editor" in st.session_state:
+                del st.session_state["spec_items_editor"]
+            st.rerun()
 
     else:
         _render_field_group("Из коммерческого предложения", SPEC_FIELDS, "specification")

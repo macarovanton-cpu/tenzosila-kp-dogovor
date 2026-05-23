@@ -120,6 +120,20 @@ class TestBuildSpecificationItems:
         assert inst["total"] == inst["quantity"] * inst["price_per_unit"]
 
 
+class TestRecalculateTotals:
+    def test_price_change_recalculates_total(self):
+        """Изменение price_per_unit → total пересчитывается как quantity * price_per_unit."""
+        from src.contracts.spec_items import recalculate_totals
+
+        items = [
+            {"id": "weights", "name": "Весы", "unit": "компл",
+             "quantity": 2.0, "price_per_unit": 150_000.0, "total": 100_000.0,
+             "payment_group": None, "is_custom": False, "source": "preset", "metadata": {}},
+        ]
+        result = recalculate_totals(items)
+        assert result[0]["total"] == 300_000.0
+
+
 class TestCustomItemFlow:
     def test_add_custom_item_appears_in_items(self):
         """Симуляция нажатия '+ Добавить позицию': кастомная позиция появляется в state."""
