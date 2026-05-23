@@ -1,23 +1,22 @@
 # Tenzosila KP & Dogovor Configurator
 
 Внутренний инструмент для менеджеров Тензосилы: конфигуратор КП по автовесам ВЕСТА.
-Следующая фаза — генерация договоров.
+Текущая фаза — генерация договоров.
 
 ## Источник правды о прогрессе
 **docs/STATUS.md** — читай первым. Там текущая фаза, открытые вопросы, план.
 
 ## Стек
-Python 3.11+, Streamlit, docxtpl, pytest. Никаких БД и ORM — только JSON-справочники.
+Python 3.11+, Streamlit, docxtpl, pytest. Supabase (PostgreSQL) — snapshot КП в режиме A. JSON-справочники в `data/`.
 
 ## Структура
-```
-src/          # код (app.py + config/data_loader/state/filters/pricing/validation/spec_builder + ui/ + generators/)
-data/         # models.json, prices.json, options.json, payment_terms.json
-templates/    # DOCX-шаблоны
-tests/        # pytest
-docs/         # STATUS.md, decisions.md, backlog.md
-03_knowledge_base/  # референсы и описание типа (read-only)
-```
+src/                # код (app.py + config/data_loader/state/filters/pricing/validation/spec_builder + ui/ + generators/ + contracts/ + storage/)
+data/               # models.json, prices.json, options.json, payment_terms.json, clauses.yaml
+templates/          # DOCX-шаблоны (kp, contracts/)
+tests/              # pytest
+docs/               # STATUS.md, decisions.md, backlog.md, architecture/, archive/
+knowledge_base/     # референсы и описание типа (read-only)
+scripts/            # утилиты
 
 ## Команды
 ```bash
@@ -26,15 +25,20 @@ pytest tests/ -v
 ```
 
 ## Ключевые архитектурные решения
-- **Плоский session_state** с префиксными ключами (`opt_{key}_enabled`, `opt_{key}_price`). Вложенных dict нет, кроме `options`.
-- **3 класса цен** (поле `price_class` в prices.json):
-  - `A_retail_and_dealer` — slider [dealer_ru ↔ retail×1.4], default retail
-  - `B_retail_only` — slider [retail×0.6 ↔ retail×1.4], default retail
-  - `C_manual_range` — number_input [range_min ↔ range_max], default price_retail
-- **При смене модели** — сбросить все options, поставить model_price = retail новой модели.
-- **Derived** (model_id, spec_items, суммы) — считаем на рендере, не храним в state.
-- **Валидация** возвращает `(errors, warnings)`. errors блокируют кнопку.
-- **Дефолт пресета оплаты** — `split_by_items`.
+
+**Состояние КП.** Плоский `st.session_state` с префиксными ключами (`opt_{key}_enabled`, `opt_{key}_price`). Вложенных dict нет, кроме `options`.
+
+**Состояние договора.** Вложенная структура `st.session_state["contract"]` с ключами: `specification.items` (массив SpecItem), `flags` (winter_concrete и т.п.), `scope_overrides`, `card`, `extracted`.
+
+**Цены — 3 класса** (поле `price_class` в prices.json):
+- `A_retail_and_dealer` — slider [dealer_ru ↔ retail×1.4], default retail
+- `B_retail_only` — slider [retail×0.6 ↔ retail×1.4], default retail
+- `C_manual_range` — number_input [range_min ↔ range_max], default price_retail
+
+**Прочее:**
+- При смене модели — сбросить все options, поставить model_price = retail новой модели.
+- Derived (model_id, spec_items, суммы) — считаем на рендере, не храним в state.
+- Валидация возвращает `(errors, warnings)`. errors блокируют кнопку.
 
 ## Правила работы
 - JSON-справочники правлю в чате вручную. Не переписывай их.
@@ -46,6 +50,8 @@ pytest tests/ -v
 - Code **НЕ делает `git push`** — пуш только по явному запросу пользователя.
 - Code **НЕ создаёт новые ветки** — работа в `main`.
 - Перед коммитом: `pytest tests/` должен пройти. Если красное — не коммитить.
+- Для любой нетривиальной задачи (3+ шага, новый файл, рефакторинг) — сначала plan mode. Если в процессе план поплыл — STOP, переплан, потом продолжаем.
+- Прежде чем начать работу — назови чек-лист проверки. Какие тесты, какие команды, какой ручной smoke в Streamlit. Чек-лист — часть плана, не после.
 
 ## Принципы разработки (Karpathy)
 
@@ -53,12 +59,13 @@ pytest tests/ -v
 2. **Simplicity First** — минимум кода для решения задачи. Никаких фич «на будущее», абстракций для одного использования, обработки невозможных ошибок. Если 200 строк можно сделать за 50 — перепиши.
 3. **Surgical Changes** — трогай только то, что относится к задаче. Не «улучшай» соседний код, не удаляй чужой dead code. Стиль — как в файле, даже если сделал бы иначе.
 4. **Goal-Driven Execution** — формулируй критерии успеха до начала работы. «Добавить валидацию» → «написать тесты на невалидные входы, потом пройти их». Для многошаговых задач — план с проверками на каждом шаге.
+5. **Verification First** — прежде чем начать работу, сформулируй чек-лист проверки результата. Что должно произойти, чтобы считать задачу выполненной? Какие команды покажут, что работает? Какой ручной тест в браузере? Без чек-листа задача не закрывается. Никаких «должно работать» — только «вот команда, вот её вывод».
 
 ## Не делать без согласования
-Битрикс-интеграцию, БД, ORM, сложные валидации ФИО/email (MVP — хватает непустоты), переписывание JSON в data/, правки в 03_knowledge_base/.
+Битрикс-интеграцию, ORM, сложные валидации ФИО/email (MVP — хватает непустоты), переписывание JSON в data/, правки в knowledge_base/.
 
 ## Домен
-ВЕСТА — автовесы Тензосилы. Линейки в MVP: С, СЛ, Ф, ФЛ, П. Обозначение: ВЕСТА-[линейка]-[max_т]-[длина_м]-[Ц]. Терминология — `03_knowledge_base/spravochnik_vesta_fixed.md`.
+ВЕСТА — автовесы Тензосилы. Линейки в MVP: С, СЛ, Ф, ФЛ, П. Обозначение: ВЕСТА-[линейка]-[max_т]-[длина_м]-[Ц]. Терминология — `knowledge_base/spravochnik_vesta_fixed.md`.
 
 ## Skills
 
@@ -67,4 +74,18 @@ pytest tests/ -v
 - `~/.claude/skills/streamlit/developing-with-streamlit/` — паттерны разработки
 - `~/.claude/skills/streamlit/template/` — шаблоны компонентов
 
-При правке Streamlit-компонентов в `src/ui/` — сначала свериться с актуальными API из этих материалов, не работать "по памяти".
+При правке Streamlit-компонентов в `src/ui/` — сначала свериться с актуальными API из этих материалов, не работать «по памяти».
+
+## Накопление ошибок и наработок
+
+После каждой моей правки кода Code, который оказался неверным или потребовал исправления, я могу попросить «обнови CLAUDE.md, чтобы больше так не делать». В этот раздел пишутся короткие правила-исключения из реальных ошибок.
+
+## Прочее:
+- При смене модели — сбросить все options, поставить model_price = retail новой модели.
+- Derived (model_id, spec_items, суммы) — считаем на рендере, не храним в state.
+- Валидация возвращает `(errors, warnings)`. errors блокируют кнопку.
+- Дефолт пресета оплаты — `split_by_items`.
+
+### Известные ошибки и обходы
+
+(пока пусто — будет наполняться по ходу работы)
