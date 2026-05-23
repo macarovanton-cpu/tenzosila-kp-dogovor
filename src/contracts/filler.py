@@ -6,6 +6,7 @@ filler.py — подстановка данных в Word-шаблон с пле
 import copy
 import re
 from docx import Document
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 
@@ -196,6 +197,15 @@ def _set_cell_text(tc_el, text: str) -> None:
     t_els = tc_el.findall('.//' + qn('w:t'))
     if t_els:
         t_els[0].text = text
+    else:
+        p_els = tc_el.findall('.//' + qn('w:p'))
+        if p_els:
+            r = OxmlElement('w:r')
+            t = OxmlElement('w:t')
+            t.text = text
+            t.set(qn('xml:space'), 'preserve')
+            r.append(t)
+            p_els[0].append(r)
 
 
 def fill_spec_with_items(

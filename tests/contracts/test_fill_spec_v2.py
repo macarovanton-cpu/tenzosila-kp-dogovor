@@ -96,6 +96,48 @@ class TestFillSpecV2Minimal:
         assert len(table.rows) == 4
 
 
+class TestFillSpecV2CellContent:
+    """Проверка содержимого ячеек таблицы позиций (Item 2 fix)."""
+
+    def test_items_cell_names(self, tmp_path):
+        items = [_item("weights"), _item("delivery")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_names.docx")
+
+        fill_spec_v2(SPEC_V2_PATH, MOCK_DATA, items, deal, output)
+
+        doc = Document(output)
+        table = doc.tables[0]
+        assert table.rows[1].cells[0].text == "Позиция weights"
+        assert table.rows[2].cells[0].text == "Позиция delivery"
+
+    def test_items_cell_amounts(self, tmp_path):
+        items = [_item("weights"), _item("delivery")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_amounts.docx")
+
+        fill_spec_v2(SPEC_V2_PATH, MOCK_DATA, items, deal, output)
+
+        doc = Document(output)
+        table = doc.tables[0]
+        assert "100 000" in table.rows[1].cells[1].text
+        assert "100 000" in table.rows[2].cells[1].text
+
+    def test_customer_side_shows_zakazchik(self, tmp_path):
+        items = [
+            _item("weights"),
+            _item("delivery", {"customer_side": True}),
+        ]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_cust.docx")
+
+        fill_spec_v2(SPEC_V2_PATH, MOCK_DATA, items, deal, output)
+
+        doc = Document(output)
+        table = doc.tables[0]
+        assert "ЗАКАЗЧИК" in table.rows[2].cells[1].text
+
+
 class TestFillSpecV2Medium:
     """Средний кейс: монтаж → секции 4, 5, 7 (7 пунктов)."""
 
