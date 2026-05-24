@@ -312,6 +312,76 @@ class TestFoundationCheck:
         assert "APPENDIX_FOUNDATION_CHECK" not in all_text
 
 
+class TestTTXSection:
+    """ТТХ плейсхолдеры подставлены в таблицу."""
+
+    def test_tth_values_in_table(self, tmp_path):
+        data = dict(MOCK_DATA, **{
+            "ТТХ_НАГРУЗКА_НА_ОСЬ": "14",
+            "ТТХ_РАССТОЯНИЕ_ДО_ТЕРМИНАЛА": "не более 50 м",
+            "ТТХ_ДИСКРЕТНОСТЬ_БЛОК": "10\n20",
+            "ТТХ_ГАБАРИТЫ": "18×3",
+            "ТТХ_ТЕМПЕРАТУРА": "От -30 до +40",
+        })
+        items = [_item("weights")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_tth.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        tth_table = doc.tables[1]
+        assert tth_table.rows[2].cells[2].text == "14"
+        assert "50 м" in tth_table.rows[3].cells[2].text
+        assert "18×3" in tth_table.rows[5].cells[2].text
+        assert "-30" in tth_table.rows[6].cells[2].text
+
+    def test_no_hardcoded_11(self, tmp_path):
+        data = dict(MOCK_DATA, **{
+            "ТТХ_НАГРУЗКА_НА_ОСЬ": "14",
+            "ТТХ_РАССТОЯНИЕ_ДО_ТЕРМИНАЛА": "не более 50 м",
+            "ТТХ_ДИСКРЕТНОСТЬ_БЛОК": "10\n20",
+            "ТТХ_ГАБАРИТЫ": "18×3",
+            "ТТХ_ТЕМПЕРАТУРА": "От -30 до +40",
+        })
+        items = [_item("weights")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_tth2.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        # Старый хардкод "11" для нагрузки на ось не должен остаться
+        assert doc.tables[1].rows[2].cells[2].text != "11"
+
+
+class TestYearPlaceholder:
+    """Год {{ТЕКУЩИЙ_ГОД}} заменяется."""
+
+    def test_no_hardcoded_2026(self, tmp_path):
+        data = dict(MOCK_DATA, **{"ТЕКУЩИЙ_ГОД": "2025"})
+        items = [_item("weights")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_year.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        # Table 3 (signatures) should not have hardcoded 2026
+        sig_text = doc.tables[3].rows[0].cells[0].text
+        assert "2026" not in sig_text
+        assert "2025" in sig_text
+
+
+class TestAppendixNumber:
+    """Приложение №{{ПРИЛОЖЕНИЕ_НОМЕР}} заполнен."""
+
+    def test_appendix_filled(self, tmp_path):
+        data = dict(MOCK_DATA, ПРИЛОЖЕНИЕ_НОМЕР="1")
+        items = [_item("weights")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_app.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "Приложение №1" in all_text
+        assert "ПРИЛОЖЕНИЕ_НОМЕР" not in all_text
+
+
 class TestFillSpecV2Max:
     """Максимальный кейс: фундамент+монтаж+ОРИОН → все 4 секции, 14 пунктов."""
 

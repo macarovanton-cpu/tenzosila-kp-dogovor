@@ -241,6 +241,109 @@ def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]
     return rows
 
 
+def build_spec_v2_data(
+    kp_row: dict[str, Any],
+    prices: dict[str, Any],
+    models_json: dict[str, Any],
+    payment_terms: dict[str, Any],
+    equipment_specs: dict[str, Any],
+) -> tuple[dict, list[dict], dict]:
+    """Собрать (data, items, deal) для fill_spec_v2 из снапшота КП.
+
+    data — плейсхолдеры + _payment_lines, _terms_lines, _kit_items.
+    items — SpecItem list для таблицы позиций.
+    deal — контекст для clauses.
+    """
+    from datetime import date
+
+    from src.contracts.kit_renderer import build_kit_items
+    from src.contracts.terms_renderer import render_terms_section
+    from src.contracts.tth_context import build_tth_data
+    from src.contracts.utils import number_to_words
+    from src.data_loader import get_line_defaults, get_model_by_id
+    from src.generators.payment_renderer import render_payment_block
+    from src.spec_builder import build_spec_items
+
+    data_json = kp_row.get("data") or {}
+    model_meta = data_json.get("model") or {}
+    line = model_meta.get("line", "")
+    max_t = model_meta.get("max", "")
+    length = model_meta.get("length", "")
+    model_short = f"ВЕСТА-{line}-{max_t}-{length}"
+
+    # --- SpecItems ---
+    items = build_specification_items(kp_row)
+
+    # --- Deal ---
+    deal: dict[str, Any] = {
+        "items": items,
+        "scope_overrides": data_json.get("spec_overrides") or {},
+        "flags": data_json.get("flags") or {},
+        "delivery_address": data_json.get("delivery_address", ""),
+    }
+
+    # --- Lookup model / sensor / indicator ---
+    state = _reconstruct_state(kp_row)
+    model_id = state.get("model_id", "")
+    model_dict = get_model_by_id(models_json, model_id) or {}
+    line_defaults = get_line_defaults(models_json, line)
+
+    sensor_model_name = line_defaults.get("default_sensor", "Zemic DHM9B-30t")
+    sensor_dict = _find_sensor(equipment_specs, sensor_model_name)
+    indicator_name = line_defaults.get("default_indicator", "ТИТАН 3ЦС")
+    indicator_dict = _find_indicator(equipment_specs, indicator_name)
+
+    # --- Payment ---
+    raw_spec_items = build_spec_items(state, prices, models_json)
+    payment_text = render_payment_block(state, raw_spec_items, payment_terms)
+    payment_lines = [ln.strip() for ln in payment_text.split("\n") if ln.strip()]
+
+    # --- Terms ---
+    terms_lines = render_terms_section(deal, raw_spec_items)
+
+    # --- Kit ---
+    cable_len = line_defaults.get("default_cable_length_m", 20)
+    kit_items = build_kit_items(
+        model_dict, line_defaults, sensor_dict, indicator_dict, cable_len,
+    )
+
+    # --- TTH ---
+    tth = build_tth_data(model_dict, sensor_dict)
+
+    # --- Data dict ---
+    data: dict[str, Any] = {
+        "СПЕЦ_НДС": "22",
+        "СПЕЦ_МОДЕЛЬ_КРАТКОЕ": model_short,
+        "СПЕЦ_МАКС_НАГРУЗКА": str(max_t),
+        "ПРИЛОЖЕНИЕ_НОМЕР": "1",
+        "ТЕКУЩИЙ_ГОД": str(date.today().year),
+        "_payment_lines": payment_lines,
+        "_terms_lines": terms_lines,
+        "_kit_items": kit_items,
+    }
+    data.update(tth)
+
+    return data, items, deal
+
+
+def _find_sensor(equipment_specs: dict, sensor_label: str) -> dict:
+    """Найти запись сенсора по метке из line_defaults (e.g. 'Zemic DHM9B-30t')."""
+    parts = sensor_label.split()
+    model_part = parts[1].split("-")[0] if len(parts) > 1 else sensor_label
+    for s in equipment_specs.get("sensors", []):
+        if s.get("model", "") == model_part:
+            return s
+    return {"temperature_min_c": -30, "temperature_max_c": 40, "type": "digital"}
+
+
+def _find_indicator(equipment_specs: dict, indicator_name: str) -> dict:
+    """Найти запись терминала по model name (e.g. 'ТИТАН 3ЦС')."""
+    for t in equipment_specs.get("terminals", []):
+        if t.get("model", "") == indicator_name:
+            return t
+    return {"model": indicator_name, "compatible_sensors": "digital"}
+
+
 _ITEM_ORDER: dict[str, int] = {
     "weights": 0,
     "foundation": 1,
