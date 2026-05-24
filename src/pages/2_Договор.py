@@ -14,6 +14,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  # noqa: E402
+from src.contracts.clauses_renderer import build_contract_clauses  # noqa: E402
 from src.contracts.filler import fill_spec_with_items, fill_template, get_unfilled_placeholders  # noqa: E402
 from src.contracts.from_kp import build_specification_from_kp_snapshot, build_specification_items  # noqa: E402
 from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
@@ -113,6 +114,45 @@ WIDE_FIELDS: set[str] = {
     "СПЕЦ_ОПЛАТА_П5",
     "СПЕЦ_ОПЛАТА_П6",
 }
+
+_SECTION_LABELS: dict[str, str] = {
+    "obligations_supplier": "4. Обязательства Подрядчика",
+    "obligations_customer": "5. Обязательства Заказчика",
+    "special_conditions": "6. Особые условия",
+    "final": "7. Заключительные положения",
+}
+
+_FOUND_OPTS = [
+    "Авто (из позиций)", "Заказчик строит", "Подрядчик строит",
+    "Подрядчик с материалами Заказчика", "Рама", "Без фундамента",
+]
+_FOUND_MAP: dict[str, str | None] = {
+    "Авто (из позиций)": None, "Заказчик строит": "customer_builds",
+    "Подрядчик строит": "contractor_full",
+    "Подрядчик с материалами Заказчика": "contractor_with_materials",
+    "Рама": "rama", "Без фундамента": "none",
+}
+_FOUND_RMAP = {v: k for k, v in _FOUND_MAP.items()}
+
+_INST_OPTS = ["Авто (из позиций)", "Полный монтаж", "Шеф-монтаж", "Без монтажа"]
+_INST_MAP: dict[str, str | None] = {
+    "Авто (из позиций)": None, "Полный монтаж": "full",
+    "Шеф-монтаж": "shefmontazh", "Без монтажа": "none",
+}
+_INST_RMAP = {v: k for k, v in _INST_MAP.items()}
+
+_VERIF_OPTS = ["Авто (из позиций)", "Подрядчик", "Заказчик", "Без поверки"]
+_VERIF_MAP: dict[str, str | None] = {
+    "Авто (из позиций)": None, "Подрядчик": "supplier",
+    "Заказчик": "customer", "Без поверки": "none",
+}
+_VERIF_RMAP = {v: k for k, v in _VERIF_MAP.items()}
+
+_ORION_OPTS = ["Авто (из позиций)", "Заказчик", "Подрядчик"]
+_ORION_MAP: dict[str, str | None] = {
+    "Авто (из позиций)": None, "Заказчик": "by_customer", "Подрядчик": "by_contractor",
+}
+_ORION_RMAP = {v: k for k, v in _ORION_MAP.items()}
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -346,6 +386,65 @@ if is_extracted():
         on_change=sync_field,
         args=("requisites", "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"),
     )
+
+    st.divider()
+
+    # ------------------------------------------------------------------
+    # Секция 2.5 — Особые условия (override-флаги + clauses preview)
+    # ------------------------------------------------------------------
+    _cs_flags = st.session_state["contract"]["flags"]
+    _cs_ovr = st.session_state["contract"]["scope_overrides"]
+
+    st.subheader("Особые условия")
+    st.session_state.setdefault("w_winter_concrete", _cs_flags.get("winter_concrete", False))
+    _winter_val = st.checkbox(
+        "Зимний период (бетонные работы при +5 °C и ниже)",
+        key="w_winter_concrete",
+    )
+    _cs_flags["winter_concrete"] = _winter_val
+
+    with st.expander("Override-флаги (для нестандартных случаев)", expanded=False):
+        st.caption(
+            "По умолчанию scope вычисляется из позиций спецификации. "
+            "Здесь можно вручную переопределить."
+        )
+        _cur_f = _cs_ovr.get("foundation_scope")
+        st.session_state.setdefault("w_foundation_scope", _FOUND_RMAP.get(_cur_f, "Авто (из позиций)"))
+        _sel_f = st.selectbox("Тип фундамента", _FOUND_OPTS, key="w_foundation_scope")
+        _cs_ovr["foundation_scope"] = _FOUND_MAP[_sel_f]
+
+        _cur_i = _cs_ovr.get("installation_scope")
+        st.session_state.setdefault("w_installation_scope", _INST_RMAP.get(_cur_i, "Авто (из позиций)"))
+        _sel_i = st.selectbox("Тип монтажа", _INST_OPTS, key="w_installation_scope")
+        _cs_ovr["installation_scope"] = _INST_MAP[_sel_i]
+
+        _cur_v = _cs_ovr.get("verification_scope")
+        st.session_state.setdefault("w_verification_scope", _VERIF_RMAP.get(_cur_v, "Авто (из позиций)"))
+        _sel_v = st.selectbox("Поверку организует", _VERIF_OPTS, key="w_verification_scope")
+        _cs_ovr["verification_scope"] = _VERIF_MAP[_sel_v]
+
+        _items_check = get_spec_items()
+        _has_orion = any(item.get("id") == "orion" for item in _items_check)
+        if _has_orion:
+            _cur_o = _cs_ovr.get("orion_poles_scope")
+            st.session_state.setdefault("w_orion_poles_scope", _ORION_RMAP.get(_cur_o, "Авто (из позиций)"))
+            _sel_o = st.selectbox("Опоры ПАК ОРИОН", _ORION_OPTS, key="w_orion_poles_scope")
+            _cs_ovr["orion_poles_scope"] = _ORION_MAP[_sel_o]
+
+    with st.expander("Предпросмотр пунктов договора", expanded=False):
+        _preview_deal = {
+            "items": get_spec_items(),
+            "scope_overrides": _cs_ovr,
+            "flags": _cs_flags,
+            "delivery_address": st.session_state["contract"].get("manual", {}).get("object_address", ""),
+        }
+        _clauses_preview = build_contract_clauses(_preview_deal)
+        _total_count = sum(len(v) for v in _clauses_preview.values())
+        for _sec_id, _sec_clauses in _clauses_preview.items():
+            st.markdown(f"**{_SECTION_LABELS.get(_sec_id, _sec_id)}**")
+            for _clause in _sec_clauses:
+                st.text(f"  {_clause.auto_number}. {_clause.text[:60]}...")
+        st.caption(f"Всего пунктов: {_total_count}")
 
     st.divider()
     spec_items = get_spec_items()
