@@ -18,6 +18,7 @@ from src.contracts.clauses_renderer import build_contract_clauses  # noqa: E402
 from src.contracts.filler import fill_spec_with_items, fill_template, get_unfilled_placeholders  # noqa: E402
 from src.contracts.from_kp import build_specification_from_kp_snapshot, build_specification_items  # noqa: E402
 from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
+from src.contracts.spec_v2_filler import fill_spec_v2  # noqa: E402
 from src.contracts.state import (  # noqa: E402
     clear_generated,
     collect_for_template,
@@ -38,6 +39,7 @@ from src.utils.format import sanitize_filename  # noqa: E402
 
 CONTRACT_TEMPLATE = Path("templates/contracts/contract.docx")
 SPEC_TEMPLATE = Path("templates/contracts/spec_foundation_install.docx")
+SPEC_V2_TEMPLATE = Path("templates/contracts/spec_v2.docx")
 OUTPUT_DIR = Path("output/contracts")
 
 st.set_page_config(page_title="Договор", page_icon="📄", layout="wide")
@@ -580,7 +582,21 @@ if not generated:
                     items_for_docx = _rows_to_items(edited_df, items_for_docx)
                     for _i in items_for_docx:
                         _i["total"] = _i["quantity"] * _i["price_per_unit"]
-                fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path))
+                _gen_cs = st.session_state["contract"]
+                _gen_deal = {
+                    "items": items_for_docx,
+                    "scope_overrides": _gen_cs.get("scope_overrides", {}),
+                    "flags": _gen_cs.get("flags", {}),
+                    "delivery_address": _gen_cs.get("manual", {}).get("object_address", ""),
+                }
+                try:
+                    fill_spec_v2(str(SPEC_V2_TEMPLATE), data, items_for_docx, _gen_deal, str(spec_path))
+                except Exception as exc_v2:
+                    st.warning(
+                        f"Не удалось сгенерировать v2-спецификацию: {exc_v2}. "
+                        "Использую старый шаблон."
+                    )
+                    fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path))
             else:
                 fill_template(str(SPEC_TEMPLATE), data, str(spec_path))
 
