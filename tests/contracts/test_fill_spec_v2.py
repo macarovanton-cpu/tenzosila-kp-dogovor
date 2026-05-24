@@ -196,6 +196,122 @@ class TestFillSpecV2Medium:
         assert "г. Кемерово" in all_text
 
 
+class TestPaymentSection:
+    """Маркер {{PAYMENT_SECTION}} → строки оплаты."""
+
+    def test_payment_lines_in_output(self, tmp_path):
+        data = dict(MOCK_DATA, _payment_lines=[
+            "2.1 Предоплата 30% в течение 5 дней",
+            "2.2 Оплата по отгрузке 70%",
+        ])
+        items = [_item("weights")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_pay.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "Предоплата 30%" in all_text
+        assert "Оплата по отгрузке" in all_text
+
+    def test_payment_marker_removed(self, tmp_path):
+        data = dict(MOCK_DATA, _payment_lines=["Оплата 100%"])
+        items = [_item("weights")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_pay2.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "PAYMENT_SECTION" not in all_text
+
+
+class TestTermsSection:
+    """Маркер {{TERMS_SECTION}} → строки сроков."""
+
+    def test_terms_lines_in_output(self, tmp_path):
+        data = dict(MOCK_DATA, _terms_lines=[
+            "- поставка Весов: в течение 20 рабочих дней",
+            "- монтаж: в течение 3 рабочих дней",
+        ])
+        items = [_item("weights")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_terms.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "20 рабочих дней" in all_text
+        assert "TERMS_SECTION" not in all_text
+
+
+class TestKitSection:
+    """Таблица комплекта поставки — клонирование строк."""
+
+    def test_kit_rows(self, tmp_path):
+        kit = [
+            {"name": "Платформа", "qty": "1"},
+            {"name": "Датчик", "qty": "8"},
+            {"name": "Терминал", "qty": "1"},
+        ]
+        data = dict(MOCK_DATA, _kit_items=kit)
+        items = [_item("weights")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_kit.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        kit_table = doc.tables[2]
+        # header + 3 kit items = 4
+        assert len(kit_table.rows) == 4
+
+    def test_kit_cell_text(self, tmp_path):
+        kit = [{"name": "Платформа сплошного типа", "qty": "1"}]
+        data = dict(MOCK_DATA, _kit_items=kit)
+        items = [_item("weights")]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_kit2.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        kit_table = doc.tables[2]
+        assert "Платформа" in kit_table.rows[1].cells[0].text
+
+
+class TestFoundationCheck:
+    """Контрольный лист — при customer_builds."""
+
+    def test_check_present_when_customer_builds(self, tmp_path):
+        data = dict(MOCK_DATA)
+        items = [_item("weights")]
+        deal = {
+            "items": items,
+            "scope_overrides": {"foundation_scope": "customer_builds"},
+            "flags": {},
+            "delivery_address": "г. Тест",
+        }
+        output = str(tmp_path / "spec_v2_check.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "Контрольный лист" in all_text
+        assert "APPENDIX_FOUNDATION_CHECK" not in all_text
+
+    def test_check_absent_when_contractor(self, tmp_path):
+        data = dict(MOCK_DATA)
+        items = [
+            _item("weights"),
+            _item("foundation", {"scope": "fundament_jb"}),
+        ]
+        deal = {
+            "items": items,
+            "scope_overrides": {},
+            "flags": {},
+            "delivery_address": "г. Тест",
+        }
+        output = str(tmp_path / "spec_v2_nocheck.docx")
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+        doc = Document(output)
+        all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "Контрольный лист" not in all_text
+        assert "APPENDIX_FOUNDATION_CHECK" not in all_text
+
+
 class TestFillSpecV2Max:
     """Максимальный кейс: фундамент+монтаж+ОРИОН → все 4 секции, 14 пунктов."""
 
