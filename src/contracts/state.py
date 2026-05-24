@@ -21,6 +21,13 @@ _CONTRACT_DEFAULTS: dict[str, Any] = {
     },
     "ai_raw": None,
     "generated": None,
+    "flags": {"winter_concrete": False},
+    "scope_overrides": {
+        "foundation_scope": None,
+        "installation_scope": None,
+        "verification_scope": None,
+        "orion_poles_scope": None,
+    },
 }
 
 
