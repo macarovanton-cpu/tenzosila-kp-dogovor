@@ -6,9 +6,9 @@
 
 ## Где мы сейчас
 
-**Архитектура v2 договоров, Шаг 7 — внедрение clauses library. Задача 5 в процессе (spec_v2.docx).**
+**v1.0 — clauses library + override UI. Задачи 6, 7, 8 выполнены.**
 
-Последний тег: **v0.9** (массив позиций спецификации, data_editor с пересчётом total).
+Последний тег: **v1.0** (clauses library, override UI, spec_v2 генерация).
 
 ---
 
@@ -45,7 +45,13 @@
 - strictyaml добавлен в requirements.txt
 - В data/clauses.yaml добавлен section_number: 4/5/6/7
 
-**Шаг 7 архитектуры v2 — задача 5 (В ПРОЦЕССЕ):**
+**Шаг 7 архитектуры v2 — задачи 6, 7, 8 (закрыто, тег v1.0):**
+- `src/contracts/state.py` — flags + scope_overrides в `_CONTRACT_DEFAULTS`
+- UI "Особые условия": checkbox зимний период, expander override-флаги (4 selectbox), expander предпросмотр пунктов
+- `src/pages/2_Договор.py` — генерация спецификации переключена на fill_spec_v2 + fallback
+- `tests/contracts/test_page_dogovor_overrides.py` — 5 тестов (winter_concrete, foundation_scope, verification_scope overrides)
+
+**Шаг 7 архитектуры v2 — задача 5 (закрыто):**
 - Создан `templates/contracts/spec_v2.docx` — шаблон с маркерами {{CLAUSE_SECTION_*}}
 - Создан `src/contracts/spec_v2_filler.py` — fill_spec_v2()
 - Создан `scripts/create_spec_v2_template.py`
@@ -55,131 +61,7 @@
 
 ---
 
-## Открытая работа: план Code сохранён
-
-**Файл:** `docs/spec-v2-docx-curious-kite.md` (план Code на 7 атомарных коммитов).
-
-**Что ждёт выполнения:**
-
-| # | Коммит | Файлы |
-|---|---|---|
-| 1 | `fix(contracts): _set_cell_text — создание w:t + тесты контента` | filler.py, test_fill_spec_v2.py |
-| 2 | `refactor(template): патч spec_v2.docx — маркеры, кавычки, год` | scripts/patch_spec_v2_template.py |
-| 3 | `feat(contracts): terms_renderer — динамические сроки` | terms_renderer.py + тесты |
-| 4 | `feat(contracts): tth_context — ТТХ плейсхолдеры` | tth_context.py + тесты |
-| 5 | `feat(contracts): kit_renderer — комплект из модели` | kit_renderer.py + тесты |
-| 6 | `feat(contracts): spec_v2_filler payment/terms/kit/appendix` | spec_v2_filler.py |
-| 7 | `feat(contracts): build_spec_v2_data + integration + 3 DOCX` | from_kp.py, integration tests |
-
-**Решения зафиксированы в плане:**
-- `_set_cell_text` фикс: при отсутствии w:t создавать через OxmlElement
-- ТТХ_РАССТОЯНИЕ_ДО_ТЕРМИНАЛА — константа «не более 50 м»
-- ТТХ_ТЕМПЕРАТУРА — формула `_format_temp` со знаком
-- Нумерация приложений v1.0 — фиксированная: №1=Строительное задание, №2=Контрольный лист; ОРИОН, материалы в backlog v1.1
-- Контент контрольного листа из `docs/contract_templates_v1/Автовесы_монтаж_gemini.md:85-101`
-- 3 примера DOCX для верификации: ВЕСТА-СЛ-40-18 / ВЕСТА-С-80-18 / ВЕСТА-С-100-24
-
-**После коммита 1 — обязательный полный `pytest tests/ -v` (320+ тестов), не только test_fill_spec_v2.**
-
-**После коммита 7 — стоп, ручная проверка DOCX в Word, потом задача 6.**
-
----
-
-## Следующие задачи (после задачи 5)
-
-### Задача 6, 7, 8 архитектуры v2 — промт для Code (модель: sonnet, после ack задачи 5)
-Задачи 6, 7, 8. Модель: sonnet. Subagent-Driven.
-Задача 5 одобрена. spec_v2.docx + fill_spec_v2 работают.
-═══════════════════════════════════════════════════════════════
-Задача 6 — UI override-флаги (src/pages/2_Договор.py)
-═══════════════════════════════════════════════════════════════
-В странице договора, после блока загрузки КП, перед таблицей items:
-st.subheader("Особые условия")
-
-st.checkbox "Зимний период (бетонные работы при +5 °C и ниже)"
-→ session_state["contract"]["flags"]["winter_concrete"] (default False)
-
-with st.expander("Override-флаги (для нестандартных случаев)", expanded=False):
-st.caption("По умолчанию scope вычисляется из позиций спецификации.
-Здесь можно вручную переопределить.")
-
-st.selectbox "Тип фундамента"
-options: ["Авто (из позиций)", "Заказчик строит", "Подрядчик строит",
-"Подрядчик с материалами Заказчика", "Рама", "Без фундамента"]
-маппинг на: None | "customer_builds" | "contractor_full"
-| "contractor_with_materials" | "rama" | "none"
-→ scope_overrides["foundation_scope"]
-st.selectbox "Тип монтажа"
-options: ["Авто (из позиций)", "Полный монтаж", "Шеф-монтаж", "Без монтажа"]
-маппинг: None | "full" | "shefmontazh" | "none"
-→ scope_overrides["installation_scope"]
-st.selectbox "Поверку организует"
-options: ["Авто (из позиций)", "Подрядчик", "Заказчик", "Без поверки"]
-маппинг: None | "supplier" | "customer" | "none"
-→ scope_overrides["verification_scope"]
-st.selectbox "Опоры ПАК ОРИОН"
-(показывать только если has_orion=True по контексту)
-options: ["Авто (из позиций)", "Заказчик", "Подрядчик"]
-маппинг: None | "by_customer" | "by_contractor"
-→ scope_overrides["orion_poles_scope"]
-
-ПРЕДПРОСМОТР CLAUSES:
-with st.expander("Предпросмотр пунктов договора", expanded=False):
-deal = собрать из текущего session_state
-clauses_by_section = build_contract_clauses(deal)
-для каждой секции:
-st.markdown(f"{section.title} (раздел {section.section_number})")
-для каждого clause в секции:
-st.text(f"  {clause.auto_number}. {clause.text[:60]}...")
-st.caption(f"Всего пунктов: {total_count}")
-ТЕСТЫ:
-
-tests/contracts/test_page_dogovor_overrides.py:
-
-winter_concrete=True → preview содержит "winter_concrete_surcharge"
-foundation_scope override="rama" → preview содержит "flat_area_for_rama"
-verification_scope override="customer" → preview содержит "customer_organizes_verification"
-
-
-
-═══════════════════════════════════════════════════════════════
-Задача 7 — переключение генерации на v2 + fallback
-═══════════════════════════════════════════════════════════════
-Кнопка "Скачать спецификацию" в src/pages/2_Договор.py:
-try:
-output = fill_spec_v2(spec_v2_template_path, data, items, deal, output_path)
-except Exception as e:
-st.warning(f"Не удалось сгенерировать v2-спецификацию: {e}. Использую старый шаблон.")
-output = fill_template(старый путь...)
-Кнопка "Скачать договор" — БЕЗ ИЗМЕНЕНИЙ.
-Старый spec_foundation_install.docx остаётся в репо как fallback.
-Не удалять.
-═══════════════════════════════════════════════════════════════
-Задача 8 — финальная верификация
-═══════════════════════════════════════════════════════════════
-
-Полный pytest -v зелёный (включая новые тесты задач 6 и 7)
-Streamlit smoke:
-
-страница "Договор" открывается
-чекбокс зимний период работает
-expander override-флаги открывается, selectbox-ы работают
-preview clauses обновляется реактивно
-кнопка "Скачать спецификацию" даёт корректный DOCX
-
-
-docs/STATUS.md → Шаг 7 ✅, v1.0 готов, обновить раздел "Текущее состояние"
-docs/architecture/contracts_v2.md → пометить план миграции как реализованный
-git tag v1.0
-финальный коммит chore(release): v1.0 — clauses library + override UI
-
-ОБЩИЕ ТРЕБОВАНИЯ:
-
-Subagent-Driven: после каждой задачи pytest + отчёт + ack.
-НЕ трогать payment_renderer, term_days, snapshot_builder, supabase_client.
-НЕ удалять старый шаблон spec_foundation_install.docx.
-
-Покажи план до правок.
+## Следующие задачи (v1.1+)
 
 ---
 
@@ -216,4 +98,4 @@ Subagent-Driven: после каждой задачи pytest + отчёт + ack.
 - `v0.7` — Supabase-интеграция, двухрежимный UI
 - `v0.8` — закрытие багов после ручной проверки КП→договор (Промты A, B, C)
 - `v0.9` — массив позиций спецификации + кастомные позиции + data_editor с пересчётом total
-- `v1.0` (план) — clauses library, override UI, единый spec_v2.docx
+- `v1.0` — clauses library, override UI, spec_v2 генерация
