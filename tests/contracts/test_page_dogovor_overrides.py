@@ -97,3 +97,28 @@ class TestVerificationScopeOverride:
         }
         result = build_contract_clauses(deal)
         assert "supplier_prepares_docs" in _clause_ids(result)
+
+
+class TestInstallationScopeOverride:
+    def test_installation_scope_none_value_treated_as_auto(self):
+        """scope_overrides с None значениями (defaults) не влияют на clauses."""
+        from src.contracts.clauses_renderer import build_contract_clauses
+
+        # Simulate state.py defaults: all scope_overrides keys present but None
+        deal = {
+            "items": [],
+            "scope_overrides": {
+                "foundation_scope": None,
+                "installation_scope": None,
+                "verification_scope": None,
+                "orion_poles_scope": None,
+            },
+            "flags": {"winter_concrete": False},
+            "delivery_address": "",
+        }
+        result = build_contract_clauses(deal)
+        all_ids = _clause_ids(result)
+        # Без items и без реальных overrides — только final clauses
+        assert "customer_unable_to_accept_team_delays_work" not in all_ids
+        assert "supplier_prepares_docs" not in all_ids
+        assert "customer_provides_scales_near_install_site" not in all_ids

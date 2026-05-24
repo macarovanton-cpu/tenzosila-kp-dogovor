@@ -32,7 +32,7 @@ def build_clauses_context(deal: dict) -> dict:
         foundation_scope = _FOUNDATION_SCOPE_MAP.get(raw, "contractor_full")
     elif "rama" in items_by_id:
         foundation_scope = "rama"
-    elif "foundation_scope" in overrides:
+    elif overrides.get("foundation_scope") is not None:
         foundation_scope = overrides["foundation_scope"]
     else:
         foundation_scope = "none"
@@ -46,7 +46,7 @@ def build_clauses_context(deal: dict) -> dict:
             installation_scope = raw
         else:
             installation_scope = "full"
-    elif "installation_scope" in overrides:
+    elif overrides.get("installation_scope") is not None:
         installation_scope = overrides["installation_scope"]
     else:
         installation_scope = "none"
@@ -55,7 +55,7 @@ def build_clauses_context(deal: dict) -> dict:
     if "verification" in items_by_id:
         meta = items_by_id["verification"].get("metadata", {})
         verification_scope = "customer" if meta.get("customer_side") else "supplier"
-    elif "verification_scope" in overrides:
+    elif overrides.get("verification_scope") is not None:
         verification_scope = overrides["verification_scope"]
     else:
         verification_scope = "none"
