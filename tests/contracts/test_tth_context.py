@@ -24,9 +24,10 @@ MODEL_SINGLE = {
 
 
 class TestDualRange:
-    def test_discreteness_multiline(self):
+    def test_discreteness_two_placeholders(self):
         result = build_tth_data(MODEL_DUAL, SENSOR_DEFAULT)
-        assert result["ТТХ_ДИСКРЕТНОСТЬ_БЛОК"] == "10\n20"
+        assert result["ТТХ_ДИСКРЕТНОСТЬ_1"] == "10"
+        assert result["ТТХ_ДИСКРЕТНОСТЬ_2"] == "20"
 
     def test_axle_load(self):
         result = build_tth_data(MODEL_DUAL, SENSOR_DEFAULT)
@@ -40,7 +41,8 @@ class TestDualRange:
 class TestSingleRange:
     def test_discreteness_single(self):
         result = build_tth_data(MODEL_SINGLE, SENSOR_DEFAULT)
-        assert result["ТТХ_ДИСКРЕТНОСТЬ_БЛОК"] == "10"
+        assert result["ТТХ_ДИСКРЕТНОСТЬ_1"] == "10"
+        assert result["ТТХ_ДИСКРЕТНОСТЬ_2"] == ""
 
     def test_dimensions_12x3(self):
         result = build_tth_data(MODEL_SINGLE, SENSOR_DEFAULT)
@@ -50,17 +52,17 @@ class TestSingleRange:
 class TestTemperature:
     def test_default_minus30_plus40(self):
         result = build_tth_data(MODEL_DUAL, SENSOR_DEFAULT)
-        assert result["ТТХ_ТЕМПЕРАТУРА"] == "От -30 до +40"
+        assert result["ТТХ_ТЕМПЕРАТУРА"] == "от –30 до +40 °С"
 
     def test_arctic_minus50_plus50(self):
         sensor = {"temperature_min_c": -50, "temperature_max_c": 50}
         result = build_tth_data(MODEL_DUAL, sensor)
-        assert result["ТТХ_ТЕМПЕРАТУРА"] == "От -50 до +50"
+        assert result["ТТХ_ТЕМПЕРАТУРА"] == "от –50 до +50 °С"
 
     def test_zero_no_plus(self):
         sensor = {"temperature_min_c": 0, "temperature_max_c": 40}
         result = build_tth_data(MODEL_DUAL, sensor)
-        assert result["ТТХ_ТЕМПЕРАТУРА"] == "От 0 до +40"
+        assert result["ТТХ_ТЕМПЕРАТУРА"] == "от 0 до +40 °С"
 
 
 class TestConstant:
