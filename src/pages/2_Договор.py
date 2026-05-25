@@ -592,10 +592,20 @@ if not generated:
                 try:
                     fill_spec_v2(str(SPEC_V2_TEMPLATE), data, items_for_docx, _gen_deal, str(spec_path))
                 except Exception as exc_v2:
-                    st.warning(
-                        f"Не удалось сгенерировать v2-спецификацию: {exc_v2}. "
-                        "Использую старый шаблон."
-                    )
+                    import traceback
+                    from datetime import datetime
+                    _tb_path = Path("docs") / f"v1.0_fillspec_traceback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                    _tb_path.parent.mkdir(exist_ok=True)
+                    with open(_tb_path, "w", encoding="utf-8") as f:
+                        f.write(f"=== EXCEPTION ===\n{type(exc_v2).__name__}: {exc_v2}\n\n")
+                        f.write(f"=== TRACEBACK ===\n{traceback.format_exc()}\n\n")
+                        f.write(f"=== DATA KEYS ===\n{list(data.keys())}\n\n")
+                        f.write(f"=== ITEMS COUNT ===\n{len(items_for_docx)}\n\n")
+                        f.write(f"=== DEAL ===\n")
+                        import json
+                        f.write(json.dumps(_gen_deal, ensure_ascii=False, indent=2, default=str))
+                    st.error(f"❌ fill_spec_v2 упал. Traceback: {_tb_path}")
+                    st.code(traceback.format_exc(), language="python")
                     fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path))
             else:
                 fill_template(str(SPEC_TEMPLATE), data, str(spec_path))

@@ -249,7 +249,6 @@ def fill_spec_v2(
     items: list[dict],
     deal: dict,
     output_path: str,
-    _debug_dump: str | None = None,
 ) -> None:
     """Рендер спецификации v2: таблица позиций + динамические секции.
 
@@ -279,17 +278,6 @@ def fill_spec_v2(
         if deps:
             from src.contracts.tth_context import build_tth_data
             data.update(build_tth_data(deps[0], deps[2]))
-
-    if _debug_dump:
-        import json as _json
-        with open(_debug_dump, "a", encoding="utf-8") as _f:
-            _f.write("\n\n=== TTH KEYS IN DATA ===\n")
-            _f.write(_json.dumps(
-                {k: v for k, v in data.items() if k.startswith("ТТХ_")},
-                ensure_ascii=False, indent=2,
-            ))
-            _f.write("\n\n=== JINJA CONTEXT (data passed to fill_spec_with_items) ===\n")
-            _f.write(_json.dumps(data, ensure_ascii=False, indent=2, default=str))
 
     fill_spec_with_items(template_path, data, items, output_path)
 
@@ -326,16 +314,6 @@ def fill_spec_v2(
             kit_items = build_kit_items(deps[0], deps[1], deps[2], deps[3], cable_m)
     if kit_items:
         _fill_kit_table(doc, kit_items)
-
-    if _debug_dump:
-        import json as _json
-        with open(_debug_dump, "a", encoding="utf-8") as _f:
-            _f.write("\n\n=== PAYMENT LINES ===\n")
-            _f.write(_json.dumps(payment_lines, ensure_ascii=False, indent=2))
-            _f.write("\n\n=== TERMS LINES ===\n")
-            _f.write(_json.dumps(terms_lines, ensure_ascii=False, indent=2))
-            _f.write("\n\n=== KIT ITEMS ===\n")
-            _f.write(_json.dumps(kit_items, ensure_ascii=False, indent=2))
 
     # --- Foundation check appendix ---
     ctx = build_clauses_context(deal)
