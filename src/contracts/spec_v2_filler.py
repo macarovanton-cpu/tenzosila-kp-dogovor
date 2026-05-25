@@ -1,5 +1,6 @@
 """spec_v2_filler.py — рендер спецификации v2 с динамическими clauses."""
 import copy
+from datetime import datetime
 
 from docx import Document
 from docx.oxml import OxmlElement
@@ -184,44 +185,157 @@ def _render_foundation_check(doc, data: dict) -> bool:
     return False
 
 
+def _payment_lines_from_data(data: dict) -> list[str]:
+    """Собрать строки оплаты из СПЕЦ_ОПЛАТА_П1-6 в data."""
+    return [data[k] for k in (f"СПЕЦ_ОПЛАТА_П{i}" for i in range(1, 7)) if data.get(k)]
+
+
+def _load_model_and_deps(deal: dict):
+    """Загрузить (model, line_defaults, sensor, indicator) из JSON-справочников.
+
+    Возвращает None если lookup не удался (модель не найдена, файлы недоступны).
+    """
+    import json
+    from pathlib import Path
+    try:
+        models_json = json.loads(Path("data/models.json").read_text(encoding="utf-8"))
+        specs_json = json.loads(Path("data/equipment_specs.json").read_text(encoding="utf-8"))
+
+        items = deal.get("items", [])
+        if not items:
+            return None
+        meta = items[0].get("metadata", {})
+        line = meta.get("line")
+        max_t = meta.get("max")
+        length = meta.get("length")
+        if not line or max_t is None or length is None:
+            return None
+
+        model = next(
+            (m for m in models_json.get("models", [])
+             if m.get("line") == line
+             and m.get("max_load_t") == max_t
+             and m.get("length_m") == length),
+            None,
+        )
+        if not model:
+            return None
+
+        ld = models_json.get("line_defaults", {}).get(line, {})
+        default_sensor_name = ld.get("default_sensor", "")
+
+        sensor: dict = {}
+        for s in specs_json.get("sensors", []):
+            full = f"{s.get('manufacturer', '')} {s.get('model', '')}"
+            if default_sensor_name.startswith(full):
+                sensor = s
+                break
+
+        default_indicator_name = ld.get("default_indicator", "")
+        indicator: dict = {}
+        for t in specs_json.get("terminals", []):
+            if t.get("model", "") == default_indicator_name:
+                indicator = t
+                break
+
+        return model, ld, sensor, indicator
+    except Exception:
+        return None
+
+
 def fill_spec_v2(
     template_path: str,
     data: dict,
     items: list[dict],
     deal: dict,
     output_path: str,
+    _debug_dump: str | None = None,
 ) -> None:
     """Рендер спецификации v2: таблица позиций + динамические секции.
 
-    data может содержать:
+    data может содержать переопределения (если переданы явно):
       _payment_lines: list[str] — строки оплаты
       _terms_lines:   list[str] — строки сроков
       _kit_items:     list[dict] — [{name, qty}] для комплекта
+      ТТХ_*:          str — значения ТТХ-плейсхолдеров
+      ТЕКУЩИЙ_ГОД:    str — год в подписном блоке
+      ПРИЛОЖЕНИЕ_НОМЕР: str — номер приложения
+
+    Если перечисленные ключи отсутствуют — вычисляются автоматически из deal.
     """
     from src.contracts.clauses_renderer import build_contract_clauses
+
+    # Не мутировать dict вызывающего
+    data = {**data}
+
+    # --- Константы ---
+    data.setdefault("ТЕКУЩИЙ_ГОД", str(datetime.now().year))
+    data.setdefault("ПРИЛОЖЕНИЕ_НОМЕР", "1")
+
+    # --- ТТХ из models.json (если не переданы явно) ---
+    deps = None
+    if not any(k.startswith("ТТХ_") for k in data):
+        deps = _load_model_and_deps(deal)
+        if deps:
+            from src.contracts.tth_context import build_tth_data
+            data.update(build_tth_data(deps[0], deps[2]))
+
+    if _debug_dump:
+        import json as _json
+        with open(_debug_dump, "a", encoding="utf-8") as _f:
+            _f.write("\n\n=== TTH KEYS IN DATA ===\n")
+            _f.write(_json.dumps(
+                {k: v for k, v in data.items() if k.startswith("ТТХ_")},
+                ensure_ascii=False, indent=2,
+            ))
+            _f.write("\n\n=== JINJA CONTEXT (data passed to fill_spec_with_items) ===\n")
+            _f.write(_json.dumps(data, ensure_ascii=False, indent=2, default=str))
 
     fill_spec_with_items(template_path, data, items, output_path)
 
     doc = Document(output_path)
 
     # --- Payment ---
-    payment_lines = data.get("_payment_lines", [])
+    payment_lines = data.get("_payment_lines") or _payment_lines_from_data(data)
     if payment_lines:
         _replace_marker_with_paragraphs(doc, "{{PAYMENT_SECTION}}", payment_lines)
     else:
         _remove_marker(doc, "{{PAYMENT_SECTION}}")
 
     # --- Terms ---
-    terms_lines = data.get("_terms_lines", [])
+    if "_terms_lines" in data:
+        terms_lines = data["_terms_lines"]
+    else:
+        from src.contracts.terms_renderer import render_terms_section
+        terms_lines = render_terms_section(deal, deal.get("items", []))
     if terms_lines:
         _replace_marker_with_paragraphs(doc, "{{TERMS_SECTION}}", terms_lines)
     else:
         _remove_marker(doc, "{{TERMS_SECTION}}")
 
     # --- Kit ---
-    kit_items = data.get("_kit_items", [])
+    if "_kit_items" in data:
+        kit_items = data["_kit_items"]
+    else:
+        if deps is None:
+            deps = _load_model_and_deps(deal)
+        kit_items = []
+        if deps:
+            from src.contracts.kit_renderer import build_kit_items
+            cable_m = deps[1].get("default_cable_length_m", 20)
+            kit_items = build_kit_items(deps[0], deps[1], deps[2], deps[3], cable_m)
     if kit_items:
         _fill_kit_table(doc, kit_items)
+
+    if _debug_dump:
+        import json as _json
+        with open(_debug_dump, "a", encoding="utf-8") as _f:
+            _f.write("\n\n=== PAYMENT LINES ===\n")
+            _f.write(_json.dumps(payment_lines, ensure_ascii=False, indent=2))
+            _f.write("\n\n=== TERMS LINES ===\n")
+            _f.write(_json.dumps(terms_lines, ensure_ascii=False, indent=2))
+            _f.write("\n\n=== KIT ITEMS ===\n")
+            _f.write(_json.dumps(kit_items, ensure_ascii=False, indent=2))
 
     # --- Foundation check appendix ---
     ctx = build_clauses_context(deal)
