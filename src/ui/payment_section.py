@@ -1,8 +1,6 @@
 """Условия оплаты: 6 вариантов (v1/v2/v3 + prepay_100 + split_by_items + custom)."""
 from __future__ import annotations
 
-from typing import Any
-
 import streamlit as st
 
 from src.validation import _split_group_active

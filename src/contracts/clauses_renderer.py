@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import jinja2
 
@@ -13,7 +12,7 @@ from src.contracts.clauses_loader import Clause, ClausesLibrary, load_clauses
 
 _logger = logging.getLogger(__name__)
 
-_LIBRARY: Optional[ClausesLibrary] = None
+_LIBRARY: ClausesLibrary | None = None
 _CLAUSES_PATH = Path("data/clauses.yaml")
 _OBLIGATIONS_SECTIONS = ("obligations_supplier", "obligations_customer", "special_conditions")
 

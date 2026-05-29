@@ -5,6 +5,7 @@ filler.py — подстановка данных в Word-шаблон с пле
 
 import copy
 import re
+
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -60,8 +61,8 @@ def replace_in_paragraph(paragraph, data: dict) -> None:
 
 def _replace_textbox_placeholders(docx_path: str, data: dict) -> None:
     """Заменяет {{KEY}} в text box-ах (w:txbxContent), которые python-docx пропускает."""
-    import zipfile
     import shutil
+    import zipfile
 
     tmp = docx_path + '.tmp'
     with zipfile.ZipFile(docx_path, 'r') as zin:
@@ -160,7 +161,6 @@ def remove_empty_paragraphs(doc_path: str, output_path: str = None) -> None:
     Удаляет параграфы в которых после подстановки ничего не осталось.
     Используется для удаления лишних пунктов оплаты (если их меньше 6).
     """
-    from lxml import etree
 
     doc = Document(doc_path)
     output_path = output_path or doc_path

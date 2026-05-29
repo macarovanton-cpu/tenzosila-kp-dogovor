@@ -4,7 +4,7 @@ from __future__ import annotations
 import functools
 import logging
 import os
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 
 from supabase import Client, create_client
@@ -54,7 +54,7 @@ def save_kp(
             "total_price": total_price,
             "manager_id": manager_id,
             "data": data,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
         }
         _get_client().table(_KPS_TABLE).upsert(row, on_conflict="kp_number").execute()
         result = _get_client().table(_KPS_TABLE).select("*").eq("kp_number", kp_number).execute()

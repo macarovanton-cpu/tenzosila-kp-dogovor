@@ -12,10 +12,7 @@ from typing import Any
 
 def get_active_payment_groups(spec_items: list[dict]) -> dict:
     """Какие группы оплаты есть в спецификации + есть ли ОРИОН (по ключу orion_*)."""
-    groups = {
-        g: False
-        for g in ("scales", "foundation", "delivery", "installation_and_verification")
-    }
+    groups = dict.fromkeys(("scales", "foundation", "delivery", "installation_and_verification"), False)
     has_orion = False
     for item in spec_items:
         g = item.get("payment_group")

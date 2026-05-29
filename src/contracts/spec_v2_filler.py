@@ -7,7 +7,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 from src.contracts.clauses_context import build_clauses_context
-from src.contracts.filler import fill_spec_with_items, _set_cell_text
+from src.contracts.filler import _set_cell_text, fill_spec_with_items
 
 _CLAUSE_SECTION_ORDER = [
     "obligations_supplier",

@@ -13,10 +13,17 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  # noqa: E402
 from src.contracts.clauses_renderer import build_contract_clauses  # noqa: E402
-from src.contracts.filler import fill_spec_with_items, fill_template, get_unfilled_placeholders  # noqa: E402
-from src.contracts.from_kp import build_specification_from_kp_snapshot, build_specification_items  # noqa: E402
+from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  # noqa: E402
+from src.contracts.filler import (  # noqa: E402
+    fill_spec_with_items,
+    fill_template,
+    get_unfilled_placeholders,
+)
+from src.contracts.from_kp import (  # noqa: E402
+    build_specification_from_kp_snapshot,
+    build_specification_items,
+)
 from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
 from src.contracts.spec_v2_filler import fill_spec_v2  # noqa: E402
 from src.contracts.state import (  # noqa: E402
@@ -34,7 +41,11 @@ from src.contracts.state import (  # noqa: E402
 )
 from src.contracts.utils import format_date_parts, infer_director_gender  # noqa: E402
 from src.data_loader import load_models, load_payment_terms, load_prices  # noqa: E402
-from src.storage.supabase_client import StorageError, get_kp_by_number, list_recent_kps  # noqa: E402
+from src.storage.supabase_client import (  # noqa: E402
+    StorageError,
+    get_kp_by_number,
+    list_recent_kps,
+)
 from src.utils.format import sanitize_filename  # noqa: E402
 
 CONTRACT_TEMPLATE = Path("templates/contracts/contract.docx")
@@ -601,7 +612,7 @@ if not generated:
                         f.write(f"=== TRACEBACK ===\n{traceback.format_exc()}\n\n")
                         f.write(f"=== DATA KEYS ===\n{list(data.keys())}\n\n")
                         f.write(f"=== ITEMS COUNT ===\n{len(items_for_docx)}\n\n")
-                        f.write(f"=== DEAL ===\n")
+                        f.write("=== DEAL ===\n")
                         import json
                         f.write(json.dumps(_gen_deal, ensure_ascii=False, indent=2, default=str))
                     st.error(f"❌ fill_spec_v2 упал. Traceback: {_tb_path}")

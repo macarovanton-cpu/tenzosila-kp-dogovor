@@ -11,12 +11,13 @@ make_template.py — собирает kp_template.docx из эталонного
 import copy
 import os
 import sys
-from lxml import etree
+
 from docx import Document
 
 BASE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
 sys.path.insert(0, BASE)
 from src.config import VAT_RATE  # noqa: E402
+
 SRC  = os.path.join(BASE, "03_knowledge_base/sample_kps/Гипсобетон_ВЕСТА-С-80-18.docx")
 DST  = os.path.join(BASE, "templates/kp_template.docx")
 
@@ -277,7 +278,6 @@ def transform_spec_table(doc):
 
     При рендере с N позициями → header + N строк + ИТОГО = N+2 строк.
     """
-    from docx.oxml import OxmlElement
 
     spec_table = None
     for table in doc.tables:
@@ -691,7 +691,8 @@ def make_template():
     # -----------------------------------------------------------------------
     # 6. Sanity-check: 18 статических body + 3 footer + 3 loop-плейсхолдера
     # -----------------------------------------------------------------------
-    import re, zipfile
+    import re
+    import zipfile
     expected_static_body = {
         "client_name", "kp_number", "kp_date", "kp_valid_days",
         "warranty_text", "platform_size", "max_load_t",

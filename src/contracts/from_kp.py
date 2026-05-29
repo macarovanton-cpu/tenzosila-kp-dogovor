@@ -6,8 +6,8 @@ import re
 import uuid
 from typing import Any
 
-from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item
 from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
+from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item
 
 _logger = logging.getLogger(__name__)
 
@@ -110,9 +110,9 @@ def build_specification_from_kp_snapshot(
     формулировки, отдельные монтаж и поверка). Платёжные строки и сроки —
     через старый пайплайн spec_items.
     """
-    from src.spec_builder import build_spec_items
     from src.contracts.utils import number_to_words
     from src.generators.payment_renderer import render_payment_block
+    from src.spec_builder import build_spec_items
 
     rows = build_spec_rows_from_snapshot(kp_row)
     rows.sort(key=_row_sort_key)
@@ -259,7 +259,6 @@ def build_spec_v2_data(
     from src.contracts.kit_renderer import build_kit_items
     from src.contracts.terms_renderer import render_terms_section
     from src.contracts.tth_context import build_tth_data
-    from src.contracts.utils import number_to_words
     from src.data_loader import get_line_defaults, get_model_by_id
     from src.generators.payment_renderer import render_payment_block
     from src.spec_builder import build_spec_items

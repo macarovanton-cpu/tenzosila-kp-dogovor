@@ -5,7 +5,6 @@ from typing import Any
 
 import streamlit as st
 
-
 _CONTRACT_DEFAULTS: dict[str, Any] = {
     "requisites": {},
     "specification": {},

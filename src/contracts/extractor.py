@@ -93,7 +93,7 @@ def extract_data_via_ai(kp_text: str, card_text: str) -> dict:
     Отправляет тексты в OpenRouter API, получает JSON с данными для договора.
     Возвращает dict с ключами 'requisites' и 'specification'.
     """
-    with open(PROMPT_PATH, 'r', encoding='utf-8') as f:
+    with open(PROMPT_PATH, encoding='utf-8') as f:
         system_prompt = f.read()
 
     client = OpenAI(
@@ -149,7 +149,7 @@ def extract_card_data(card_path: str) -> dict:
     else:
         card_text = extract_docx_text(card_path)
 
-    with open(CARD_PROMPT_PATH, 'r', encoding='utf-8') as f:
+    with open(CARD_PROMPT_PATH, encoding='utf-8') as f:
         system_prompt = f.read()
 
     client = OpenAI(

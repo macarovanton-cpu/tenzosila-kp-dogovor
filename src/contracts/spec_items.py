@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Literal, Optional, TypedDict
+from typing import Literal, TypedDict
 
 
 class SpecItem(TypedDict):
@@ -12,7 +12,7 @@ class SpecItem(TypedDict):
     quantity: float
     price_per_unit: float
     total: float
-    payment_group: Optional[int]
+    payment_group: int | None
     is_custom: bool
     source: Literal["preset", "custom"]
     metadata: dict
