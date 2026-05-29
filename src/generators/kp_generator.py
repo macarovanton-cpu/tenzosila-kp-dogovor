@@ -6,8 +6,9 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+import re
+
 from docxtpl import DocxTemplate, Listing, RichText
-from slugify import slugify
 
 from src.config import VAT_RATE
 from src.data_loader import (
@@ -243,17 +244,24 @@ def generate_kp(state: dict[str, Any], prices: dict) -> bytes:
     return buf.getvalue()
 
 
+_FORBIDDEN_CHARS = re.compile(r'[/\\:*?"<>|]')
+
+
+def sanitize_filename(s: str) -> str:
+    """Убирает недопустимые символы ФС, кириллицу сохраняет."""
+    s = _FORBIDDEN_CHARS.sub("_", s)
+    s = re.sub(r"_+", "_", s).strip("_ ")
+    return s or "—"
+
+
 def build_filename(state: dict[str, Any]) -> str:
-    """КП_{client_translit}_{model_full_name}_{YYYY-MM-DD}.docx."""
+    """НомерКП_НазваниеКомпании_МодельВесов_ДатаКП.docx"""
     models_json = load_models()
     model = get_model_by_id(models_json, state.get("model_id", "")) or {}
-    model_name = model.get("full_name", "ВЕСТА")
+    model_name = sanitize_filename(model.get("full_name", "ВЕСТА"))
 
-    client_translit = slugify(
-        state.get("client_name", "") or "client",
-        separator="_",
-        lowercase=False,
-    ) or "client"
+    kp_number = sanitize_filename(state.get("kp_number", "") or "б-н")
+    client = sanitize_filename(state.get("client_name", "") or "б-н")
 
     kp_date_val = state.get("kp_date") or date.today()
     if hasattr(kp_date_val, "strftime"):
@@ -261,4 +269,4 @@ def build_filename(state: dict[str, Any]) -> str:
     else:
         date_str = str(kp_date_val)
 
-    return f"КП_{client_translit}_{model_name}_{date_str}.docx"
+    return f"{kp_number}_{client}_{model_name}_{date_str}.docx"

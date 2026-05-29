@@ -154,25 +154,38 @@ def test_unknown_sensor_id_falls_back_to_default(prices):
 # --- build_filename ---
 
 
-def test_build_filename_translit_russian():
-    state = _state(client_name="ООО «Гипсобетон»")
+def test_build_filename_cyrillic_preserved():
+    """Кириллица в имени клиента сохраняется без транслитерации."""
+    state = _state(client_name="ООО Гипсобетон")
     name = build_filename(state)
-    assert name.startswith("КП_")
+    # Формат: НомерКП_НазваниеКомпании_МодельВесов_ДатаКП.docx
+    assert name.startswith("47141_")
     assert name.endswith("_2026-04-22.docx")
-    # Транслитерация: «Гипсобетон» → Gipsobeton
-    assert "Gipsobeton" in name or "gipsobeton" in name.lower()
+    assert "Гипсобетон" in name
+    # Транслитерации быть не должно
+    assert "Gipsobeton" not in name
 
 
 def test_build_filename_empty_client_uses_fallback():
     state = _state(client_name="")
     name = build_filename(state)
-    assert name.startswith("КП_")
+    assert "б-н" in name
 
 
 def test_build_filename_includes_model():
     state = _state()
     name = build_filename(state)
     assert "80-18" in name  # часть model_full_name
+
+
+def test_build_filename_sanitizes_forbidden_chars():
+    """Недопустимые символы ФС заменяются на _, кириллица остаётся."""
+    state = _state(kp_number="КП:2026/001", client_name="Рога & Копыта")
+    name = build_filename(state)
+    assert name.startswith("КП_2026_001_")
+    assert "Рога" in name
+    assert "/" not in name
+    assert ":" not in name
 
 
 # --- generate_kp ---
