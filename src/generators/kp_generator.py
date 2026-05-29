@@ -244,11 +244,17 @@ def generate_kp(state: dict[str, Any], prices: dict) -> bytes:
     return buf.getvalue()
 
 
-_FORBIDDEN_CHARS = re.compile(r'[/\\:*?"<>|]')
+_FORBIDDEN_CHARS = re.compile(r'[/\\:*?"<>|«»]')
+# Организационно-правовые формы, которые убираем из имени файла
+_ORG_FORMS = re.compile(
+    r'\b(ООО|ОАО|ЗАО|АО|ПАО|ИП|НКО|ГУП|МУП|ФГУ|ФГУП)\b\.?',
+    re.IGNORECASE,
+)
 
 
 def sanitize_filename(s: str) -> str:
-    """Убирает недопустимые символы ФС, кириллицу сохраняет."""
+    """Убирает недопустимые символы ФС и сокращения ОПФ, кириллицу сохраняет."""
+    s = _ORG_FORMS.sub("", s)
     s = _FORBIDDEN_CHARS.sub("_", s)
     s = re.sub(r"_+", "_", s).strip("_ ")
     return s or "—"

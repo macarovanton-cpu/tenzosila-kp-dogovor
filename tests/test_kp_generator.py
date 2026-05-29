@@ -178,6 +178,22 @@ def test_build_filename_includes_model():
     assert "80-18" in name  # часть model_full_name
 
 
+def test_build_filename_strips_org_forms_and_quotes():
+    """ООО, АО, кавычки убираются — остаётся только название."""
+    for client_name in [
+        "ООО «Счастливая Корова»",
+        "АО Счастливая Корова",
+        "ЗАО «Счастливая Корова»",
+    ]:
+        state = _state(client_name=client_name)
+        name = build_filename(state)
+        assert "Счастливая Корова" in name, f"Не найдено название в: {name}"
+        assert "ООО" not in name
+        assert "АО" not in name
+        assert "«" not in name
+        assert "»" not in name
+
+
 def test_build_filename_sanitizes_forbidden_chars():
     """Недопустимые символы ФС заменяются на _, кириллица остаётся."""
     state = _state(kp_number="КП:2026/001", client_name="Рога & Копыта")
