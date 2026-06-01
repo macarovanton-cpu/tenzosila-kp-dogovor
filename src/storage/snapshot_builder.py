@@ -106,6 +106,7 @@ def build_kp_snapshot(state: dict[str, Any]) -> dict[str, Any]:
             "line": line,
             "max": max_t,
             "length": length,
+            "width": float(state.get("platform_width_m", 3.0) or 3.0),
             "price": state.get("model_price"),
         },
         # Контракт snapshot КП→Договор (HANDOFF.md §6)

@@ -37,6 +37,25 @@ def _format_model_name(model: dict | None, model_id: str) -> str:
     return f"Весы автомобильные {model_id}"
 
 
+def _format_dimension_value(value: Any) -> str:
+    num = float(value)
+    if num.is_integer():
+        return str(int(num))
+    return f"{num:.1f}".rstrip("0").rstrip(".")
+
+
+def format_platform_size(
+    length: Any, width: Any, *, separator: str = "х", suffix: str = "м"
+) -> str:
+    """Отформатировать размеры платформы для КП и DOCX."""
+    return (
+        f"{_format_dimension_value(length)}"
+        f"{separator}"
+        f"{_format_dimension_value(width)}"
+        f"{suffix}"
+    )
+
+
 def _format_model_code(state: dict[str, Any]) -> str:
     """Короткий код модели для связанных позиций КП."""
     line = state.get("model_line", "")
@@ -64,6 +83,12 @@ def _format_model_full_spec_name(
     """
     parts = [_format_model_name(model, model_id)]
     if model:
+        width = float(state.get("platform_width_m", 3.0) or 3.0)
+        if width != 3.0:
+            parts.append(
+                "Размер платформы: "
+                f"{format_platform_size(state.get('model_length', ''), width)}"
+            )
         sensor_info = get_equipment_info(
             models_json, "sensor", state.get("sensor_id", "")
         )

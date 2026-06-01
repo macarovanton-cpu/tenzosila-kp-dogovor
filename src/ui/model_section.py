@@ -19,7 +19,9 @@ from src.pricing import (
     get_model_slider_params,
     percent_to_retail,
 )
-from src.state import on_cascade_change
+from src.state import on_cascade_change, on_platform_width_change
+
+PLATFORM_WIDTH_OPTIONS: list[float] = [3.0, 3.5, 4.0]
 
 
 def render_model_section(state: dict, models_json: dict, prices: dict) -> None:
@@ -82,6 +84,8 @@ def render_model_section(state: dict, models_json: dict, prices: dict) -> None:
 
     model = get_model_by_id(models_json, state["model_id"])
 
+    _render_platform_width_control(state)
+
     with st.container(border=True):
         st.markdown(
             ":material/info: **Влияет на стоимость и метрологию**"
@@ -107,6 +111,24 @@ def render_model_section(state: dict, models_json: dict, prices: dict) -> None:
     _render_model_card(model, models_json, line)
 
     _render_model_price_slider(state, price)
+
+
+def _render_platform_width_control(state: dict) -> None:
+    """UI-выбор стандартной или нестандартной ширины платформы."""
+    current = float(state.get("platform_width_m", 3.0) or 3.0)
+    if current not in PLATFORM_WIDTH_OPTIONS:
+        current = 3.0
+    selected = st.segmented_control(
+        "Ширина платформы",
+        PLATFORM_WIDTH_OPTIONS,
+        default=current,
+        key="platform_width_m",
+        on_change=on_platform_width_change,
+        format_func=lambda width: f"{width:.1f}м",
+        help="Нестандартная ширина масштабирует цену модели пропорционально 3.0 м",
+    )
+    if state is not st.session_state:
+        state["platform_width_m"] = float(selected or 3.0)
 
 
 def _render_metrology_caption(model: dict | None, is_dual_range: bool) -> str:
@@ -171,7 +193,10 @@ def _clear_model_price_override() -> None:
 
 def _render_model_price_slider(state: dict, price: dict) -> None:
     from src.utils.format import fmt_rub
-    params = get_model_slider_params(price)
+    params = get_model_slider_params(
+        price,
+        platform_width_m=float(state.get("platform_width_m", 3.0) or 3.0),
+    )
     current = state.get("model_price") or params.default_v
     value = st.number_input(
         f"Цена модели, ₽ (с НДС {VAT_RATE*100:.0f}%)",

@@ -116,6 +116,15 @@ def test_build_template_context_values(prices):
     assert all("name" in i and "price" in i and "term_days" in i for i in ctx["spec_items"])
 
 
+def test_build_template_context_platform_size_uses_state_width(prices):
+    """Размер платформы в DOCX-контексте берётся из UI-состояния ширины."""
+    state = _state(platform_width_m=3.5)
+
+    ctx = build_template_context(state, prices)
+
+    assert ctx["platform_size"] == "18×3.5"
+
+
 def test_pluralize_kp_valid_days_and_warranty(prices):
     state = _state(kp_valid_days=21, warranty_months=24)
     ctx = build_template_context(state, prices)

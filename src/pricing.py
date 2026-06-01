@@ -51,6 +51,11 @@ def _round_to_1000(x: float) -> int:
     return int(round(x / 1000.0) * 1000)
 
 
+def _scale_model_price(value: int, platform_width_m: float) -> int:
+    """Линейно масштабировать цену модели относительно стандартной ширины 3.0 м."""
+    return int(round(value * platform_width_m / 3.0))
+
+
 def _clamp(val: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, val))
 
@@ -155,12 +160,16 @@ def get_slider_params(entry: dict[str, Any]) -> SliderParams:
     return _as_unknown_params(entry)
 
 
-def get_model_slider_params(price_entry: dict[str, Any]) -> SliderParams:
+def get_model_slider_params(
+    price_entry: dict[str, Any], *, platform_width_m: float = 3.0
+) -> SliderParams:
     """Параметры слайдера цены самой модели (логика класса A)."""
-    retail = int(price_entry.get("retail", 0))
-    dealer = int(price_entry.get("dealer_ru", 0))
+    width = float(platform_width_m or 3.0)
+    retail = _scale_model_price(int(price_entry.get("retail", 0)), width)
+    dealer = _scale_model_price(int(price_entry.get("dealer_ru", 0)), width)
+    max_coeff = MAX_COEFF * (1.2 if width != 3.0 else 1.0)
     min_v = _ceil_to_1000(dealer)
-    max_v = _floor_to_1000(retail * MAX_COEFF)
+    max_v = _floor_to_1000(retail * max_coeff)
     default_v = _clamp(_round_to_1000(retail), min_v, max_v)
     return SliderParams(
         kind="slider",

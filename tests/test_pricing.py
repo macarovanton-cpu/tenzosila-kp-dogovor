@@ -116,6 +116,31 @@ def test_model_slider_rounds_to_thousands(prices):
     assert params.step == 10_000        # max_v > 1_000_000
 
 
+def test_model_slider_standard_width_keeps_existing_bounds():
+    """Ширина 3.0 м не меняет существующую логику слайдера модели."""
+    price = {"retail": 1_668_432, "dealer_ru": 1_534_958}
+
+    default_params = get_model_slider_params(price)
+    width_params = get_model_slider_params(price, platform_width_m=3.0)
+
+    assert width_params == default_params
+
+
+def test_model_slider_nonstandard_width_scales_price_and_expands_max():
+    """Для 3.5 м цена масштабируется линейно, max дополнительно расширяется на 20%."""
+    price = {"retail": 1_668_432, "dealer_ru": 1_534_958}
+
+    params = get_model_slider_params(price, platform_width_m=3.5)
+
+    scaled_retail = round(1_668_432 * 3.5 / 3.0)
+    scaled_dealer = round(1_534_958 * 3.5 / 3.0)
+    assert params.retail == scaled_retail
+    assert params.dealer == scaled_dealer
+    assert params.min_v == 1_791_000
+    assert params.default_v == 1_947_000
+    assert params.max_v == 3_270_000
+
+
 def test_model_slider_real_model_s_60_18(prices):
     """На реальной модели vesta-с-60-18 все границы кратны 1000 и default ∈ [min, max]."""
     price = prices["models"]["vesta-с-60-18"]

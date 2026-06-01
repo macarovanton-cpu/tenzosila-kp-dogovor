@@ -21,17 +21,26 @@ def _make_kp_row(
     model_line: str = "С",
     model_max: int = 60,
     model_length: int = 18,
+    model_width: float | None = None,
     model_price: int | None = 2835000,
     options: dict | None = None,
     payment_preset: str = "split_by_items",
     payment_split_state: dict | None = None,
 ) -> dict:
+    model_data = {
+        "line": model_line,
+        "max": model_max,
+        "length": model_length,
+        "price": model_price,
+    }
+    if model_width is not None:
+        model_data["width"] = model_width
     return {
         "kp_number": "КП-2026-001",
         "model_id": f"vesta-{model_line.lower()}-{model_max}-{model_length}",
         "total_price": 0,
         "data": {
-            "model": {"line": model_line, "max": model_max, "length": model_length, "price": model_price},
+            "model": model_data,
             "equipment": {"sensor_id": "zemic_dhm9b_30t", "indicator_id": "titan_3cs", "cable_m": 20},
             "options": options or {},
             "spec_overrides": {},
@@ -220,6 +229,25 @@ class TestBuildSpecRowsFromSnapshot:
         assert names[3] == "Монтаж автомобильных весов"
         assert names[4] == "Поверка автомобильных весов с доставкой эталонов"
 
+    def test_model_name_uses_nonstandard_width_from_snapshot(self):
+        """model.width из snapshot попадает в договорную строку весов."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        rows = build_spec_rows_from_snapshot(
+            _make_kp_row(model_width=3.5)
+        )
+
+        assert rows[0]["name"] == (
+            "Весы автомобильные ВЕСТА-С-60-18-Ц, "
+            "max 60т, размеры платформы 18х3.5м"
+        )
+
+    def test_model_name_defaults_to_3m_for_old_snapshot(self):
+        """Старый snapshot без model.width остаётся с шириной 3м."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        rows = build_spec_rows_from_snapshot(_make_kp_row())
+
+        assert "размеры платформы 18х3м" in rows[0]["name"]
+
     def test_customer_side_verification_price_is_zakazchik(self):
         """customer_side=True → price_display='ЗАКАЗЧИК', не учитывается в итого."""
         from src.contracts.from_kp import build_spec_rows_from_snapshot
@@ -289,3 +317,13 @@ class TestBuildSpecRowsFromSnapshot:
             model_row = rows[0]
             expected = f"Весы автомобильные ВЕСТА-{line}-40-12-Ц, max 40т, размеры платформы 12х3м"
             assert model_row["name"] == expected, f"Line {line}: {model_row['name']!r}"
+
+    def test_specification_items_use_nonstandard_width_from_snapshot(self):
+        """SpecItem для spec_v2 тоже использует ширину из snapshot."""
+        from src.contracts.from_kp import build_specification_items
+        items = build_specification_items(_make_kp_row(model_width=4.0))
+
+        assert items[0]["name"] == (
+            "Весы автомобильные ВЕСТА-С-60-18-Ц, "
+            "max 60т, размеры платформы 18х4м"
+        )

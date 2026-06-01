@@ -7,6 +7,7 @@ import uuid
 from typing import Any
 
 from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
+from src.spec_builder import format_platform_size
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item
 
 _logger = logging.getLogger(__name__)
@@ -83,6 +84,7 @@ def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
         "model_line": model.get("line", ""),
         "model_max": model.get("max"),
         "model_length": model.get("length"),
+        "platform_width_m": model.get("width", 3.0),
         "model_price": model.get("price"),
         "sensor_id": (data.get("equipment") or {}).get("sensor_id", ""),
         "indicator_id": (data.get("equipment") or {}).get("indicator_id", ""),
@@ -208,13 +210,15 @@ def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]
     line = model.get("line", "")
     max_t = model.get("max", "")
     length = model.get("length", "")
+    width = model.get("width", 3.0)
     model_price = int(model.get("price") or 0)
 
     rows: list[dict[str, Any]] = []
 
     model_name = (
         f"Весы автомобильные ВЕСТА-{line}-{max_t}-{length}-Ц, "
-        f"max {max_t}т, размеры платформы {length}х3м"
+        f"max {max_t}т, размеры платформы "
+        f"{format_platform_size(length, width)}"
     )
     rows.append({
         "name": model_name,
@@ -370,6 +374,7 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
     line = model.get("line", "")
     max_t = model.get("max", "")
     length = model.get("length", "")
+    width = model.get("width", 3.0)
     model_price = float(model.get("price") or 0)
     options = data.get("options") or {}
 
@@ -378,7 +383,8 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
     # Позиция весов — всегда первая
     model_name = (
         f"Весы автомобильные ВЕСТА-{line}-{max_t}-{length}-Ц, "
-        f"max {max_t}т, размеры платформы {length}х3м"
+        f"max {max_t}т, размеры платформы "
+        f"{format_platform_size(length, width)}"
     )
     items.append({  # type: ignore[misc]
         "id": "weights",
@@ -390,7 +396,7 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
         "payment_group": None,
         "is_custom": False,
         "source": "preset",
-        "metadata": {"line": line, "max": max_t, "length": length},
+        "metadata": {"line": line, "max": max_t, "length": length, "width": width},
     })
 
     for key, opt in options.items():

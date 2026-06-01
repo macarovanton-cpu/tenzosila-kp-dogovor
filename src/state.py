@@ -42,6 +42,7 @@ def initial_state() -> dict[str, Any]:
         "model_line": "С",
         "model_max": 60,
         "model_length": 18,
+        "platform_width_m": 3.0,
         "model_id": "vesta-с-60-18",
         "model_price": None,
         # Оборудование
@@ -99,6 +100,22 @@ def reset_options() -> None:
 def reset_spec_overrides() -> None:
     """Очистить ручные правки qty/price в spec-таблице (при смене модели)."""
     st.session_state["spec_items_overrides"] = {}
+
+
+def on_platform_width_change() -> None:
+    """Колбэк смены ширины: пересчитать цену модели без сброса опций."""
+    model_id = st.session_state.get("model_id")
+    st.session_state["model_price"] = None
+    if not model_id:
+        return
+
+    overrides = st.session_state.setdefault("spec_items_overrides", {})
+    ov = overrides.get(model_id, {}) or {}
+    ov.pop("price", None)
+    if ov:
+        overrides[model_id] = ov
+    else:
+        overrides.pop(model_id, None)
 
 
 def on_cascade_change() -> None:

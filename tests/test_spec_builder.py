@@ -512,6 +512,16 @@ def test_model_name_is_multiline_with_sensors_and_terminal(
     assert "Терминал: ТИТАН 3ЦС" in name
 
 
+def test_model_name_includes_nonstandard_platform_width(prices, models_json):
+    """Имя первой позиции КП включает нестандартную ширину платформы."""
+    state = _base_state()
+    state["platform_width_m"] = 3.5
+
+    items = build_spec_items(state, prices, models_json)
+
+    assert "Размер платформы: 18х3.5м" in items[0]["name"]
+
+
 def test_fence_never_in_model_name(prices, models_json):
     """Ограждение не попадает в имя строки весов — ни НОРМА, ни ЛАЙТ."""
     for fence_key in ("fence_norma_18", "fence_light_18"):

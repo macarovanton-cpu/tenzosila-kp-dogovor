@@ -24,6 +24,7 @@ from src.generators.spec_vmerge import apply_spec_vmerge, encode_term_days_marke
 from src.spec_builder import (
     build_construction_description,
     build_spec_items,
+    format_platform_size,
 )
 from src.term_days import (
     FIXED_ROLES,
@@ -161,9 +162,11 @@ def build_template_context(state: dict[str, Any], prices: dict) -> dict[str, Any
     total_price = sum(item["total"] for item in spec_items)
 
     # Платформа
-    platform_size = (
-        f"{model.get('length_m', state.get('model_length', '?'))}×"
-        f"{model.get('width_m', 3)}"
+    platform_size = format_platform_size(
+        state.get("model_length", model.get("length_m", "?")),
+        state.get("platform_width_m", model.get("width_m", 3)),
+        separator="×",
+        suffix="",
     )
 
     # Дата КП

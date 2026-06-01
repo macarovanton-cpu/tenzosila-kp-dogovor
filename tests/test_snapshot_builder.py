@@ -52,6 +52,7 @@ def test_builds_full_snapshot_from_minimal_state():
     assert snap["model"]["line"] == "С"
     assert snap["model"]["max"] == 60
     assert snap["model"]["length"] == 18
+    assert snap["model"]["width"] == 3.0
     assert snap["model"]["price"] is None
 
     assert snap["equipment"]["sensor_id"] == "zemic_dhm9b_30t"
@@ -83,6 +84,26 @@ def test_excludes_widget_keys():
     flat = str(snap)
     assert "opt_" not in flat
     assert "split_scales" not in flat
+
+
+def test_model_width_defaults_to_standard_when_missing():
+    """Старый state без platform_width_m сохраняется как стандартные 3.0 м."""
+    state = _base_state()
+    state.pop("platform_width_m", None)
+
+    snap = build_kp_snapshot(state)
+
+    assert snap["model"]["width"] == 3.0
+
+
+def test_model_width_preserves_nonstandard_value():
+    """Нестандартная ширина попадает в snapshot модели."""
+    state = _base_state()
+    state["platform_width_m"] = 3.5
+
+    snap = build_kp_snapshot(state)
+
+    assert snap["model"]["width"] == 3.5
 
 
 def test_excludes_computed_values():
