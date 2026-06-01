@@ -286,8 +286,9 @@ def test_model_name_excludes_fence(prices, models_json):
 
 
 def test_build_spec_items_uses_dynamic_foundation_label(prices, models_json):
-    """В spec_items label фундамента подменяется на конкретную линию модели."""
+    """Имя фундамента включает тип исполнения и полный код модели."""
     state = _base_state()  # line=С, model=vesta-с-60-18
+    state["foundation_execution"] = "пандусный"
     state["options"] = {
         "foundation_s_f_18": {
             "enabled": True, "price": 500_000, "qty": 1,
@@ -298,8 +299,31 @@ def test_build_spec_items_uses_dynamic_foundation_label(prices, models_json):
     }
     items = build_spec_items(state, prices, models_json)
     foundation = next(i for i in items if i["item_key"] == "foundation_s_f_18")
-    assert "ВЕСТА-С" in foundation["name"]
+    assert foundation["name"] == (
+        "Фундамент железобетонный пандусный под весы ВЕСТА-С-60-18, 18м"
+    )
     assert "С/Ф/П" not in foundation["name"]
+
+
+def test_build_spec_items_foundation_name_uses_manager_selected_priamok(
+    prices, models_json
+):
+    """UI-выбор 'приямок' попадает в имя фундаментной позиции КП."""
+    state = _base_state()
+    state["foundation_execution"] = "приямок"
+    state["options"] = {
+        "foundation_s_f_18": {
+            "enabled": True, "price": 500_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 500_000, "dealer_is_synthetic": False,
+            "block": "foundation_and_base",
+        }
+    }
+    items = build_spec_items(state, prices, models_json)
+    foundation = next(i for i in items if i["item_key"] == "foundation_s_f_18")
+    assert foundation["name"] == (
+        "Фундамент железобетонный в приямок под весы ВЕСТА-С-60-18, 18м"
+    )
 
 
 def test_build_spec_items_uses_dynamic_frame_and_ramp_labels(prices, models_json):
@@ -388,6 +412,25 @@ def test_payment_group_present_in_each_item(prices, models_json):
         )
 
 
+# --- payment_group для новых ключей блока foundation_and_base ---
+
+
+def test_resolve_payment_group_construction_works():
+    """construction_works_* → payment_group = 'foundation' (раньше было 'scales')."""
+    assert resolve_payment_group("construction_works_18") == "foundation"
+    assert resolve_payment_group("construction_works_20") == "foundation"
+    assert resolve_payment_group("construction_works_24") == "foundation"
+
+
+def test_resolve_payment_group_concrete_base():
+    """concrete_base_on_frame → payment_group = 'foundation'."""
+    assert resolve_payment_group("concrete_base_on_frame") == "foundation"
+
+
+def test_resolve_payment_group_road_and_pag_slabs():
+    """road_slabs_* и pag_slabs_* → payment_group = 'foundation'."""
+    assert resolve_payment_group("road_slabs_18") == "foundation"
+    assert resolve_payment_group("pag_slabs_24") == "foundation"
 def test_resolve_payment_group_rules():
     """Правила маппинга item_key → payment_group."""
     # модель → scales

@@ -41,13 +41,26 @@ def test_visible_options_hatches_for_f_22(prices):
     assert keys == ["hatches_f_22"]
 
 
-def test_visible_options_foundations_for_p_18(prices):
-    """Для П-18 в блоке foundations — foundation_s_f_18, не lite/std."""
-    visible = get_visible_options(prices["options"], "П", 18, "foundations")
+def test_visible_options_foundation_and_base_for_p_18(prices):
+    """Для П-18 в блоке foundation_and_base — foundation_s_f_18, не lite/std."""
+    visible = get_visible_options(prices["options"], "П", 18, "foundation_and_base")
     keys = [k for k, _ in visible]
     assert "foundation_s_f_18" in keys
     assert "foundation_lite_sl_fl_18" not in keys
     assert "foundation_std_sl_fl_18" not in keys
+
+
+def test_visible_options_foundation_and_base_contains_six_variant_families(prices):
+    """Единый блок показывает все 6 семейств фундамента/основания для С-18."""
+    visible = get_visible_options(prices["options"], "С", 18, "foundation_and_base")
+    keys = [k for k, _ in visible]
+
+    assert "foundation_s_f_18" in keys
+    assert "foundation_supervision" in keys
+    assert "construction_works_18" in keys
+    assert "concrete_base_on_frame" in keys
+    assert "road_slabs_18" in keys
+    assert "pag_slabs_18" in keys
 
 
 def test_model_id_from_cascade_and_exists(prices):

@@ -42,10 +42,8 @@ OPTION_BLOCKS_ORDER: list[str] = [
     "hatches",
     "misc",
     "pak_orion",
-    "construction_works",
-    "concrete_on_frame",
     "canopy",
-    "foundations",
+    "foundation_and_base",
     "install",
     "delivery",
     "verification",
@@ -57,9 +55,7 @@ BLOCK_LABELS: dict[str, str] = {
     "frames": "Рама",
     "fences": "Ограждение",
     "hatches": "Люки",
-    "foundations": "Фундамент",
-    "construction_works": "Стройработы",
-    "concrete_on_frame": "Бетонное основание",
+    "foundation_and_base": "Фундамент и основание под раму",
     "canopy": "Навес под ключ",
     "pak_orion": "ПАК ОРИОН",
     "misc": "Мелочи (закладные, резина, калибровка)",
@@ -74,14 +70,18 @@ BLOCK_KEY_PREFIXES: dict[str, tuple[str, ...]] = {
     "frames": ("frame_",),
     "fences": ("fence_",),
     "hatches": ("hatches_",),
-    "foundations": (
+    # Единый блок: фундамент под весы, курирование, стройработы, бетон на раме,
+    # дорожные плиты, плиты ПАГ
+    "foundation_and_base": (
         "foundation_lite_",
         "foundation_std_",
         "foundation_s_f_",
         "foundation_supervision",
+        "construction_works_",
+        "concrete_base_on_frame",
+        "road_slabs_",
+        "pag_slabs_",
     ),
-    "construction_works": ("construction_works_",),
-    "concrete_on_frame": ("concrete_base_on_frame",),
     "canopy": ("canopy_turnkey_",),
     "pak_orion": (
         "orion_lite",
@@ -98,11 +98,11 @@ BLOCK_KEY_PREFIXES: dict[str, tuple[str, ...]] = {
 }
 
 # Опции, у которых показывается поле "Количество"
-QTY_ENABLED_BLOCKS: set[str] = {"ramps", "foundations"}
+QTY_ENABLED_BLOCKS: set[str] = {"ramps", "foundation_and_base"}
 
 # Единицы измерения по блокам
 UNIT_BY_BLOCK: dict[str, str] = {
     "ramps": "компл",
-    "foundations": "компл",
+    "foundation_and_base": "компл",
 }
 

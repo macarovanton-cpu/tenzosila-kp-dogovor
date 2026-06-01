@@ -20,6 +20,14 @@ from src.pricing import (
 )
 from src.spec_builder import resolve_dynamic_option_label
 
+FOUNDATION_EXECUTION_CHOICES: list[str] = [
+    "пандусный",
+    "приямок",
+    "монолитная_плита",
+]
+
+_FOUNDATION_EXECUTION_DEFAULT = "пандусный"
+
 
 def render_options_section(
     state: dict,
@@ -110,6 +118,9 @@ def _render_option_row(
         overrides.pop(key, None)
         return
 
+    if _requires_foundation_execution_choice(key):
+        _render_foundation_execution_choice(key, state, widget_suffix)
+
     # Поверка: особый случай — radio «Подрядчик / Заказчик»
     customer_side = False
     if key == "verification_default" and params.allow_customer_value:
@@ -148,6 +159,33 @@ def _render_option_row(
         "dealer_is_synthetic": params.dealer_is_synthetic,
         "block": block_id,
     }
+
+
+def _requires_foundation_execution_choice(key: str) -> bool:
+    """Нужен ли UI-выбор типа фундамента для варианта 1-3."""
+    return (
+        key.startswith(("foundation_lite_", "foundation_std_", "foundation_s_f_"))
+        or key == "foundation_supervision"
+        or key.startswith("construction_works_")
+    )
+
+
+def _render_foundation_execution_choice(
+    key: str, state: dict, widget_suffix: str
+) -> None:
+    """Выбор типа фундамента для snapshot КП→Договор."""
+    current = state.get("foundation_execution") or _FOUNDATION_EXECUTION_DEFAULT
+    if current not in FOUNDATION_EXECUTION_CHOICES:
+        current = _FOUNDATION_EXECUTION_DEFAULT
+
+    selected = st.segmented_control(
+        "Тип фундамента",
+        FOUNDATION_EXECUTION_CHOICES,
+        default=current,
+        key=f"opt_{key}_foundation_execution{widget_suffix}",
+        help="Попадает в snapshot КП для подбора строительного задания договора",
+    )
+    state["foundation_execution"] = selected or _FOUNDATION_EXECUTION_DEFAULT
 
 
 def _clear_price_override(item_key: str) -> None:

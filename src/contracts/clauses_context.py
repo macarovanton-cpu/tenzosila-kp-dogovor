@@ -8,7 +8,19 @@ _FOUNDATION_SCOPE_MAP: dict[str, str] = {
     "pandus_std": "contractor_full",
     "contractor_full": "contractor_full",
     "contractor_with_materials": "contractor_with_materials",
+    "contractor_supervised": "contractor_supervised",
     "customer_builds": "customer_builds",
+    # Основание на раме — все варианты → scope "rama"
+    "rama_concrete": "rama",
+    "rama_road_slabs": "rama",
+    "rama_pag_slabs": "rama",
+}
+
+# Маппинг scope → base_type (только для rama-вариантов)
+_BASE_TYPE_MAP: dict[str, str] = {
+    "rama_concrete": "concrete",
+    "rama_road_slabs": "road_slabs",
+    "rama_pag_slabs": "pag_slabs",
 }
 
 
@@ -26,16 +38,19 @@ def build_clauses_context(deal: dict) -> dict:
 
     items_by_id = {item["id"]: item for item in items}
 
-    # --- foundation_scope ---
+    # --- foundation_scope + base_type ---
+    raw_scope: str | None = None
     if "foundation" in items_by_id:
-        raw = items_by_id["foundation"].get("metadata", {}).get("scope", "contractor_full")
-        foundation_scope = _FOUNDATION_SCOPE_MAP.get(raw, "contractor_full")
+        raw_scope = items_by_id["foundation"].get("metadata", {}).get("scope", "contractor_full")
+        foundation_scope = _FOUNDATION_SCOPE_MAP.get(raw_scope, "contractor_full")
     elif "rama" in items_by_id:
         foundation_scope = "rama"
     elif overrides.get("foundation_scope") is not None:
         foundation_scope = overrides["foundation_scope"]
     else:
         foundation_scope = "none"
+
+    base_type: str | None = _BASE_TYPE_MAP.get(raw_scope) if raw_scope else None
 
     # --- installation_scope ---
     if "installation" in items_by_id:
@@ -79,6 +94,7 @@ def build_clauses_context(deal: dict) -> dict:
 
     return {
         "foundation_scope": foundation_scope,
+        "base_type": base_type,
         "installation_scope": installation_scope,
         "verification_scope": verification_scope,
         "has_orion": has_orion,

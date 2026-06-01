@@ -55,6 +55,8 @@ _ROLE_RULES: list[tuple[str, str]] = [
     ("foundation_supervision", "foundation"),
     ("construction_works_",    "foundation"),
     ("concrete_base_on_frame", "foundation"),
+    ("road_slabs_",            "foundation"),
+    ("pag_slabs_",             "foundation"),
     ("canopy_turnkey_",        "canopy"),
     ("orion_",                 "orion"),
 ]

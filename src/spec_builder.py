@@ -37,6 +37,16 @@ def _format_model_name(model: dict | None, model_id: str) -> str:
     return f"Весы автомобильные {model_id}"
 
 
+def _format_model_code(state: dict[str, Any]) -> str:
+    """Короткий код модели для связанных позиций КП."""
+    line = state.get("model_line", "")
+    max_t = state.get("model_max", "")
+    length = state.get("model_length", "")
+    if line and max_t and length:
+        return f"ВЕСТА-{line}-{max_t}-{length}"
+    return "ВЕСТА"
+
+
 def _format_model_full_spec_name(
     model: dict | None,
     model_id: str,
@@ -108,12 +118,38 @@ def resolve_dynamic_option_label(
     return label
 
 
-def _option_name(
-    entry: dict, opt_state: dict, item_key: str, model_line: str
-) -> str:
-    name = resolve_dynamic_option_label(
-        item_key, entry.get("label", ""), model_line
+def _foundation_execution_label(execution: str | None) -> str:
+    """Фраза типа фундамента для наименования позиции КП."""
+    if execution == "приямок":
+        return "в приямок"
+    if execution == "монолитная_плита":
+        return "монолитная плита"
+    return "пандусный"
+
+
+def _foundation_option_name(item_key: str, state: dict[str, Any]) -> str | None:
+    """Единое имя позиции варианта 1 «Фундамент под весы»."""
+    if not item_key.startswith(("foundation_s_f_", "foundation_lite_", "foundation_std_")):
+        return None
+    length = state.get("model_length", "")
+    model_code = _format_model_code(state)
+    execution = _foundation_execution_label(state.get("foundation_execution"))
+    return (
+        f"Фундамент железобетонный {execution} "
+        f"под весы {model_code}, {length}м"
     )
+
+
+def _option_name(
+    entry: dict, opt_state: dict, item_key: str, state: dict[str, Any]
+) -> str:
+    foundation_name = _foundation_option_name(item_key, state)
+    if foundation_name is not None:
+        name = foundation_name
+    else:
+        name = resolve_dynamic_option_label(
+            item_key, entry.get("label", ""), state.get("model_line", "")
+        )
     if opt_state.get("customer_side"):
         name = f"{name} (силами Заказчика)"
     return name
@@ -142,6 +178,10 @@ def resolve_payment_group(item_key: str) -> str:
     foundation, delivery, installation_and_verification.
     """
     if item_key.startswith("foundation_"):
+        return "foundation"
+    if item_key.startswith("construction_works_"):
+        return "foundation"
+    if item_key.startswith(("concrete_base", "road_slabs_", "pag_slabs_")):
         return "foundation"
     if item_key == "delivery_default":
         return "delivery"
@@ -207,7 +247,7 @@ def build_spec_items(
             items.append({
                 "num": len(items) + 1,
                 "item_key": key,
-                "name": _option_name(entry, opt, key, line),
+                "name": _option_name(entry, opt, key, state),
                 "qty": qty,
                 "unit": UNIT_BY_BLOCK.get(block_id, "шт"),
                 "price": price,

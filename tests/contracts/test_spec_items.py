@@ -182,3 +182,42 @@ class TestCustomItemFlow:
         all_text = " ".join(c.text for row in table.rows for c in row.cells)
         assert "Кастомное оборудование" in all_text
         assert len(table.rows) == 1 + len(items) + 1  # header + 2 + total
+
+
+class TestNewFoundationKeyMapping:
+    """construction_works_* и concrete_base_on_frame → spec_id='foundation'."""
+
+    def test_construction_works_maps_to_foundation(self):
+        """construction_works_18 → id='foundation', не кастомная."""
+        from src.contracts.from_kp import build_specification_items
+        opts = {
+            "construction_works_18": {"qty": 1, "price": 400_000, "customer_side": False},
+        }
+        items = build_specification_items(_make_kp_row(options=opts))
+        found = next(i for i in items if i["id"] == "foundation")
+        assert found["is_custom"] is False
+        assert found["metadata"]["scope"] == "contractor_with_materials"
+        assert found["total"] == 400_000
+
+    def test_concrete_base_maps_to_foundation(self):
+        """concrete_base_on_frame → id='foundation', scope='rama_concrete'."""
+        from src.contracts.from_kp import build_specification_items
+        opts = {
+            "concrete_base_on_frame": {"qty": 1, "price": 550_000, "customer_side": False},
+        }
+        items = build_specification_items(_make_kp_row(options=opts))
+        found = next(i for i in items if i["id"] == "foundation")
+        assert found["is_custom"] is False
+        assert found["metadata"]["scope"] == "rama_concrete"
+        assert found["total"] == 550_000
+
+    def test_foundation_supervision_maps_to_foundation(self):
+        """foundation_supervision → id='foundation', scope='contractor_supervised'."""
+        from src.contracts.from_kp import build_specification_items
+        opts = {
+            "foundation_supervision": {"qty": 1, "price": 120_000, "customer_side": False},
+        }
+        items = build_specification_items(_make_kp_row(options=opts))
+        found = next(i for i in items if i["id"] == "foundation")
+        assert found["is_custom"] is False
+        assert found["metadata"]["scope"] == "contractor_supervised"

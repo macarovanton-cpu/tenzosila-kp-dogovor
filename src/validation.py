@@ -158,9 +158,22 @@ def _split_group_active(group_id: str, state: dict) -> bool:
         return True
     options: dict = state.get("options", {})
     if group_id == "foundation":
-        prefixes = ("foundation_lite_", "foundation_std_", "foundation_s_f_")
+        prefixes = (
+            "foundation_lite_",
+            "foundation_std_",
+            "foundation_s_f_",
+            "construction_works_",
+            "road_slabs_",
+            "pag_slabs_",
+        )
         for k, opt in options.items():
-            if opt.get("enabled") and k.startswith(prefixes):
+            if not opt.get("enabled"):
+                continue
+            if (
+                k.startswith(prefixes)
+                or k == "foundation_supervision"
+                or k == "concrete_base_on_frame"
+            ):
                 return True
         return False
     if group_id == "delivery":

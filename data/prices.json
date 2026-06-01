@@ -754,10 +754,77 @@
       "applies_to_lengths": [
         18,
         20,
+        22,
         24
       ],
       "price_retail": 550000,
       "price_dealer_ru": 506000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "road_slabs_18": {
+      "label": "Укладка дорожных плит, 18м",
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 300000,
+      "price_dealer_ru": 276000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "road_slabs_20": {
+      "label": "Укладка дорожных плит, 20м",
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 330000,
+      "price_dealer_ru": 303600,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "road_slabs_24": {
+      "label": "Укладка дорожных плит, 24м",
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 360000,
+      "price_dealer_ru": 331200,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "pag_slabs_18": {
+      "label": "Укладка плит ПАГ, 18м",
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 450000,
+      "price_dealer_ru": 414000,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "pag_slabs_20": {
+      "label": "Укладка плит ПАГ, 20м",
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 490000,
+      "price_dealer_ru": 450800,
+      "discount_pct": 8,
+      "price_class": "B_retail_only",
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+    },
+    "pag_slabs_24": {
+      "label": "Укладка плит ПАГ, 24м",
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 540000,
+      "price_dealer_ru": 496800,
       "discount_pct": 8,
       "price_class": "B_retail_only",
       "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
@@ -908,6 +975,29 @@
       "price_retail": 445000,
       "price_dealer_ru": null,
       "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Цена для 22м — среднее между 20 и 24м."
+    },
+    "road_slabs_22": {
+      "label": "Укладка дорожных плит, 22м",
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 345000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Цена для 22м — среднее между 20 и 24м."
+    },
+    "pag_slabs_22": {
+      "label": "Укладка плит ПАГ, 22м",
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 515000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
       "notes": "Цена для 22м — среднее между 20 и 24м."
     },
     "canopy_turnkey_18": {

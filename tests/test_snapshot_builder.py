@@ -165,3 +165,125 @@ def test_options_preserve_retail_and_dealer_flag():
     assert "is_on_request" not in opt
     assert "block" not in opt
     assert "enabled" not in opt
+
+
+# --- Тесты полей контракта snapshot КП→Договор (HANDOFF.md §6) ---
+
+def _state_with_option(option_key: str, line: str = "С", length: int = 18) -> dict:
+    """Базовый state с одной включённой опцией."""
+    state = _base_state()
+    state["model_line"] = line
+    state["model_length"] = length
+    state["options"] = {
+        option_key: {
+            "enabled": True,
+            "price": 500_000,
+            "qty": 1,
+            "customer_side": False,
+            "is_on_request": False,
+            "retail": 500_000,
+            "dealer_is_synthetic": False,
+            "block": "foundation_and_base",
+        }
+    }
+    return state
+
+
+def test_foundation_execution_priamok():
+    """foundation_s_f_* без UI-выбора → дефолт 'пандусный'."""
+    snap = build_kp_snapshot(_state_with_option("foundation_s_f_18"))
+    assert snap["foundation_execution"] == "пандусный"
+
+
+def test_foundation_execution_uses_manager_choice_for_foundation_option():
+    """Вариант 1: тип фундамента берётся из UI-выбора менеджера."""
+    state = _state_with_option("foundation_s_f_18")
+    state["foundation_execution"] = "монолитная_плита"
+    snap = build_kp_snapshot(state)
+    assert snap["foundation_execution"] == "монолитная_плита"
+
+
+def test_foundation_execution_uses_manager_choice_for_supervision():
+    """Вариант 2: курирование тоже берёт тип из UI-выбора."""
+    state = _state_with_option("foundation_supervision")
+    state["foundation_execution"] = "приямок"
+    snap = build_kp_snapshot(state)
+    assert snap["foundation_execution"] == "приямок"
+
+
+def test_foundation_execution_uses_manager_choice_for_customer_materials():
+    """Вариант 3: стройработы с материалами Заказчика берут тип из UI-выбора."""
+    state = _state_with_option("construction_works_18")
+    state["foundation_execution"] = "пандусный"
+    snap = build_kp_snapshot(state)
+    assert snap["foundation_execution"] == "пандусный"
+
+
+def test_foundation_execution_rama_concrete():
+    """concrete_base_on_frame → foundation_execution = 'rama_concrete'."""
+    snap = build_kp_snapshot(_state_with_option("concrete_base_on_frame"))
+    assert snap["foundation_execution"] == "rama_concrete"
+
+
+def test_foundation_execution_null_when_no_foundation():
+    """Нет фундаментных опций → foundation_execution = None."""
+    state = _base_state()
+    state["options"] = {}
+    snap = build_kp_snapshot(state)
+    assert snap["foundation_execution"] is None
+
+
+def test_foundation_execution_null_for_supervision():
+    """foundation_supervision без UI-выбора → дефолт 'пандусный'."""
+    snap = build_kp_snapshot(_state_with_option("foundation_supervision"))
+    assert snap["foundation_execution"] == "пандусный"
+
+
+def test_foundation_execution_rama_road_slabs():
+    """road_slabs_* → foundation_execution = 'rama_road_slabs'."""
+    snap = build_kp_snapshot(_state_with_option("road_slabs_18"))
+    assert snap["foundation_execution"] == "rama_road_slabs"
+
+
+def test_foundation_execution_rama_pag_slabs():
+    """pag_slabs_* → foundation_execution = 'rama_pag_slabs'."""
+    snap = build_kp_snapshot(_state_with_option("pag_slabs_18"))
+    assert snap["foundation_execution"] == "rama_pag_slabs"
+
+
+def test_foundation_sections_18m():
+    """Длина 18м → foundation_sections = 3."""
+    snap = build_kp_snapshot(_state_with_option("foundation_s_f_18", length=18))
+    assert snap["foundation_sections"] == 3
+
+
+def test_foundation_sections_20m():
+    """Длина 20м → foundation_sections = 4."""
+    snap = build_kp_snapshot(_state_with_option("foundation_s_f_20", length=20))
+    assert snap["foundation_sections"] == 4
+
+
+def test_foundation_sections_null_when_no_foundation():
+    """Нет фундаментных опций → foundation_sections = None."""
+    state = _base_state()
+    state["options"] = {}
+    snap = build_kp_snapshot(state)
+    assert snap["foundation_sections"] is None
+
+
+def test_foundation_sections_null_for_road_and_pag_slabs():
+    """Дорожные плиты и ПАГ — одиночные задания, секции не применяются."""
+    road = build_kp_snapshot(_state_with_option("road_slabs_18", length=18))
+    pag = build_kp_snapshot(_state_with_option("pag_slabs_24", length=24))
+    assert road["foundation_sections"] is None
+    assert pag["foundation_sections"] is None
+
+
+def test_model_code_format():
+    """model_code = 'ВЕСТА-{line}-{max}-{length}'."""
+    state = _base_state()
+    state["model_line"] = "С"
+    state["model_max"] = 60
+    state["model_length"] = 18
+    snap = build_kp_snapshot(state)
+    assert snap["model_code"] == "ВЕСТА-С-60-18"

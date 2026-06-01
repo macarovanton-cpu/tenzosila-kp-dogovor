@@ -3,6 +3,73 @@ from __future__ import annotations
 
 from typing import Any
 
+# Маппинг длины платформы → количество секций (из models.json, детерминировано)
+_LENGTH_TO_SECTIONS: dict[int, int] = {18: 3, 20: 4, 22: 4, 24: 4}
+_FOUNDATION_EXECUTION_CHOICES: frozenset[str] = frozenset({
+    "пандусный",
+    "приямок",
+    "монолитная_плита",
+})
+_DEFAULT_FOUNDATION_EXECUTION = "пандусный"
+
+
+def _has_manager_selected_foundation(enabled_options: dict[str, Any]) -> bool:
+    return any(
+        key.startswith(("foundation_s_f_", "foundation_lite_", "foundation_std_"))
+        or key == "foundation_supervision"
+        or key.startswith("construction_works_")
+        for key in enabled_options
+    )
+
+
+def _resolve_foundation_execution(
+    enabled_options: dict[str, Any], selected_execution: Any
+) -> str | None:
+    """Определить тип исполнения фундамента по включённым опциям.
+
+    Возвращает значение для поля foundation_execution в snapshot:
+    - выбранный менеджером тип — для фундаментных вариантов 1-3
+    - "rama_concrete" — бетонное основание на раме
+    - "rama_road_slabs" — укладка дорожных плит
+    - "rama_pag_slabs" — укладка плит ПАГ
+    - None — фундамент не выбран
+    """
+    for key in enabled_options:
+        if key == "concrete_base_on_frame":
+            return "rama_concrete"
+        if key.startswith("road_slabs_"):
+            return "rama_road_slabs"
+        if key.startswith("pag_slabs_"):
+            return "rama_pag_slabs"
+    if _has_manager_selected_foundation(enabled_options):
+        if selected_execution in _FOUNDATION_EXECUTION_CHOICES:
+            return str(selected_execution)
+        return _DEFAULT_FOUNDATION_EXECUTION
+    return None
+
+
+def _resolve_foundation_sections(
+    enabled_options: dict[str, Any], length: int | None
+) -> int | None:
+    """Количество секций платформы для строительного задания.
+
+    Возвращает None если нет фундаментной опции (курирование и стройработы
+    без материалов не требуют строительного задания).
+    """
+    has_sectioned_foundation = any(
+        key.startswith((
+            "foundation_s_f_",
+            "foundation_lite_",
+            "foundation_std_",
+            "construction_works_",
+        ))
+        or key == "concrete_base_on_frame"
+        for key in enabled_options
+    )
+    if not has_sectioned_foundation or length is None:
+        return None
+    return _LENGTH_TO_SECTIONS.get(int(length))
+
 
 def build_kp_snapshot(state: dict[str, Any]) -> dict[str, Any]:
     """Возвращает data-блок для колонки kps.data.
@@ -26,17 +93,27 @@ def build_kp_snapshot(state: dict[str, Any]) -> dict[str, Any]:
         if opt.get("enabled", False)
     }
 
+    line = state.get("model_line", "")
+    max_t = state.get("model_max", "")
+    length = state.get("model_length")
+
     return {
         "metadata": {
             "kp_valid_days": state.get("kp_valid_days"),
             "warranty_months": state.get("warranty_months"),
         },
         "model": {
-            "line": state.get("model_line"),
-            "max": state.get("model_max"),
-            "length": state.get("model_length"),
+            "line": line,
+            "max": max_t,
+            "length": length,
             "price": state.get("model_price"),
         },
+        # Контракт snapshot КП→Договор (HANDOFF.md §6)
+        "foundation_execution": _resolve_foundation_execution(
+            enabled_options, state.get("foundation_execution")
+        ),
+        "foundation_sections": _resolve_foundation_sections(enabled_options, length),
+        "model_code": f"ВЕСТА-{line}-{max_t}-{length}" if line and max_t and length else None,
         "equipment": {
             "sensor_id": state.get("sensor_id"),
             "indicator_id": state.get("indicator_id"),

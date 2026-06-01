@@ -170,3 +170,69 @@ class TestOverrides:
         deal = {"items": [_item("verification", {"customer_side": True})]}
         ctx = build_clauses_context(deal)
         assert ctx["verification_scope"] == "customer"
+
+
+class TestNewFoundationScopes:
+    """Новые scope-значения блока foundation_and_base."""
+
+    def test_contractor_supervised_scope(self):
+        """foundation_supervision → scope='contractor_supervised'."""
+        from src.contracts.clauses_context import build_clauses_context
+        deal = {"items": [
+            _item("weights"),
+            _item("foundation", {"scope": "contractor_supervised"}),
+        ]}
+        ctx = build_clauses_context(deal)
+        assert ctx["foundation_scope"] == "contractor_supervised"
+        assert ctx["base_type"] is None
+
+    def test_rama_concrete_scope_and_base_type(self):
+        """concrete_base_on_frame → scope='rama', base_type='concrete'."""
+        from src.contracts.clauses_context import build_clauses_context
+        deal = {"items": [
+            _item("weights"),
+            _item("foundation", {"scope": "rama_concrete"}),
+        ]}
+        ctx = build_clauses_context(deal)
+        assert ctx["foundation_scope"] == "rama"
+        assert ctx["base_type"] == "concrete"
+
+    def test_rama_road_slabs_scope_and_base_type(self):
+        """road_slabs_* → scope='rama', base_type='road_slabs'."""
+        from src.contracts.clauses_context import build_clauses_context
+        deal = {"items": [
+            _item("weights"),
+            _item("foundation", {"scope": "rama_road_slabs"}),
+        ]}
+        ctx = build_clauses_context(deal)
+        assert ctx["foundation_scope"] == "rama"
+        assert ctx["base_type"] == "road_slabs"
+
+    def test_rama_pag_slabs_scope_and_base_type(self):
+        """pag_slabs_* → scope='rama', base_type='pag_slabs'."""
+        from src.contracts.clauses_context import build_clauses_context
+        deal = {"items": [
+            _item("weights"),
+            _item("foundation", {"scope": "rama_pag_slabs"}),
+        ]}
+        ctx = build_clauses_context(deal)
+        assert ctx["foundation_scope"] == "rama"
+        assert ctx["base_type"] == "pag_slabs"
+
+    def test_base_type_none_when_not_rama(self):
+        """Для не-rama scope → base_type = None."""
+        from src.contracts.clauses_context import build_clauses_context
+        deal = {"items": [
+            _item("weights"),
+            _item("foundation", {"scope": "fundament_jb"}),
+        ]}
+        ctx = build_clauses_context(deal)
+        assert ctx["foundation_scope"] == "contractor_full"
+        assert ctx["base_type"] is None
+
+    def test_base_type_none_when_no_foundation(self):
+        """Нет фундамента → base_type = None."""
+        from src.contracts.clauses_context import build_clauses_context
+        deal = {"items": [_item("weights")]}
+        ctx = build_clauses_context(deal)
+        assert ctx["base_type"] is None

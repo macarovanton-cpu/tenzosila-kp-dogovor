@@ -145,3 +145,37 @@ def test_data_incomplete_emits_warning(prices, models_json, payment_terms, manag
     state["model_price"] = price["retail"]
     _, warnings = validate(state, prices, models_json, payment_terms, managers)
     assert any("неполные" in w for w in warnings)
+
+
+def test_split_foundation_group_active_for_all_foundation_base_variants(
+    prices, models_json, payment_terms, managers
+):
+    """split_by_items валидирует группу foundation для всех 6 вариантов блока."""
+    foundation_keys = [
+        "foundation_s_f_18",
+        "foundation_supervision",
+        "construction_works_18",
+        "concrete_base_on_frame",
+        "road_slabs_18",
+        "pag_slabs_18",
+    ]
+
+    for key in foundation_keys:
+        state = _valid_state()
+        state["payment_preset_id"] = "split_by_items"
+        state["payment_split_state"] = {
+            "foundation": {"prepay": 40, "postpay": 40},
+        }
+        state["options"] = {
+            key: {
+                "enabled": True,
+                "price": 100_000,
+                "qty": 1,
+                "customer_side": False,
+                "is_on_request": False,
+            }
+        }
+
+        errors, _ = validate(state, prices, models_json, payment_terms, managers)
+
+        assert any("не равна 100" in e for e in errors), key

@@ -57,6 +57,15 @@ def _option_key_to_spec_id(key: str) -> str | None:
         return "verification"
     if key.startswith("foundation_"):
         return "foundation"
+    # Стройработы и основание на раме — тоже фундаментная группа
+    if key.startswith("construction_works_"):
+        return "foundation"
+    if key == "concrete_base_on_frame":
+        return "foundation"
+    if key.startswith("road_slabs_"):
+        return "foundation"
+    if key.startswith("pag_slabs_"):
+        return "foundation"
     if "orion_install" in key:
         return "orion_install"
     if key.startswith("orion"):

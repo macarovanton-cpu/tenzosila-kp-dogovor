@@ -15,6 +15,8 @@ _SIMPLE_OPTION_NAMES: dict[str, str] = {
     "delivery_default": "Доставка весов до объекта",
     "install_default": "Монтаж автомобильных весов",
     "verification_default": "Поверка автомобильных весов с доставкой эталонов",
+    "concrete_base_on_frame": "Бетонное основание для весов на раме",
+    "foundation_supervision": "Курирование строительства фундамента ВЕСТА",
 }
 
 _FOUNDATION_PATTERNS = [
@@ -24,6 +26,12 @@ _FOUNDATION_PATTERNS = [
      "Фундамент пандусный «ЛАЙТ» под весы автомобильные ВЕСТА-{line}, {N}м"),
     (re.compile(r"^foundation_std_sl_fl_(\d+)$"),
      "Фундамент пандусный «Стандарт» под весы автомобильные ВЕСТА-{line}, {N}м"),
+    (re.compile(r"^construction_works_(\d+)$"),
+     "Строительство фундамента, материалы/спецтехника Заказчика, {N}м"),
+    (re.compile(r"^road_slabs_(\d+)$"),
+     "Укладка дорожных плит, {N}м"),
+    (re.compile(r"^pag_slabs_(\d+)$"),
+     "Укладка плит ПАГ, {N}м"),
 ]
 
 
@@ -414,6 +422,16 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
                 metadata["scope"] = "pandus_lite"
             elif "_std_" in key:
                 metadata["scope"] = "pandus_std"
+            elif key.startswith("construction_works_"):
+                metadata["scope"] = "contractor_with_materials"
+            elif key == "concrete_base_on_frame":
+                metadata["scope"] = "rama_concrete"
+            elif key.startswith("road_slabs_"):
+                metadata["scope"] = "rama_road_slabs"
+            elif key.startswith("pag_slabs_"):
+                metadata["scope"] = "rama_pag_slabs"
+            elif key == "foundation_supervision":
+                metadata["scope"] = "contractor_supervised"
             else:
                 metadata["scope"] = "fundament_jb"
 
