@@ -26,6 +26,8 @@ def _make_kp_row(
     options: dict | None = None,
     payment_preset: str = "split_by_items",
     payment_split_state: dict | None = None,
+    custom_items: list[dict] | None = None,
+    installation_scope: str | None = None,
 ) -> dict:
     model_data = {
         "line": model_line,
@@ -43,6 +45,8 @@ def _make_kp_row(
             "model": model_data,
             "equipment": {"sensor_id": "zemic_dhm9b_30t", "indicator_id": "titan_3cs", "cable_m": 20},
             "options": options or {},
+            "custom_items": custom_items or [],
+            "installation_scope": installation_scope,
             "spec_overrides": {},
             "payment": {
                 "preset_id": payment_preset,
@@ -283,6 +287,38 @@ class TestBuildSpecRowsFromSnapshot:
         assert any("unknown_future_option_42" in msg for msg in caplog.messages)
         assert any(r["name"] == "unknown_future_option_42" for r in rows)
 
+    def test_bytovka_row_uses_dimensions_from_snapshot(self):
+        """Договорные строки получают имя бытовки с габаритами."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        kp_row = _make_kp_row(options={
+            "bytovka_weigh_room": {
+                "qty": 1, "price": 650000, "retail": 650000,
+                "customer_side": False, "dimensions": "6×2.4м",
+            },
+        })
+
+        rows = build_spec_rows_from_snapshot(kp_row)
+
+        assert any(
+            r["name"] == "Весовое помещение (бытовка) 6×2.4м"
+            and r["price"] == 650000
+            for r in rows
+        )
+
+    def test_custom_items_rows_from_snapshot(self):
+        """custom_items из snapshot попадают в договорные строки."""
+        from src.contracts.from_kp import build_spec_rows_from_snapshot
+        kp_row = _make_kp_row(custom_items=[
+            {"name": "Дополнительный шкаф", "price": 120000},
+        ])
+
+        rows = build_spec_rows_from_snapshot(kp_row)
+
+        assert any(
+            r["name"] == "Дополнительный шкаф" and r["price"] == 120000
+            for r in rows
+        )
+
     def test_foundation_formulations_all_three_types(self):
         """Проверка формулировок для всех 3 типов фундамента."""
         from src.contracts.from_kp import build_spec_rows_from_snapshot
@@ -327,3 +363,35 @@ class TestBuildSpecRowsFromSnapshot:
             "Весы автомобильные ВЕСТА-С-60-18-Ц, "
             "max 60т, размеры платформы 18х4м"
         )
+
+    def test_specification_items_custom_items_bucket_equipment(self):
+        """custom_items становятся кастомными SpecItem с bucket=equipment."""
+        from src.contracts.from_kp import build_specification_items
+
+        items = build_specification_items(_make_kp_row(custom_items=[
+            {"name": "Дополнительный шкаф", "price": 120000},
+        ]))
+
+        custom = next(i for i in items if i["name"] == "Дополнительный шкаф")
+        assert custom["is_custom"] is True
+        assert custom["source"] == "custom"
+        assert custom["metadata"]["bucket"] == "equipment"
+        assert custom["total"] == 120000
+
+    def test_specification_items_installation_scope_from_snapshot(self):
+        """installation_scope из snapshot задаёт scope монтажа в SpecItem."""
+        from src.contracts.from_kp import build_specification_items
+        opts = {
+            "install_default": {
+                "qty": 1, "price": 180000, "retail": 180000,
+                "customer_side": False,
+            },
+        }
+
+        items = build_specification_items(
+            _make_kp_row(options=opts, installation_scope="shefmontazh")
+        )
+
+        install = next(i for i in items if i["id"] == "installation")
+        assert install["name"] == "Шеф-монтаж и пусконаладка"
+        assert install["metadata"]["scope"] == "shefmontazh"

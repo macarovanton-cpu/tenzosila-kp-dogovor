@@ -66,6 +66,8 @@ def test_builds_full_snapshot_from_minimal_state():
     assert snap["metrology"]["is_dual_range"] is False
 
     assert snap["options"] == {}
+    assert snap["custom_items"] == []
+    assert snap["installation_scope"] is None
     assert snap["spec_overrides"] == {}
 
     assert snap["payment"]["preset_id"] == "split_by_items"
@@ -186,6 +188,66 @@ def test_options_preserve_retail_and_dealer_flag():
     assert "is_on_request" not in opt
     assert "block" not in opt
     assert "enabled" not in opt
+
+
+def test_snapshot_preserves_bytovka_dimensions_in_options():
+    """Габариты бытовки сохраняются в payload опции."""
+    state = _base_state()
+    state["options"] = {
+        "bytovka_weigh_room": {
+            "enabled": True,
+            "price": 650_000,
+            "qty": 1,
+            "customer_side": False,
+            "is_on_request": False,
+            "retail": 650_000,
+            "dealer_is_synthetic": False,
+            "block": "misc",
+            "dimensions": "6×2.4м",
+        }
+    }
+
+    snap = build_kp_snapshot(state)
+
+    assert snap["options"]["bytovka_weigh_room"]["dimensions"] == "6×2.4м"
+
+
+def test_snapshot_custom_items_strip_internal_ids_and_empty_rows():
+    """В snapshot custom_items уходят только name/price валидных строк."""
+    state = _base_state()
+    state["custom_items"] = [
+        {"id": "custom_1", "name": "Дополнительный шкаф", "price": 120_000},
+        {"id": "custom_2", "name": " ", "price": 99_000},
+        {"id": "custom_3", "name": "Нулевая цена", "price": 0},
+    ]
+
+    snap = build_kp_snapshot(state)
+
+    assert snap["custom_items"] == [
+        {"name": "Дополнительный шкаф", "price": 120_000}
+    ]
+
+
+def test_snapshot_installation_scope_null_without_install():
+    """Если монтаж не включён, installation_scope явно null."""
+    state = _base_state()
+    snap = build_kp_snapshot(state)
+    assert snap["installation_scope"] is None
+
+
+def test_snapshot_installation_scope_full_for_enabled_install():
+    """Монтаж без галки шеф-монтажа → full."""
+    state = _state_with_option("install_default")
+    snap = build_kp_snapshot(state)
+    assert snap["installation_scope"] == "full"
+
+
+def test_snapshot_installation_scope_shefmontazh_for_checked_install():
+    """Монтаж с галкой шеф-монтажа → shefmontazh."""
+    state = _state_with_option("install_default")
+    state["is_shefmontazh"] = True
+    snap = build_kp_snapshot(state)
+    assert snap["installation_scope"] == "shefmontazh"
 
 
 # --- Тесты полей контракта snapshot КП→Договор (HANDOFF.md §6) ---

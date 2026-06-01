@@ -81,6 +81,17 @@ def test_slider_params_class_c_verification(prices):
     assert params.allow_customer_value is True
 
 
+def test_slider_params_class_c_bytovka(prices):
+    """Бытовка: ручной диапазон 200К–1.5М, дефолт retail."""
+    entry = prices["options"]["bytovka_weigh_room"]
+    params = get_slider_params(entry)
+    assert params.kind == "number_input"
+    assert params.min_v == 200_000
+    assert params.max_v == 1_500_000
+    assert params.default_v == int(entry["price_retail"])
+    assert params.step == 10_000
+
+
 def test_slider_params_unknown_22m_frame_22(prices):
     """UNKNOWN (22м без price_class): min=ceil(retail*0.92/1000), dealer помечен synthetic."""
     entry = prices["options"]["frame_22"]

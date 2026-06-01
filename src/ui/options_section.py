@@ -59,6 +59,7 @@ def render_options_section(
                 _render_option_row(
                     key, entry, block_id, state, options_meta
                 )
+    _render_custom_items(state)
 
 
 def _render_option_row(
@@ -113,6 +114,12 @@ def _render_option_row(
             "dealer_is_synthetic": params.dealer_is_synthetic,
             "block": block_id,
         }
+        if key == "bytovka_weigh_room":
+            state["bytovka_dimensions"] = ""
+            st.session_state.pop(f"opt_{key}_dimensions{widget_suffix}", None)
+        if key == "install_default":
+            state["is_shefmontazh"] = False
+            st.session_state.pop(f"opt_{key}_shefmontazh{widget_suffix}", None)
         # При выключении опции сбросить её override в spec-таблице
         overrides = state.setdefault("spec_items_overrides", {})
         overrides.pop(key, None)
@@ -120,6 +127,25 @@ def _render_option_row(
 
     if _requires_foundation_execution_choice(key):
         _render_foundation_execution_choice(key, state, widget_suffix)
+
+    dimensions = ""
+    if key == "bytovka_weigh_room":
+        dimensions = st.text_input(
+            "Габариты",
+            value=str(state.get("bytovka_dimensions", "")),
+            placeholder="6×2.4м",
+            key=f"opt_{key}_dimensions{widget_suffix}",
+        ).strip()
+        state["bytovka_dimensions"] = dimensions
+
+    if key == "install_default":
+        state["is_shefmontazh"] = bool(
+            st.checkbox(
+                "Шеф-монтаж",
+                value=bool(state.get("is_shefmontazh", False)),
+                key=f"opt_{key}_shefmontazh{widget_suffix}",
+            )
+        )
 
     # Поверка: особый случай — radio «Подрядчик / Заказчик»
     customer_side = False
@@ -159,6 +185,53 @@ def _render_option_row(
         "dealer_is_synthetic": params.dealer_is_synthetic,
         "block": block_id,
     }
+    if key == "bytovka_weigh_room":
+        state["options"][key]["dimensions"] = dimensions
+
+
+def _render_custom_items(state: dict) -> None:
+    """Динамический список произвольных товарных позиций КП."""
+    state.setdefault("custom_items", [])
+    state.setdefault("custom_item_next_id", 1)
+
+    st.divider()
+    st.caption("Произвольные позиции")
+    if st.button("+ добавить позицию", key="custom_item_add"):
+        next_id = int(state.get("custom_item_next_id", 1))
+        state["custom_items"].append({
+            "id": f"custom_{next_id}",
+            "name": "",
+            "price": 0,
+        })
+        state["custom_item_next_id"] = next_id + 1
+        st.rerun()
+
+    for item in list(state.get("custom_items", [])):
+        item_id = str(item.get("id") or "")
+        if not item_id:
+            continue
+        cols = st.columns([5, 2, 1])
+        name = cols[0].text_input(
+            "Название",
+            value=str(item.get("name", "")),
+            key=f"{item_id}_name",
+        ).strip()
+        price = int(cols[1].number_input(
+            "Цена, ₽",
+            min_value=0,
+            max_value=100_000_000,
+            step=1_000,
+            value=int(item.get("price", 0) or 0),
+            key=f"{item_id}_price",
+        ))
+        if cols[2].button("×", key=f"{item_id}_delete", help="Удалить позицию"):
+            state["custom_items"] = [
+                existing for existing in state.get("custom_items", [])
+                if existing.get("id") != item_id
+            ]
+            st.rerun()
+        item["name"] = name
+        item["price"] = price
 
 
 def _requires_foundation_execution_choice(key: str) -> bool:

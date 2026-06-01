@@ -71,6 +71,50 @@ def _resolve_foundation_sections(
     return _LENGTH_TO_SECTIONS.get(int(length))
 
 
+def _build_enabled_options(opts: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Собрать compact payload включённых опций для snapshot."""
+    enabled_options: dict[str, dict[str, Any]] = {}
+    for key, opt in opts.items():
+        if not opt.get("enabled", False):
+            continue
+        payload = {
+            "price": opt.get("price", 0),
+            "qty": opt.get("qty", 1),
+            "customer_side": opt.get("customer_side", False),
+            "retail": opt.get("retail", 0),
+            "dealer_is_synthetic": opt.get("dealer_is_synthetic", False),
+        }
+        if key == "bytovka_weigh_room":
+            dimensions = str(opt.get("dimensions") or "").strip()
+            if dimensions:
+                payload["dimensions"] = dimensions
+        enabled_options[key] = payload
+    return enabled_options
+
+
+def _build_custom_items(state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Отдать в snapshot только валидные произвольные позиции без UI-id."""
+    result: list[dict[str, Any]] = []
+    for item in state.get("custom_items") or []:
+        name = str(item.get("name") or "").strip()
+        price = int(item.get("price") or 0)
+        if not name or price <= 0:
+            continue
+        result.append({"name": name, "price": price})
+    return result
+
+
+def _resolve_installation_scope(
+    enabled_options: dict[str, Any], state: dict[str, Any]
+) -> str | None:
+    """Тип монтажа для договора; без включённого монтажа остаётся null."""
+    if "install_default" not in enabled_options:
+        return None
+    if state.get("is_shefmontazh"):
+        return "shefmontazh"
+    return "full"
+
+
 def build_kp_snapshot(state: dict[str, Any]) -> dict[str, Any]:
     """Возвращает data-блок для колонки kps.data.
 
@@ -81,17 +125,7 @@ def build_kp_snapshot(state: dict[str, Any]) -> dict[str, Any]:
     price/qty/customer_side/retail/dealer_is_synthetic.
     """
     opts = state.get("options") or {}
-    enabled_options = {
-        key: {
-            "price": opt.get("price", 0),
-            "qty": opt.get("qty", 1),
-            "customer_side": opt.get("customer_side", False),
-            "retail": opt.get("retail", 0),
-            "dealer_is_synthetic": opt.get("dealer_is_synthetic", False),
-        }
-        for key, opt in opts.items()
-        if opt.get("enabled", False)
-    }
+    enabled_options = _build_enabled_options(opts)
 
     line = state.get("model_line", "")
     max_t = state.get("model_max", "")
@@ -115,6 +149,7 @@ def build_kp_snapshot(state: dict[str, Any]) -> dict[str, Any]:
         ),
         "foundation_sections": _resolve_foundation_sections(enabled_options, length),
         "model_code": f"ВЕСТА-{line}-{max_t}-{length}" if line and max_t and length else None,
+        "installation_scope": _resolve_installation_scope(enabled_options, state),
         "equipment": {
             "sensor_id": state.get("sensor_id"),
             "indicator_id": state.get("indicator_id"),
@@ -132,6 +167,7 @@ def build_kp_snapshot(state: dict[str, Any]) -> dict[str, Any]:
             "is_dual_range": state.get("is_dual_range"),
         },
         "options": enabled_options,
+        "custom_items": _build_custom_items(state),
         "spec_overrides": state.get("spec_items_overrides") or {},
         "payment": {
             "preset_id": state.get("payment_preset_id"),

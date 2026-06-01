@@ -359,6 +359,68 @@ def test_build_spec_items_uses_dynamic_frame_and_ramp_labels(prices, models_json
     assert "Ф/С" not in ramp_name
 
 
+def test_build_spec_items_formats_bytovka_with_dimensions(prices, models_json):
+    """Бытовка в КП получает габариты из state/options."""
+    state = _base_state()
+    state["options"] = {
+        "bytovka_weigh_room": {
+            "enabled": True, "price": 650_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 650_000, "dealer_is_synthetic": False,
+            "block": "misc", "dimensions": "6×2.4м",
+        }
+    }
+
+    items = build_spec_items(state, prices, models_json)
+
+    bytovka = next(i for i in items if i["item_key"] == "bytovka_weigh_room")
+    assert bytovka["name"] == "Весовое помещение (бытовка) 6×2.4м"
+    assert bytovka["payment_group"] == "scales"
+    assert bytovka["term_role"] is None
+
+
+def test_build_spec_items_adds_custom_items_as_equipment(prices, models_json):
+    """Произвольные позиции добавляются в bucket equipment/scales."""
+    state = _base_state()
+    state["custom_items"] = [
+        {"id": "custom_1", "name": "Дополнительный шкаф", "price": 120_000},
+        {"id": "custom_2", "name": "", "price": 99_000},
+        {"id": "custom_3", "name": "Нулевая цена", "price": 0},
+    ]
+
+    items = build_spec_items(state, prices, models_json)
+
+    custom = next(i for i in items if i["item_key"] == "custom_1")
+    assert custom["name"] == "Дополнительный шкаф"
+    assert custom["qty"] == 1
+    assert custom["unit"] == "шт"
+    assert custom["price"] == 120_000
+    assert custom["payment_group"] == "scales"
+    assert custom["term_role"] is None
+    assert "custom_2" not in {i["item_key"] for i in items}
+    assert "custom_3" not in {i["item_key"] for i in items}
+
+
+def test_build_spec_items_shefmontazh_changes_install_name_only(prices, models_json):
+    """Шеф-монтаж меняет наименование монтажа, но не цену."""
+    state = _base_state()
+    state["is_shefmontazh"] = True
+    state["options"] = {
+        "install_default": {
+            "enabled": True, "price": 180_000, "qty": 1,
+            "customer_side": False, "is_on_request": False,
+            "retail": 180_000, "dealer_is_synthetic": False,
+            "block": "install",
+        }
+    }
+
+    items = build_spec_items(state, prices, models_json)
+
+    install = next(i for i in items if i["item_key"] == "install_default")
+    assert install["name"] == "Шеф-монтаж и пусконаладка"
+    assert install["price"] == 180_000
+
+
 def test_build_spec_items_includes_term_role(prices, models_json):
     """Каждый item должен иметь поле term_role."""
     state = _base_state()

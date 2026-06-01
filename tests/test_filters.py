@@ -63,6 +63,14 @@ def test_visible_options_foundation_and_base_contains_six_variant_families(price
     assert "pag_slabs_18" in keys
 
 
+def test_visible_options_misc_contains_bytovka_for_all_models(prices):
+    """Весовое помещение доступно как доп. услуга для любой модели."""
+    for line in ("С", "СЛ", "Ф", "ФЛ", "П"):
+        visible = get_visible_options(prices["options"], line, 18, "misc")
+        keys = [k for k, _ in visible]
+        assert "bytovka_weigh_room" in keys
+
+
 def test_model_id_from_cascade_and_exists(prices):
     mid = model_id_from_cascade("С", 60, 18)
     assert mid == "vesta-с-60-18"

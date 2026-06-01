@@ -578,6 +578,29 @@
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
+    "bytovka_weigh_room": {
+      "label": "Весовое помещение (бытовка)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 200000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 200000,
+      "range_max": 1500000,
+      "notes": "Ручной диапазон. Габариты вводятся менеджером свободным текстом."
+    },
     "foundation_lite_sl_fl_18": {
       "label": "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ/ФЛ, 18м",
       "applies_to_lines": [

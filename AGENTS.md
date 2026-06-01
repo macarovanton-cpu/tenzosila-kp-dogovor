@@ -29,8 +29,14 @@ pytest tests/ -v           # тесты (должны быть GREEN перед 
 ## Критические правила домена
 
 - **НДС в РФ = 22%** — не 20%, не «стандартный». Не «исправлять» в документах.
+- Цены в `prices.json` имеют 3 класса по `price_class`:
+  - `A_retail_and_dealer`: slider `dealer_ru` ↔ `retail×1.4`, default `retail`.
+  - `B_retail_only`: slider `retail×0.6` ↔ `retail×1.4`, default `retail`.
+  - `C_manual_range`: `number_input` `range_min` ↔ `range_max`, default `price_retail`.
+- Дефолт пресета оплаты — `split_by_items`.
 - JSON-справочники в `data/` — не трогать без явного указания пользователя.
 - `knowledge_base/` — read-only, не редактировать.
+- Без согласования не делать: Битрикс-интеграцию, ORM, переписывание JSON в `data/`, правки в `knowledge_base/`.
 
 ## Git
 
@@ -44,10 +50,26 @@ pytest tests/ -v           # тесты (должны быть GREEN перед 
 ## Архитектурные инварианты
 
 - Состояние КП: плоский `st.session_state` с префиксными ключами (`opt_{key}_enabled` и т.п.).
-- Состояние договора: вложенная структура `st.session_state["contract"]`.
+- Состояние договора: вложенная структура `st.session_state["contract"]`:
+  `specification.items`, `flags`, `scope_overrides`, `card`, `extracted`.
+- Snapshot КП→Договор обязан передавать `foundation_execution`,
+  `foundation_sections`, `model_code`; контракт описан в `docs/HANDOFF.md`.
 - Derived-значения (model_id, spec_items, суммы) — считать на рендере, не хранить в state.
 - Валидация возвращает `(errors, warnings)`. `errors` блокируют кнопку.
 - При смене модели — сбросить все options, поставить model_price = retail новой модели.
+
+## Работа по задаче
+
+- `docs/STATUS.md` — источник правды по текущей работе; читать «Активную задачу» в начале.
+- В «Активной задаче» шаги ведутся чек-листом; текущий шаг помечен `← ТЕКУЩИЙ`.
+- После завершения шага: поставить `[x]`, перенести маркер на следующий шаг,
+  добавить запись в лог и отдельным коммитом зафиксировать галочку.
+
+## Принципы разработки
+
+- **Think Before Coding**: сначала понять задачу и неоднозначности, потом править.
+- **Surgical Changes**: менять только то, что относится к задаче.
+- **Verification First**: заранее назвать проверку и закрывать задачу только после неё.
 
 ## Стиль кода
 

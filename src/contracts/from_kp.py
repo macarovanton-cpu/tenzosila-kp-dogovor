@@ -20,6 +20,8 @@ _SIMPLE_OPTION_NAMES: dict[str, str] = {
     "foundation_supervision": "Курирование строительства фундамента ВЕСТА",
 }
 
+_SHEFMONTAZH_NAME = "Шеф-монтаж и пусконаладка"
+
 _FOUNDATION_PATTERNS = [
     (re.compile(r"^foundation_s_f_(\d+)$"),
      "Фундамент железобетонный под весы автомобильные ВЕСТА-{line}, {N}м"),
@@ -52,8 +54,25 @@ def _row_sort_key(row: dict[str, Any]) -> int:
     return 5
 
 
-def _resolve_option_name(key: str, line: str) -> str | None:
+def _format_bytovka_name(opt: dict[str, Any] | None = None) -> str:
+    name = "Весовое помещение (бытовка)"
+    dimensions = str((opt or {}).get("dimensions") or "").strip()
+    if dimensions:
+        name = f"{name} {dimensions}"
+    return name
+
+
+def _resolve_option_name(
+    key: str,
+    line: str,
+    opt: dict[str, Any] | None = None,
+    installation_scope: str | None = None,
+) -> str | None:
     """Вернуть каноническое имя для ключа опции или None если неизвестный."""
+    if key == "install_default" and installation_scope == "shefmontazh":
+        return _SHEFMONTAZH_NAME
+    if key == "bytovka_weigh_room":
+        return _format_bytovka_name(opt)
     if key in _SIMPLE_OPTION_NAMES:
         return _SIMPLE_OPTION_NAMES[key]
     for pattern, template in _FOUNDATION_PATTERNS:
@@ -75,9 +94,11 @@ def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
             "price": v.get("price", 0),
             "qty": v.get("qty", 1),
             "customer_side": v.get("customer_side", False),
+            "dimensions": v.get("dimensions", ""),
         }
         for key, v in (data.get("options") or {}).items()
     }
+    installation_scope = data.get("installation_scope")
 
     return {
         "model_id": kp_row.get("model_id", ""),
@@ -89,6 +110,9 @@ def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
         "sensor_id": (data.get("equipment") or {}).get("sensor_id", ""),
         "indicator_id": (data.get("equipment") or {}).get("indicator_id", ""),
         "options": options,
+        "custom_items": data.get("custom_items") or [],
+        "is_shefmontazh": installation_scope == "shefmontazh",
+        "installation_scope": installation_scope,
         "spec_items_overrides": data.get("spec_overrides") or {},
         "total_term_days": None,
         "payment_preset_id": payment.get("preset_id", "split_by_items"),
@@ -229,6 +253,7 @@ def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]
     })
 
     options = data.get("options") or {}
+    installation_scope = data.get("installation_scope")
     for key, opt in options.items():
         qty = int(opt.get("qty", 1))
         if qty == 0:
@@ -237,7 +262,7 @@ def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]
         price = 0 if customer_side else int(opt.get("price", 0))
         price_display = "ЗАКАЗЧИК" if customer_side else _fmt(price)
 
-        name = _resolve_option_name(key, line)
+        name = _resolve_option_name(key, line, opt, installation_scope)
         if name is None:
             _logger.warning("build_spec_rows_from_snapshot: неизвестный ключ опции %r", key)
             name = key
@@ -248,6 +273,19 @@ def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]
             "price": price,
             "price_display": price_display,
             "customer_side": customer_side,
+        })
+
+    for item in data.get("custom_items") or []:
+        name = str(item.get("name") or "").strip()
+        price = int(item.get("price") or 0)
+        if not name or price <= 0:
+            continue
+        rows.append({
+            "name": name,
+            "qty": 1,
+            "price": price,
+            "price_display": _fmt(price),
+            "customer_side": False,
         })
 
     return rows
@@ -377,6 +415,7 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
     width = model.get("width", 3.0)
     model_price = float(model.get("price") or 0)
     options = data.get("options") or {}
+    installation_scope = data.get("installation_scope")
 
     items: list[SpecItem] = []
 
@@ -413,7 +452,7 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
             _logger.warning("build_specification_items: неизвестный ключ %r", key)
             spec_id = f"custom_{uuid.uuid4().hex[:8]}"
 
-        name = _resolve_option_name(key, line)
+        name = _resolve_option_name(key, line, opt, installation_scope)
         if name is None:
             name = key
 
@@ -421,8 +460,11 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
         if customer_side:
             metadata["customer_side"] = True
         if spec_id == "installation":
-            has_foundation = any(k.startswith("foundation_") for k in options)
-            metadata["scope"] = "fundament" if has_foundation else "rama"
+            if installation_scope in ("full", "shefmontazh"):
+                metadata["scope"] = installation_scope
+            else:
+                has_foundation = any(k.startswith("foundation_") for k in options)
+                metadata["scope"] = "fundament" if has_foundation else "rama"
         elif spec_id == "foundation":
             if "_lite_" in key:
                 metadata["scope"] = "pandus_lite"
@@ -440,6 +482,8 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
                 metadata["scope"] = "contractor_supervised"
             else:
                 metadata["scope"] = "fundament_jb"
+        elif spec_id == "bytovka":
+            metadata["bucket"] = "equipment"
 
         price_per_unit = price / qty if qty > 0 else 0.0
 
@@ -454,6 +498,24 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
             "is_custom": is_custom,
             "source": "custom" if is_custom else "preset",
             "metadata": metadata,
+        })
+
+    for index, item in enumerate(data.get("custom_items") or [], start=1):
+        name = str(item.get("name") or "").strip()
+        price = float(item.get("price") or 0)
+        if not name or price <= 0:
+            continue
+        items.append({  # type: ignore[misc]
+            "id": f"custom_{uuid.uuid4().hex[:8]}",
+            "name": name,
+            "unit": "шт",
+            "quantity": 1.0,
+            "price_per_unit": price,
+            "total": price,
+            "payment_group": None,
+            "is_custom": True,
+            "source": "custom",
+            "metadata": {"bucket": "equipment", "source_index": index},
         })
 
     items.sort(key=lambda x: _ITEM_ORDER.get(x["id"], 10))

@@ -168,16 +168,40 @@ def _foundation_option_name(item_key: str, state: dict[str, Any]) -> str | None:
 def _option_name(
     entry: dict, opt_state: dict, item_key: str, state: dict[str, Any]
 ) -> str:
-    foundation_name = _foundation_option_name(item_key, state)
-    if foundation_name is not None:
-        name = foundation_name
-    else:
-        name = resolve_dynamic_option_label(
-            item_key, entry.get("label", ""), state.get("model_line", "")
+    if item_key == "install_default" and state.get("is_shefmontazh"):
+        name = "Шеф-монтаж и пусконаладка"
+    elif item_key == "bytovka_weigh_room":
+        dimensions = (
+            str(opt_state.get("dimensions") or state.get("bytovka_dimensions") or "")
+            .strip()
         )
+        name = "Весовое помещение (бытовка)"
+        if dimensions:
+            name = f"{name} {dimensions}"
+    else:
+        foundation_name = _foundation_option_name(item_key, state)
+        if foundation_name is not None:
+            name = foundation_name
+        else:
+            name = resolve_dynamic_option_label(
+                item_key, entry.get("label", ""), state.get("model_line", "")
+            )
     if opt_state.get("customer_side"):
         name = f"{name} (силами Заказчика)"
     return name
+
+
+def _iter_valid_custom_items(state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Вернуть заполненные произвольные позиции КП."""
+    result: list[dict[str, Any]] = []
+    for index, item in enumerate(state.get("custom_items") or [], start=1):
+        name = str(item.get("name") or "").strip()
+        price = int(item.get("price") or 0)
+        if not name or price <= 0:
+            continue
+        item_id = str(item.get("id") or f"custom_{index}")
+        result.append({"id": item_id, "name": name, "price": price})
+    return result
 
 
 def _apply_override(
@@ -282,6 +306,25 @@ def build_spec_items(
                 "payment_group": resolve_payment_group(key),
                 "term_role": resolve_term_role(key),
             })
+
+    for custom in _iter_valid_custom_items(state):
+        item_key = custom["id"]
+        qty, price, is_ov = _apply_override(
+            1, int(custom["price"]), overrides.get(item_key)
+        )
+        items.append({
+            "num": len(items) + 1,
+            "item_key": item_key,
+            "name": custom["name"],
+            "qty": qty,
+            "unit": "шт",
+            "price": price,
+            "total": price * qty,
+            "is_overridden": is_ov,
+            "customer_side": False,
+            "payment_group": "scales",
+            "term_role": None,
+        })
 
     return items
 

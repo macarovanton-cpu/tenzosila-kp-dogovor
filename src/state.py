@@ -59,11 +59,17 @@ def initial_state() -> dict[str, Any]:
         "construction_underlining_mm": 4,
         # Метрология
         "is_dual_range": False,  # чекбокс UI: одно/двухдиапазонный режим
+        "bytovka_dimensions": "",
+        "is_shefmontazh": False,
         # Опции:
         # {option_key: {"enabled": bool, "price": int, "qty": int,
         #               "customer_side": bool, "is_on_request": bool,
         #               "retail": int, "dealer_is_synthetic": bool, "block": str}}
         "options": {},
+        # Произвольные позиции КП в блоке «Опции и услуги».
+        # UI хранит стабильный id; snapshot отдаёт только name/price.
+        "custom_items": [],
+        "custom_item_next_id": 1,
         # Ручные правки позиций спецификации (spec_items):
         # {item_key: {"qty": int|None, "price": int|None}}
         # item_key = model_id для базовой модели, option_key для опций.
@@ -95,6 +101,10 @@ def init_state() -> None:
 def reset_options() -> None:
     """Очистить все выбранные опции (вызывается при смене модели)."""
     st.session_state["options"] = {}
+    st.session_state["bytovka_dimensions"] = ""
+    st.session_state["is_shefmontazh"] = False
+    st.session_state["custom_items"] = []
+    st.session_state["custom_item_next_id"] = 1
 
 
 def reset_spec_overrides() -> None:

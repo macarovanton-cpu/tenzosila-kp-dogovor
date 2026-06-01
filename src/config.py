@@ -91,7 +91,12 @@ BLOCK_KEY_PREFIXES: dict[str, tuple[str, ...]] = {
         "orion_auto_plus",
         "orion_cable_poles",
     ),
-    "misc": ("embedded_parts", "rubber_t_6m", "factory_calibration"),
+    "misc": (
+        "embedded_parts",
+        "rubber_t_6m",
+        "factory_calibration",
+        "bytovka_weigh_room",
+    ),
     "install": ("install_default",),
     "delivery": ("delivery_default",),
     "verification": ("verification_default",),
