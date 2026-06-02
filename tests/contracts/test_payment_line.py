@@ -167,10 +167,14 @@ def test_rama_2_3_za_montazh_i_poverku():
 @pytest.mark.parametrize("due,word", [
     (3,  "трёх"),
     (5,  "пяти"),
+    (7,  "семи"),
     (10, "десяти"),
     (14, "четырнадцати"),
     (20, "двадцати"),
+    (21, "двадцати одного"),
     (30, "тридцати"),
+    (45, "сорока пяти"),
+    (90, "девяноста"),
 ])
 def test_due_words_all_valid(due: int, word: str):
     line = PaymentLine(
@@ -186,7 +190,8 @@ def test_due_words_all_valid(due: int, word: str):
     assert f"({word})" in result
 
 
-def test_due_invalid_raises():
+def test_due_any_day_no_error():
+    """days=7 больше не бросает ValueError — любой день 0–90 валиден."""
     line = PaymentLine(
         kind="предоплата",
         share_pct=None,
@@ -196,8 +201,8 @@ def test_due_invalid_raises():
         trigger=PaymentTrigger.SPEC_SIGNED,
         due=7,
     )
-    with pytest.raises(ValueError):
-        format_payment_line(line, 1)
+    result = format_payment_line(line, 1)
+    assert "(семи)" in result
 
 
 # ---------------------------------------------------------------------------
@@ -252,11 +257,13 @@ def test_bridge_full_scenario():
     assert l2.trigger == PaymentTrigger.FOUNDATION_ACT
     assert l2.share_object == "фундамента Весов"
     assert l2.amount == 500_000
-    # L3 — доплата за весы + доставка
+    # L3 — доплата за весы + доставка (delivery дефолт 0/100 ≠ scales 50/50)
     assert l3.kind == "доплата"
     assert l3.trigger == PaymentTrigger.SHIPMENT_READY
     assert l3.share_object == "Весов и доставки"
     assert l3.amount == 1_200_000  # 50% от 2млн + 100% от 200к
+    assert l3.share_pct is None     # P1: разные проценты → процент не печатается
+    assert l3.share_prep is None
     # L4 — предоплата монтажа
     assert l4.kind == "предоплата"
     assert l4.trigger == PaymentTrigger.BRIGADE_READY
@@ -267,7 +274,8 @@ def test_bridge_full_scenario():
     assert l5.trigger == PaymentTrigger.WORK_ACT
     assert l5.amount == 50_000
 
-    assert all(ln.share_prep == "от стоимости" for ln in lines)
+    # L1/L2/L4/L5 — одинаковые проценты или одиночные бакеты → «от стоимости»
+    assert all(ln.share_prep == "от стоимости" for ln in [l1, l2, l4, l5])
     assert all(ln.due == 5 for ln in lines)
 
 
@@ -347,3 +355,62 @@ def test_bridge_prepay_zero_skips_prepay_line():
     assert lines[0].kind == "доплата"
     assert lines[0].trigger == PaymentTrigger.SHIPMENT_READY
     assert all(ln.trigger != PaymentTrigger.SPEC_SIGNED for ln in lines)
+
+
+# ---------------------------------------------------------------------------
+# P1 — процент в составных строках
+# ---------------------------------------------------------------------------
+
+def test_bridge_delivery_equal_pct_keeps_percent():
+    """delivery 50/50 == scales 50/50 → L3 share_pct=50.0 (процент сохраняется)."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 2_000_000),
+        _item("delivery_default", "delivery", 200_000),
+    ]
+    payment = {
+        "preset_id": "split_by_items",
+        "days": 5,
+        "split_state": _split(delivery=(50, 50)),
+    }
+    lines = build_lines_from_snapshot(payment, spec_items)
+    l3 = next(ln for ln in lines if ln.trigger == PaymentTrigger.SHIPMENT_READY)
+    assert l3.share_pct == 50.0
+    assert l3.share_prep == "от стоимости"
+    assert l3.share_object == "Весов и доставки"
+    assert l3.amount == 1_100_000  # 50% от 2млн + 50% от 200к
+
+
+def test_bridge_foundation_diff_pct_drops_percent():
+    """foundation 70/30 ≠ scales 50/50 → L1 share_pct=None, сумма корректна."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 2_000_000),
+        _item("foundation_s_f_18", "foundation", 1_000_000),
+    ]
+    payment = {
+        "preset_id": "split_by_items",
+        "days": 5,
+        "split_state": _split(foundation=(70, 30)),
+    }
+    lines = build_lines_from_snapshot(payment, spec_items)
+    l1 = next(ln for ln in lines if ln.trigger == PaymentTrigger.SPEC_SIGNED)
+    assert l1.share_pct is None
+    assert l1.share_prep is None
+    assert l1.amount == 1_700_000  # 50% от 2млн + 70% от 1млн
+
+
+def test_bridge_format_flat_line():
+    """L3 с разными процентами (delivery 0/100, scales 50/50) → flat-формат без %."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 2_000_000),
+        _item("delivery_default", "delivery", 200_000),
+    ]
+    payment = {
+        "preset_id": "split_by_items",
+        "days": 5,
+        "split_state": _split(),  # delivery дефолт 0/100, scales 50/50
+    }
+    lines = build_lines_from_snapshot(payment, spec_items)
+    l3 = next(ln for ln in lines if ln.trigger == PaymentTrigger.SHIPMENT_READY)
+    text = format_payment_line(l3, 3)
+    assert text.startswith("3. Доплата в размере 1 200 000")
+    assert "от стоимости" not in text  # flat-формат: процент не печатается

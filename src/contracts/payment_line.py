@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
-from src.contracts.utils import number_to_words
+from src.contracts.utils import days_genitive, number_to_words
 
 
 class PaymentTrigger(str, Enum):
@@ -25,15 +25,6 @@ TRIGGER_TEXTS: dict[PaymentTrigger, str] = {
     PaymentTrigger.DELIVERED:      "поставки Весов Заказчику",
 }
 
-_DUE_WORDS: dict[int, str] = {
-    3:  "трёх",
-    5:  "пяти",
-    10: "десяти",
-    14: "четырнадцати",
-    20: "двадцати",
-    30: "тридцати",
-}
-
 
 @dataclass
 class PaymentLine:
@@ -48,12 +39,9 @@ class PaymentLine:
 
 
 def format_payment_line(line: PaymentLine, index: int) -> str:
-    if line.due not in _DUE_WORDS:
-        raise ValueError(f"due={line.due} не поддерживается; допустимые: {sorted(_DUE_WORDS)}")
-
     amount_fmt  = "{:,}".format(line.amount).replace(",", chr(32))
     words       = number_to_words(line.amount).strip()
-    due_words   = _DUE_WORDS[line.due]
+    due_words   = days_genitive(line.due)
     trigger_txt = TRIGGER_TEXTS[line.trigger]
     kind_cap    = line.kind.capitalize()
 
@@ -164,13 +152,18 @@ def build_lines_from_snapshot(
     s_prepay = pct("scales", "prepay")
     amt = _amount(scales_total, s_prepay)
     obj = "Весов (включая ПАК ОРИОН)" if has_orion else "Весов"
+    share_pct_l1: float | None = float(s_prepay)
     if g["foundation"]:
         obj += " и фундамента Весов"
-        amt += _amount(foundation_total, pct("foundation", "prepay"))
+        f_prepay = pct("foundation", "prepay")
+        amt += _amount(foundation_total, f_prepay)
+        if f_prepay != s_prepay:
+            share_pct_l1 = None
     if s_prepay != 0 and amt != 0:
         lines.append(PaymentLine(
-            "предоплата", float(s_prepay), "от стоимости", obj, amt,
-            PaymentTrigger.SPEC_SIGNED, days,
+            "предоплата", share_pct_l1,
+            "от стоимости" if share_pct_l1 is not None else None,
+            obj, amt, PaymentTrigger.SPEC_SIGNED, days,
         ))
 
     # L2 — доплата FOUNDATION_ACT
@@ -187,13 +180,18 @@ def build_lines_from_snapshot(
     s_post = pct("scales", "postpay")
     amt = _amount(scales_total, s_post)
     obj = "Весов"
+    share_pct_l3: float | None = float(s_post)
     if g["delivery"]:
         obj += " и доставки"
-        amt += _amount(delivery_total, pct("delivery", "postpay"))
+        d_post = pct("delivery", "postpay")
+        amt += _amount(delivery_total, d_post)
+        if d_post != s_post:
+            share_pct_l3 = None
     if s_post != 0 and amt != 0:
         lines.append(PaymentLine(
-            "доплата", float(s_post), "от стоимости", obj, amt,
-            PaymentTrigger.SHIPMENT_READY, days,
+            "доплата", share_pct_l3,
+            "от стоимости" if share_pct_l3 is not None else None,
+            obj, amt, PaymentTrigger.SHIPMENT_READY, days,
         ))
 
     # L4/L5 — монтаж и поверка
