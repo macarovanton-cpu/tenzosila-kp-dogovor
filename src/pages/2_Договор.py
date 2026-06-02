@@ -171,11 +171,34 @@ _ORION_RMAP = {v: k for k, v in _ORION_MAP.items()}
 # Helpers
 # ---------------------------------------------------------------------------
 
+_BUCKET_OPTIONS = ["equipment", "foundation", "install_verification"]
+
+_PG_TO_BUCKET: dict[str | None, str] = {
+    "scales": "equipment",
+    "delivery": "equipment",
+    None: "equipment",
+    "foundation": "foundation",
+    "installation_and_verification": "install_verification",
+}
+
+
+def _bucket_to_pg(bucket: str, name: str) -> str:
+    """UI-бакет → внутренний payment_group. Доставка определяется по имени."""
+    if bucket == "foundation":
+        return "foundation"
+    if bucket == "install_verification":
+        return "installation_and_verification"
+    if name.lower().startswith("доставка"):
+        return "delivery"
+    return "scales"
+
+
 def _items_to_rows(items: list[dict]) -> list[dict]:
     """Конвертировать SpecItem list в строки для data_editor."""
     return [
         {
             "Наименование": item.get("name", ""),
+            "Бакет": _PG_TO_BUCKET.get(item.get("payment_group"), "equipment"),
             "Ед.": item.get("unit", "шт"),
             "Кол-во": item.get("quantity", 1.0),
             "Цена с НДС, руб.": item.get("price_per_unit", 0.0),
@@ -203,11 +226,14 @@ def _rows_to_items(rows, original_items: list[dict]) -> list[dict]:
             }
         qty = float(row.get("Кол-во") or 1)
         price = float(row.get("Цена с НДС, руб.") or 0)
-        item["name"] = str(row.get("Наименование") or "")
+        name = str(row.get("Наименование") or "")
+        bucket = str(row.get("Бакет") or "equipment")
+        item["name"] = name
         item["unit"] = str(row.get("Ед.") or "шт")
         item["quantity"] = qty
         item["price_per_unit"] = price
         item["total"] = qty * price
+        item["payment_group"] = _bucket_to_pg(bucket, name)
         result.append(item)
     return result
 
@@ -468,6 +494,11 @@ if is_extracted():
             num_rows="dynamic",
             column_config={
                 "Наименование": st.column_config.TextColumn("Наименование"),
+                "Бакет": st.column_config.SelectboxColumn(
+                    "Бакет",
+                    options=_BUCKET_OPTIONS,
+                    width="medium",
+                ),
                 "Ед.": st.column_config.TextColumn("Ед.", width="small"),
                 "Кол-во": st.column_config.NumberColumn("Кол-во", min_value=0, step=1),
                 "Цена с НДС, руб.": st.column_config.NumberColumn(
@@ -501,6 +532,13 @@ if is_extracted():
             if "spec_items_editor" in st.session_state:
                 del st.session_state["spec_items_editor"]
             st.rerun()
+
+        _unbucketed = [it["name"] for it in _synced if not it.get("payment_group")]
+        if _unbucketed:
+            st.error(
+                "Позиции без бакета (укажите бакет в колонке): "
+                + ", ".join(f"«{n}»" for n in _unbucketed)
+            )
 
     else:
         _render_field_group("Из коммерческого предложения", SPEC_FIELDS, "specification")

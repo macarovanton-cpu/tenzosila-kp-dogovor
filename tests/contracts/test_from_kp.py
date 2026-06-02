@@ -364,19 +364,23 @@ class TestBuildSpecRowsFromSnapshot:
             "max 60т, размеры платформы 18х4м"
         )
 
-    def test_specification_items_custom_items_bucket_equipment(self):
-        """custom_items становятся кастомными SpecItem с bucket=equipment."""
+    def test_specification_items_custom_items_payment_group(self):
+        """custom_items становятся кастомными SpecItem с корректным payment_group."""
         from src.contracts.from_kp import build_specification_items
 
         items = build_specification_items(_make_kp_row(custom_items=[
             {"name": "Дополнительный шкаф", "price": 120000},
+            {"name": "Доставка спецтехники", "price": 50000},
         ]))
 
-        custom = next(i for i in items if i["name"] == "Дополнительный шкаф")
-        assert custom["is_custom"] is True
-        assert custom["source"] == "custom"
-        assert custom["metadata"]["bucket"] == "equipment"
-        assert custom["total"] == 120000
+        shkaf = next(i for i in items if i["name"] == "Дополнительный шкаф")
+        assert shkaf["is_custom"] is True
+        assert shkaf["source"] == "custom"
+        assert shkaf["payment_group"] == "scales"
+        assert shkaf["total"] == 120000
+
+        delivery = next(i for i in items if i["name"] == "Доставка спецтехники")
+        assert delivery["payment_group"] == "delivery"
 
     def test_specification_items_installation_scope_from_snapshot(self):
         """installation_scope из snapshot задаёт scope монтажа в SpecItem."""

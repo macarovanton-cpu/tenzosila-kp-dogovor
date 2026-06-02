@@ -94,7 +94,7 @@ def _active_buckets(spec_items: list[dict]) -> dict:
         g = item.get("payment_group")
         if g in groups:
             groups[g] = True
-        if str(item.get("item_key", "")).startswith("orion_"):
+        if str(item.get("item_key") or item.get("id", "")).startswith("orion_"):
             has_orion = True
     return {"groups": groups, "has_orion": has_orion}
 
@@ -108,12 +108,16 @@ def _split_pct(split_state: dict, group_id: str, key: str) -> int:
 
 
 def _bucket_total(spec_items: list[dict], bucket: str) -> int:
-    """Σ(price×qty) по позициям бакета. customer_side имеют price=0 → не влияют."""
-    return sum(
-        int(it.get("price", 0)) * int(it.get("qty", 0))
-        for it in spec_items
-        if it.get("payment_group") == bucket
-    )
+    """Σ стоимости позиций бакета. customer_side имеют total=0 → не влияют."""
+    total = 0
+    for it in spec_items:
+        if it.get("payment_group") != bucket:
+            continue
+        if "total" in it:
+            total += int(it["total"])
+        else:
+            total += int(it.get("price", 0)) * int(it.get("qty", 0))
+    return total
 
 
 def _amount(total: int, pct: int) -> int:

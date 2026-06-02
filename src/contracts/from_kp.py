@@ -7,7 +7,7 @@ import uuid
 from typing import Any
 
 from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
-from src.spec_builder import format_platform_size
+from src.spec_builder import format_platform_size, resolve_payment_group
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item
 
 _logger = logging.getLogger(__name__)
@@ -36,6 +36,30 @@ _FOUNDATION_PATTERNS = [
     (re.compile(r"^pag_slabs_(\d+)$"),
      "Укладка плит ПАГ, {N}м"),
 ]
+
+# Авто-маппинг payment_group по имени позиции (contracts_v2_1.md §4).
+# Используется только для custom_items из snapshot (нет ключа опции).
+_NAME_FOUNDATION_RE = re.compile(
+    r"^фундамент|^строительство фундамента|^бетонное основание"
+    r"|укладка.+плит|опор и кабель-трасс",
+    re.IGNORECASE,
+)
+_NAME_INSTALL_RE = re.compile(
+    r"^монтаж|^поверка|^шеф.?монтаж",
+    re.IGNORECASE,
+)
+
+
+def _payment_group_by_name(name: str) -> str:
+    """payment_group по имени позиции (для custom items без ключа опции)."""
+    n = name.strip()
+    if n.lower().startswith("доставка"):
+        return "delivery"
+    if _NAME_INSTALL_RE.match(n):
+        return "installation_and_verification"
+    if _NAME_FOUNDATION_RE.search(n):
+        return "foundation"
+    return "scales"
 
 
 def _row_sort_key(row: dict[str, Any]) -> int:
@@ -432,7 +456,7 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
         "quantity": 1.0,
         "price_per_unit": model_price,
         "total": model_price,
-        "payment_group": None,
+        "payment_group": resolve_payment_group(kp_row.get("model_id", "")),
         "is_custom": False,
         "source": "preset",
         "metadata": {"line": line, "max": max_t, "length": length, "width": width},
@@ -494,7 +518,7 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
             "quantity": qty,
             "price_per_unit": price_per_unit,
             "total": price,
-            "payment_group": None,
+            "payment_group": resolve_payment_group(key),
             "is_custom": is_custom,
             "source": "custom" if is_custom else "preset",
             "metadata": metadata,
@@ -506,16 +530,16 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
         if not name or price <= 0:
             continue
         items.append({  # type: ignore[misc]
-            "id": f"custom_{uuid.uuid4().hex[:8]}",
+            "id": f"custom_{index}",
             "name": name,
             "unit": "шт",
             "quantity": 1.0,
             "price_per_unit": price,
             "total": price,
-            "payment_group": None,
+            "payment_group": _payment_group_by_name(name),
             "is_custom": True,
             "source": "custom",
-            "metadata": {"bucket": "equipment", "source_index": index},
+            "metadata": {"source_index": index},
         })
 
     items.sort(key=lambda x: _ITEM_ORDER.get(x["id"], 10))
