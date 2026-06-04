@@ -399,3 +399,36 @@ class TestBuildSpecRowsFromSnapshot:
         install = next(i for i in items if i["id"] == "installation")
         assert install["name"] == "Шеф-монтаж и пусконаладка"
         assert install["metadata"]["scope"] == "shefmontazh"
+
+
+class TestResolveOptionName:
+    """Тесты _resolve_option_name с prices-lookup."""
+
+    def test_fence_norma_resolves_from_prices(self):
+        """fence_norma_20 → label из prices.json, не raw-ключ."""
+        from src.contracts.from_kp import _resolve_option_name
+        name = _resolve_option_name("fence_norma_20", "С", prices=PRICES)
+        assert name == "Ограждение НОРМА высота 200мм, 20м"
+
+    def test_ramp_set_resolves_from_prices(self):
+        """ramp_set_fl_sl → label из prices.json."""
+        from src.contracts.from_kp import _resolve_option_name
+        name = _resolve_option_name("ramp_set_fl_sl", "ФЛ", prices=PRICES)
+        assert name == "Комплект пандусов под весы ВЕСТА-ФЛ/СЛ (L=2,9м)"
+
+    def test_foundation_pattern_not_overridden_by_prices(self):
+        """foundation_s_f_18 с prices=PRICES всё равно использует паттерн с {line}."""
+        from src.contracts.from_kp import _resolve_option_name
+        name = _resolve_option_name("foundation_s_f_18", "С", prices=PRICES)
+        assert name is not None
+        assert "ВЕСТА-С" in name
+        assert "Фундамент" in name
+
+    def test_unknown_key_warns_and_returns_none(self, caplog):
+        """Совсем неизвестный ключ → None + WARNING, даже если prices передан."""
+        import logging
+        from src.contracts.from_kp import _resolve_option_name
+        with caplog.at_level(logging.WARNING, logger="src.contracts.from_kp"):
+            name = _resolve_option_name("ghost_option_999", "С", prices=PRICES)
+        assert name is None
+        assert any("ghost_option_999" in msg for msg in caplog.messages)

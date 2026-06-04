@@ -91,6 +91,7 @@ def _resolve_option_name(
     line: str,
     opt: dict[str, Any] | None = None,
     installation_scope: str | None = None,
+    prices: dict[str, Any] | None = None,
 ) -> str | None:
     """Вернуть каноническое имя для ключа опции или None если неизвестный."""
     if key == "install_default" and installation_scope == "shefmontazh":
@@ -103,6 +104,11 @@ def _resolve_option_name(
         m = pattern.match(key)
         if m:
             return template.format(line=line, N=m.group(1))
+    if prices:
+        label = (prices.get("options") or {}).get(key, {}).get("label")
+        if label:
+            return label
+    _logger.warning("_resolve_option_name: ключ %r не найден (нет в prices.json)", key)
     return None
 
 
@@ -172,7 +178,7 @@ def build_specification_from_kp_snapshot(
     from src.generators.payment_renderer import render_payment_block
     from src.spec_builder import build_spec_items
 
-    rows = build_spec_rows_from_snapshot(kp_row)
+    rows = build_spec_rows_from_snapshot(kp_row, prices)
     rows.sort(key=_row_sort_key)
 
     if len(rows) > 5:
@@ -245,7 +251,10 @@ def build_specification_from_kp_snapshot(
     return result
 
 
-def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]]:
+def build_spec_rows_from_snapshot(
+    kp_row: dict[str, Any],
+    prices: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     """Список строк спецификации из снапшота КП.
 
     Каждая строка: {name, qty, price, price_display, customer_side}.
@@ -286,9 +295,8 @@ def build_spec_rows_from_snapshot(kp_row: dict[str, Any]) -> list[dict[str, Any]
         price = 0 if customer_side else int(opt.get("price", 0))
         price_display = "ЗАКАЗЧИК" if customer_side else _fmt(price)
 
-        name = _resolve_option_name(key, line, opt, installation_scope)
+        name = _resolve_option_name(key, line, opt, installation_scope, prices)
         if name is None:
-            _logger.warning("build_spec_rows_from_snapshot: неизвестный ключ опции %r", key)
             name = key
 
         rows.append({
@@ -345,7 +353,7 @@ def build_spec_v2_data(
     model_short = f"ВЕСТА-{line}-{max_t}-{length}"
 
     # --- SpecItems ---
-    items = build_specification_items(kp_row)
+    items = build_specification_items(kp_row, prices)
 
     # --- Deal ---
     deal: dict[str, Any] = {
@@ -426,7 +434,10 @@ _ITEM_ORDER: dict[str, int] = {
 }
 
 
-def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
+def build_specification_items(
+    kp_row: dict[str, Any],
+    prices: dict[str, Any] | None = None,
+) -> list[SpecItem]:
     """Собрать список SpecItem из строки КП Supabase.
 
     Цены хранятся с НДС (та же конвенция что и в prices.json и КП).
@@ -476,7 +487,7 @@ def build_specification_items(kp_row: dict[str, Any]) -> list[SpecItem]:
             _logger.warning("build_specification_items: неизвестный ключ %r", key)
             spec_id = f"custom_{uuid.uuid4().hex[:8]}"
 
-        name = _resolve_option_name(key, line, opt, installation_scope)
+        name = _resolve_option_name(key, line, opt, installation_scope, prices)
         if name is None:
             name = key
 

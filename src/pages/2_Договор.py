@@ -345,7 +345,7 @@ if mode == "Из базы (по номеру)":
             )
             set_specification(spec)
             try:
-                items = build_specification_items(kp_row)
+                items = build_specification_items(kp_row, prices)
                 set_spec_items(items)
             except Exception as exc:
                 _logger.warning("build_specification_items failed: %s", exc)
