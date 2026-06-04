@@ -129,7 +129,7 @@ def patch_tth(doc) -> bool:
     replacements = {
         2: ('11', '{{ТТХ_НАГРУЗКА_НА_ОСЬ}}'),
         3: ('не более 50 м', '{{ТТХ_РАССТОЯНИЕ_ДО_ТЕРМИНАЛА}}'),
-        4: (None, '{{ТТХ_ДИСКРЕТНОСТЬ_БЛОК}}'),
+        # row 4 (дискретность) имеет 2 параграфа — управляется patch_tth_discreteness
         5: (None, '{{ТТХ_ГАБАРИТЫ}}'),
         6: (None, '{{ТТХ_ТЕМПЕРАТУРА}}'),
     }
@@ -186,6 +186,49 @@ def patch_appendix(doc) -> bool:
     return False
 
 
+def patch_tth_discreteness(doc) -> bool:
+    """Восстановить 2-параграфную ячейку дискретности (если была затёрта старым патчем)."""
+    cell = doc.tables[1].rows[4].cells[2]
+    if "{{ТТХ_ДИСКРЕТНОСТЬ_1}}" in cell.text:
+        return False
+    # Очистить всё кроме первого параграфа
+    for p in cell.paragraphs[1:]:
+        p._element.getparent().remove(p._element)
+    paras = cell.paragraphs
+    if paras[0].runs:
+        paras[0].runs[0].text = "{{ТТХ_ДИСКРЕТНОСТЬ_1}}"
+        for r in paras[0].runs[1:]:
+            r._element.getparent().remove(r._element)
+    else:
+        paras[0].add_run("{{ТТХ_ДИСКРЕТНОСТЬ_1}}")
+    p2 = OxmlElement('w:p')
+    r2 = OxmlElement('w:r')
+    t2 = OxmlElement('w:t')
+    t2.text = "{{ТТХ_ДИСКРЕТНОСТЬ_2}}"
+    r2.append(t2)
+    p2.append(r2)
+    cell._tc.append(p2)
+    return True
+
+
+def patch_tth_boundaries(doc) -> bool:
+    """Заменить захардкоженные границы диапазонов в метке строки дискретности."""
+    cell = doc.tables[1].rows[4].cells[1]
+    if "{{ТТХ_ГРАНИЦА_1}}" in cell.text:
+        return False
+    if "дискретность" not in cell.text or "от 0 до" not in cell.text:
+        print("ПРЕДУПРЕЖДЕНИЕ: структура шаблона изменилась, patch_tth_boundaries пропущен")
+        return False
+    paras = cell.paragraphs
+    if len(paras) >= 2:
+        run = paras[1].runs[0] if paras[1].runs else paras[1].add_run("")
+        run.text = "- от 0 до {{ТТХ_ГРАНИЦА_1}}т"
+    if len(paras) >= 3:
+        run = paras[2].runs[0] if paras[2].runs else paras[2].add_run("")
+        run.text = "- от {{ТТХ_ГРАНИЦА_1}} до {{ТТХ_ГРАНИЦА_2}}т"
+    return True
+
+
 def patch_foundation_check(doc) -> bool:
     """Вставить маркер {{APPENDIX_FOUNDATION_CHECK}} после строительного задания."""
     if _find_para(doc, '{{APPENDIX_FOUNDATION_CHECK}}'):
@@ -225,10 +268,12 @@ def main():
     print(f"Оплата → маркер: {patch_payment(doc)}")
     print(f"Сроки → маркер: {patch_terms(doc)}")
     print(f"ТТХ → плейсхолдеры: {patch_tth(doc)}")
+    print(f"ТТХ дискретность → 2 параграфа: {patch_tth_discreteness(doc)}")
     print(f"Комплект → шаблон: {patch_kit(doc)}")
     print(f"Год → плейсхолдер: {patch_year(doc)}")
     print(f"Приложение → номер: {patch_appendix(doc)}")
     print(f"Контрольный лист → маркер: {patch_foundation_check(doc)}")
+    print(f"ТТХ границы → плейсхолдеры: {patch_tth_boundaries(doc)}")
 
     doc.save(str(TEMPLATE))
     print(f"Сохранено: {TEMPLATE}")

@@ -15,9 +15,13 @@ def build_tth_data(model: dict, sensor: dict) -> dict[str, str]:
     if dual and "w1" in dual and "w2" in dual:
         disc_1 = str(dual["w1"]["e_kg"])
         disc_2 = str(dual["w2"]["e_kg"])
+        border_1 = str(int(dual["w1"]["max_load_t"]))
+        border_2 = str(int(dual["w2"]["max_load_t"]))
     else:
         disc_1 = str(model.get("verification_division_kg", ""))
         disc_2 = ""
+        border_1 = str(model.get("max_load_t", ""))
+        border_2 = ""
 
     length = model.get("length_m", "")
     width = model.get("width_m", "")
@@ -39,6 +43,8 @@ def build_tth_data(model: dict, sensor: dict) -> dict[str, str]:
         "ТТХ_РАССТОЯНИЕ_ДО_ТЕРМИНАЛА": "не более 50 м",
         "ТТХ_ДИСКРЕТНОСТЬ_1": disc_1,
         "ТТХ_ДИСКРЕТНОСТЬ_2": disc_2,
+        "ТТХ_ГРАНИЦА_1": border_1,
+        "ТТХ_ГРАНИЦА_2": border_2,
         "ТТХ_ГАБАРИТЫ": dimensions,
         "ТТХ_ТЕМПЕРАТУРА": temperature,
     }
