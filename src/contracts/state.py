@@ -20,6 +20,8 @@ _CONTRACT_DEFAULTS: dict[str, Any] = {
     },
     "ai_raw": None,
     "generated": None,
+    "payment_lines": [],
+    "kp_payment_snapshot": {},
     "flags": {"winter_concrete": False},
     "scope_overrides": {
         "foundation_scope": None,
@@ -36,6 +38,8 @@ def init_contract_state() -> None:
     cs = st.session_state["contract"]
     for key, default in _CONTRACT_DEFAULTS.items():
         if isinstance(default, dict):
+            cs.setdefault(key, default.copy())
+        elif isinstance(default, list):
             cs.setdefault(key, default.copy())
         else:
             cs.setdefault(key, default)
@@ -93,6 +97,17 @@ def get_spec_items() -> list:
     """Получить список SpecItem из specification['items']."""
     cs = st.session_state.get("contract", {})
     return cs.get("specification", {}).get("items", [])
+
+
+def set_payment_lines(rows: list[dict]) -> None:
+    """Записать строки редактора условий оплаты."""
+    st.session_state["contract"]["payment_lines"] = rows
+
+
+def get_payment_lines() -> list[dict]:
+    """Получить строки редактора условий оплаты."""
+    cs = st.session_state.get("contract", {})
+    return cs.get("payment_lines", [])
 
 
 def set_requisites(requisites: dict[str, str]) -> None:

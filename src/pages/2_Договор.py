@@ -24,11 +24,13 @@ from src.contracts.from_kp import (  # noqa: E402
     build_specification_from_kp_snapshot,
     build_specification_items,
 )
+from src.contracts.payment_line import format_payment_line  # noqa: E402
 from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
 from src.contracts.spec_v2_filler import fill_spec_v2  # noqa: E402
 from src.contracts.state import (  # noqa: E402
     clear_generated,
     collect_for_template,
+    get_payment_lines,
     get_spec_items,
     init_contract_state,
     is_extracted,
@@ -46,6 +48,7 @@ from src.storage.supabase_client import (  # noqa: E402
     get_kp_by_number,
     list_recent_kps,
 )
+from src.ui.payment_lines_editor import render_payment_lines_editor  # noqa: E402
 from src.utils.format import sanitize_filename  # noqa: E402
 
 CONTRACT_TEMPLATE = Path("templates/contracts/contract.docx")
@@ -171,22 +174,22 @@ _ORION_RMAP = {v: k for k, v in _ORION_MAP.items()}
 # Helpers
 # ---------------------------------------------------------------------------
 
-_BUCKET_OPTIONS = ["equipment", "foundation", "install_verification"]
+_BUCKET_OPTIONS = ["Оборудование", "Фундамент", "Монтаж и поверка"]
 
 _PG_TO_BUCKET: dict[str | None, str] = {
-    "scales": "equipment",
-    "delivery": "equipment",
-    None: "equipment",
-    "foundation": "foundation",
-    "installation_and_verification": "install_verification",
+    "scales": "Оборудование",
+    "delivery": "Оборудование",
+    None: "Оборудование",
+    "foundation": "Фундамент",
+    "installation_and_verification": "Монтаж и поверка",
 }
 
 
 def _bucket_to_pg(bucket: str, name: str) -> str:
     """UI-бакет → внутренний payment_group. Доставка определяется по имени."""
-    if bucket == "foundation":
+    if bucket == "Фундамент":
         return "foundation"
-    if bucket == "install_verification":
+    if bucket == "Монтаж и поверка":
         return "installation_and_verification"
     if name.lower().startswith("доставка"):
         return "delivery"
@@ -227,7 +230,7 @@ def _rows_to_items(rows, original_items: list[dict]) -> list[dict]:
         qty = float(row.get("Кол-во") or 1)
         price = float(row.get("Цена с НДС, руб.") or 0)
         name = str(row.get("Наименование") or "")
-        bucket = str(row.get("Бакет") or "equipment")
+        bucket = str(row.get("Бакет") or "Оборудование")
         item["name"] = name
         item["unit"] = str(row.get("Ед.") or "шт")
         item["quantity"] = qty
@@ -347,6 +350,10 @@ if mode == "Из базы (по номеру)":
             try:
                 items = build_specification_items(kp_row, prices)
                 set_spec_items(items)
+                _snap = kp_row.get("snapshot") or {}
+                st.session_state["contract"]["kp_payment_snapshot"] = (
+                    _snap.get("payment") or {}
+                )
             except Exception as exc:
                 _logger.warning("build_specification_items failed: %s", exc)
             st.success(f"КП «{kp_row.get('kp_number', '')}» загружен из базы.")
@@ -544,6 +551,9 @@ if is_extracted():
         _render_field_group("Из коммерческого предложения", SPEC_FIELDS, "specification")
 
     st.divider()
+    render_payment_lines_editor()
+
+    st.divider()
 
 # ---------------------------------------------------------------------------
 # Секция 3 — Ручной ввод (общая)
@@ -638,6 +648,13 @@ if not generated:
                     "flags": _gen_cs.get("flags", {}),
                     "delivery_address": _gen_cs.get("manual", {}).get("object_address", ""),
                 }
+                _prows = get_payment_lines()
+                if _prows:
+                    from src.ui.payment_lines_editor import _row_to_line
+                    data["_payment_lines"] = [
+                        format_payment_line(_row_to_line(row), f"2.{i + 1}")
+                        for i, row in enumerate(_prows)
+                    ]
                 try:
                     fill_spec_v2(str(SPEC_V2_TEMPLATE), data, items_for_docx, _gen_deal, str(spec_path))
                 except Exception as exc_v2:

@@ -1,6 +1,9 @@
 """Тесты вспомогательной логики страницы договора."""
 from __future__ import annotations
 
+import importlib.util
+import sys
+from pathlib import Path
 from unittest.mock import patch
 
 
@@ -43,3 +46,105 @@ def test_build_specification_importable():
     """build_specification_from_kp_snapshot доступна для импорта."""
     from src.contracts.from_kp import build_specification_from_kp_snapshot
     assert callable(build_specification_from_kp_snapshot)
+
+
+class _FakeColumn:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+
+class _FakeStreamlitModule:
+    session_state: dict = {}
+
+    def set_page_config(self, *args, **kwargs):
+        pass
+
+    def title(self, *args, **kwargs):
+        pass
+
+    def radio(self, *args, **kwargs):
+        return "Из PDF файла (старый КП)"
+
+    def divider(self, *args, **kwargs):
+        pass
+
+    def info(self, *args, **kwargs):
+        pass
+
+    def subheader(self, *args, **kwargs):
+        pass
+
+    def columns(self, spec, *args, **kwargs):
+        count = spec if isinstance(spec, int) else len(spec)
+        return [_FakeColumn() for _ in range(count)]
+
+    def file_uploader(self, *args, **kwargs):
+        return None
+
+    def button(self, *args, **kwargs):
+        return False
+
+    def text_input(self, *args, **kwargs):
+        return ""
+
+    def date_input(self, *args, **kwargs):
+        return None
+
+
+def _load_dogovor_page(monkeypatch):
+    fake_st = _FakeStreamlitModule()
+    monkeypatch.setitem(sys.modules, "streamlit", fake_st)
+    import src.contracts.state as state_module
+
+    monkeypatch.setattr(state_module, "st", fake_st)
+    page_path = Path(__file__).parents[2] / "src" / "pages" / "2_Договор.py"
+    spec = importlib.util.spec_from_file_location("dogovor_page_for_test", page_path)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_items_to_rows_uses_russian_bucket_labels(monkeypatch):
+    page = _load_dogovor_page(monkeypatch)
+
+    rows = page._items_to_rows(
+        [
+            {"name": "Весы", "payment_group": "scales", "total": 1},
+            {"name": "Фундамент", "payment_group": "foundation", "total": 1},
+            {
+                "name": "Монтаж и поверка",
+                "payment_group": "installation_and_verification",
+                "total": 1,
+            },
+        ]
+    )
+
+    assert [row["Бакет"] for row in rows] == [
+        "Оборудование",
+        "Фундамент",
+        "Монтаж и поверка",
+    ]
+
+
+def test_rows_to_items_maps_russian_bucket_labels_to_payment_groups(monkeypatch):
+    page = _load_dogovor_page(monkeypatch)
+
+    rows = [
+        {"Наименование": "Весы", "Бакет": "Оборудование"},
+        {"Наименование": "Фундамент", "Бакет": "Фундамент"},
+        {"Наименование": "Монтаж", "Бакет": "Монтаж и поверка"},
+        {"Наименование": "Доставка до объекта", "Бакет": "Оборудование"},
+    ]
+    items = page._rows_to_items(rows, [])
+
+    assert [item["payment_group"] for item in items] == [
+        "scales",
+        "foundation",
+        "installation_and_verification",
+        "delivery",
+    ]

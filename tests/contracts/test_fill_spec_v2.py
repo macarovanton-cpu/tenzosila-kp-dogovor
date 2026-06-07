@@ -350,6 +350,24 @@ class TestTTXSection:
         # Старый хардкод "11" для нагрузки на ось не должен остаться
         assert doc.tables[1].rows[2].cells[2].text != "11"
 
+    def test_partial_tth_overrides_fill_missing_boundaries(self, tmp_path):
+        data = dict(MOCK_DATA, **{
+            "ТТХ_НАГРУЗКА_НА_ОСЬ": "18",
+            "ТТХ_ДИСКРЕТНОСТЬ_1": "20",
+            "ТТХ_ДИСКРЕТНОСТЬ_2": "50",
+        })
+        items = [_item("weights", {"line": "С", "max": 80, "length": 18})]
+        deal = {"items": items, "delivery_address": "г. Тест"}
+        output = str(tmp_path / "spec_v2_tth_partial.docx")
+
+        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
+
+        doc = Document(output)
+        discreteness_label = doc.tables[1].rows[4].cells[1].text
+        assert "ТТХ_ГРАНИЦА" not in discreteness_label
+        assert "от 0 до 60т" in discreteness_label
+        assert "от 60 до 80т" in discreteness_label
+
 
 class TestYearPlaceholder:
     """Год {{ТЕКУЩИЙ_ГОД}} заменяется."""

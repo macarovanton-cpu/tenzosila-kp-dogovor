@@ -33,6 +33,17 @@ _CHECK_LABELS = [
     ("h3, мм", "h10, мм", ""),
 ]
 
+_TTH_KEYS = (
+    "ТТХ_НАГРУЗКА_НА_ОСЬ",
+    "ТТХ_РАССТОЯНИЕ_ДО_ТЕРМИНАЛА",
+    "ТТХ_ДИСКРЕТНОСТЬ_1",
+    "ТТХ_ДИСКРЕТНОСТЬ_2",
+    "ТТХ_ГРАНИЦА_1",
+    "ТТХ_ГРАНИЦА_2",
+    "ТТХ_ГАБАРИТЫ",
+    "ТТХ_ТЕМПЕРАТУРА",
+)
+
 
 def _make_clause_para(
     text: str, bold: bool = False, justify: bool = False,
@@ -271,13 +282,14 @@ def fill_spec_v2(
     data.setdefault("ТЕКУЩИЙ_ГОД", str(datetime.now().year))
     data.setdefault("ПРИЛОЖЕНИЕ_НОМЕР", "1")
 
-    # --- ТТХ из models.json (если не переданы явно) ---
+    # --- ТТХ из models.json (дозаполняет отсутствующие ручные значения) ---
     deps = None
-    if not any(k.startswith("ТТХ_") for k in data):
+    if any(key not in data for key in _TTH_KEYS):
         deps = _load_model_and_deps(deal)
         if deps:
             from src.contracts.tth_context import build_tth_data
-            data.update(build_tth_data(deps[0], deps[2]))
+            for key, value in build_tth_data(deps[0], deps[2]).items():
+                data.setdefault(key, value)
 
     fill_spec_with_items(template_path, data, items, output_path)
 
