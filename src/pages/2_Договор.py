@@ -132,10 +132,10 @@ WIDE_FIELDS: set[str] = {
 }
 
 _SECTION_LABELS: dict[str, str] = {
-    "obligations_supplier": "4. Обязательства Подрядчика",
-    "obligations_customer": "5. Обязательства Заказчика",
-    "special_conditions": "6. Особые условия",
-    "final": "7. Заключительные положения",
+    "obligations_supplier": "Обязательства Подрядчика",
+    "obligations_customer": "Обязательства Заказчика",
+    "special_conditions": "Особые условия",
+    "final": "Заключительные положения",
 }
 
 _FOUND_OPTS = [

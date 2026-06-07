@@ -36,6 +36,23 @@ _REQUISITES = {
 }
 
 
+_CLAUSE_HEADER_TITLES = (
+    "Обязательства Подрядчика",
+    "Обязательства Заказчика",
+    "Особые условия",
+    "Заключительные положения",
+)
+
+
+def _all_text(doc: Document) -> str:
+    return "\n".join(p.text for p in doc.paragraphs)
+
+
+def _assert_no_clause_headers(all_text: str) -> None:
+    for title in _CLAUSE_HEADER_TITLES:
+        assert title not in all_text
+
+
 @pytest.fixture(scope="module")
 def json_data():
     with open(os.path.join(DATA_DIR, "models.json"), encoding="utf-8") as f:
@@ -97,8 +114,8 @@ class TestExample1_SL40_DeliveryOnly:
         output = str(tmp_path / "ex1b.docx")
         fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
         doc = Document(output)
-        all_text = "\n".join(p.text for p in doc.paragraphs)
-        assert "7. Заключительные положения" in all_text
+        all_text = _all_text(doc)
+        _assert_no_clause_headers(all_text)
         assert "Контрольный лист" not in all_text
 
 
@@ -145,10 +162,8 @@ class TestExample2_C80_ContractorFull:
         output = str(tmp_path / "ex2b.docx")
         fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
         doc = Document(output)
-        all_text = "\n".join(p.text for p in doc.paragraphs)
-        assert "4. Обязательства Подрядчика" in all_text
-        assert "5. Обязательства Заказчика" in all_text
-        assert "7. Заключительные положения" in all_text
+        all_text = _all_text(doc)
+        _assert_no_clause_headers(all_text)
 
 
 class TestExample3_C100_CustomerBuilds:
@@ -184,7 +199,7 @@ class TestExample3_C100_CustomerBuilds:
         output = str(tmp_path / "ex3b.docx")
         fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
         doc = Document(output)
-        all_text = "\n".join(p.text for p in doc.paragraphs)
+        all_text = _all_text(doc)
         assert "Контрольный лист" in all_text
 
     def test_all_four_sections(self, tmp_path, json_data):
@@ -200,8 +215,5 @@ class TestExample3_C100_CustomerBuilds:
         output = str(tmp_path / "ex3c.docx")
         fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
         doc = Document(output)
-        all_text = "\n".join(p.text for p in doc.paragraphs)
-        assert "4. Обязательства Подрядчика" in all_text
-        assert "5. Обязательства Заказчика" in all_text
-        assert "6. Особые условия" in all_text
-        assert "7. Заключительные положения" in all_text
+        all_text = _all_text(doc)
+        _assert_no_clause_headers(all_text)

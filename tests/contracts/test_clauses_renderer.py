@@ -42,6 +42,21 @@ def _make_max_deal() -> dict:
     }
 
 
+def _make_foundation_install_deal() -> dict:
+    """Сценарий: фундамент+монтаж+поверка без ОРИОН (10 пунктов)."""
+    return {
+        "items": [
+            _item("weights"),
+            _item("foundation", {"scope": "fundament_jb"}),
+            _item("installation", {"scope": "full"}),
+            _item("verification"),
+        ],
+        "scope_overrides": {},
+        "flags": {},
+        "delivery_address": "г. Тест",
+    }
+
+
 class TestClauseCount:
     def test_montazh_7_clauses(self):
         from src.contracts.clauses_renderer import build_contract_clauses
@@ -94,20 +109,25 @@ class TestClauseCount:
 
 
 class TestAutoNumbering:
-    def test_section_numbers_correct(self):
+    def test_flat_numbers_start_at_4(self):
         from src.contracts.clauses_renderer import build_contract_clauses
         result = build_contract_clauses(_make_max_deal())
-        # obligations_supplier → секция 4
+
+        all_clauses = [
+            clause
+            for section_clauses in result.values()
+            for clause in section_clauses
+        ]
+        assert [c.auto_number for c in all_clauses] == [
+            str(n) for n in range(4, 18)
+        ]
+
         supp = result.get("obligations_supplier", [])
-        assert supp[0].auto_number == "4.1"
-        assert supp[1].auto_number == "4.2"
-        # obligations_customer → секция 5, первый пункт 5.1
-        cust = result.get("obligations_customer", [])
-        assert cust[0].auto_number == "5.1"
-        assert cust[-1].auto_number == f"5.{len(cust)}"
-        # final → секция 7
+        assert supp[0].auto_number == "4"
+        assert supp[1].auto_number == "5"
+
         final = result.get("final", [])
-        assert final[0].auto_number == "7.1"
+        assert final[0].auto_number == "16"
 
     def test_obligations_customer_ordered_by_order_field(self):
         """Пункты внутри секции отсортированы по полю order."""
@@ -145,14 +165,18 @@ class TestJinjaSubstitution:
     def test_obligations_range_in_cross_reference(self):
         """cross_reference_to_contract содержит рассчитанный obligations_range."""
         from src.contracts.clauses_renderer import build_contract_clauses
-        result = build_contract_clauses(_make_max_deal())
+        result = build_contract_clauses(_make_foundation_install_deal())
+        cust = result.get("obligations_customer", [])
+        unable = next(
+            c for c in cust if c.id == "customer_unable_to_accept_team_delays_work"
+        )
         final_clauses = result.get("final", [])
         cross_ref = next(
             (c for c in final_clauses if c.id == "cross_reference_to_contract"), None
         )
         assert cross_ref is not None
-        # Должен содержать "4.1-6.2" для max-сценария
-        assert "4.1-6.2" in cross_ref.text
+        assert unable.auto_number == "6"
+        assert "7-11" in cross_ref.text
 
     def test_delivery_address_substituted(self):
         """delivery_address_text подставляется в текст clause delivery_address."""

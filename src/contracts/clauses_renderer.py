@@ -14,7 +14,7 @@ _logger = logging.getLogger(__name__)
 
 _LIBRARY: ClausesLibrary | None = None
 _CLAUSES_PATH = Path("data/clauses.yaml")
-_OBLIGATIONS_SECTIONS = ("obligations_supplier", "obligations_customer", "special_conditions")
+_OBLIGATIONS_RANGE_EXCLUDED_IDS = {"customer_unable_to_accept_team_delays_work"}
 
 
 @dataclass
@@ -45,7 +45,6 @@ def build_contract_clauses(deal: dict) -> dict[str, list[RenderedClause]]:
     library = _get_library()
     context = build_clauses_context(deal)
     sections = library.get_sections()
-    section_numbers = {s.id: s.section_number for s in sections}
 
     # Шаг 1: отфильтровать clauses по применимости
     applicable: dict[str, list[Clause]] = {}
@@ -61,12 +60,23 @@ def build_contract_clauses(deal: dict) -> dict[str, list[RenderedClause]]:
         if filtered:
             applicable[section.id] = filtered
 
-    # Шаг 2: вычислить obligations_range
+    # Шаг 2: сквозная плоская нумерация clauses начиная с 4
+    numbered: list[tuple[str, Clause, str]] = []
+    current_number = 4
+    for section in sections:
+        for clause in applicable.get(section.id, []):
+            numbered.append((section.id, clause, str(current_number)))
+            current_number += 1
+
+    # Шаг 3: вычислить obligations_range по плоской нумерации
     range_nums: list[str] = []
-    for sec_id in _OBLIGATIONS_SECTIONS:
-        sec_num = section_numbers.get(sec_id, 0)
-        for i in range(1, len(applicable.get(sec_id, [])) + 1):
-            range_nums.append(f"{sec_num}.{i}")
+    for section_id, clause, auto_number in numbered:
+        is_customer_obligation = (
+            section_id == "obligations_customer"
+            and clause.id not in _OBLIGATIONS_RANGE_EXCLUDED_IDS
+        )
+        if is_customer_obligation or section_id == "special_conditions":
+            range_nums.append(auto_number)
 
     if len(range_nums) > 1:
         obligations_range = f"{range_nums[0]}-{range_nums[-1]}"
@@ -75,7 +85,7 @@ def build_contract_clauses(deal: dict) -> dict[str, list[RenderedClause]]:
     else:
         obligations_range = ""
 
-    # Шаг 3: jinja-параметры для подстановки в тексты
+    # Шаг 4: jinja-параметры для подстановки в тексты
     items_by_id = {item["id"]: item for item in (deal.get("items") or [])}
     has_orion = context["has_orion"]
     foundation_scope = context["foundation_scope"]
@@ -94,21 +104,16 @@ def build_contract_clauses(deal: dict) -> dict[str, list[RenderedClause]]:
         "delivery_address_text": deal.get("delivery_address", ""),
     }
 
-    # Шаг 4: нумерация и рендеринг
+    # Шаг 5: рендеринг
     result: dict[str, list[RenderedClause]] = {}
-    for section in sections:
-        sec_num = section_numbers.get(section.id, 0)
-        clauses = applicable.get(section.id, [])
-        rendered = [
+    for section_id, clause, auto_number in numbered:
+        result.setdefault(section_id, []).append(
             RenderedClause(
                 id=clause.id,
-                section=section.id,
-                auto_number=f"{sec_num}.{i}",
+                section=section_id,
+                auto_number=auto_number,
                 text=_render_text(clause.text.strip(), jinja_params),
             )
-            for i, clause in enumerate(clauses, start=1)
-        ]
-        if rendered:
-            result[section.id] = rendered
+        )
 
     return result

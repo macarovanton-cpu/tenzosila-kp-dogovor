@@ -85,11 +85,13 @@ def _row_has_cant_split(row) -> bool:
     return cs.get(qn("w:val"), "1") not in ("0", "false", "off")
 
 
-def test_spec_п14_has_page_break_before():
+def test_spec_tth_heading_has_page_break_before():
     doc = Document(CONTRACTS / "spec_foundation_install.docx")
     p = _find_body_para(doc, "Технические характеристики")
     assert p is not None, "Параграф 'Технические характеристики' не найден"
-    assert _has_para_prop(p, "w:pageBreakBefore"), "п.14 должен иметь pageBreakBefore"
+    assert _has_para_prop(p, "w:pageBreakBefore"), (
+        "tth_heading должен иметь pageBreakBefore"
+    )
 
 
 def test_spec_приложение_has_page_break_before():
@@ -108,12 +110,24 @@ def test_spec_footer_has_page_field():
     assert "PAGE" in footer_xml, "Поле PAGE отсутствует в footer2"
 
 
-def test_spec_п15_has_keep_with_next():
-    """Параграф п.15 (Комплект поставки) имеет keepWithNext."""
+def test_spec_kit_heading_has_keep_with_next():
+    """Параграф kit_heading (Комплект поставки) имеет keepWithNext."""
     doc = Document(CONTRACTS / "spec_foundation_install.docx")
     p = _find_body_para(doc, "Комплект поставки")
     assert p is not None, "Параграф 'Комплект поставки' не найден"
-    assert _has_para_prop(p, "w:keepNext"), "п.15 должен иметь keepNext"
+    assert _has_para_prop(p, "w:keepNext"), "kit_heading должен иметь keepNext"
+
+
+def test_spec_v2_tth_and_kit_headings_are_placeholders_without_numbering():
+    """spec_v2.docx хранит номера ТТХ/комплекта через плейсхолдеры, без numPr."""
+    doc = Document(CONTRACTS / "spec_v2.docx")
+    tth = _find_body_para(doc, "{{ТТХ_НОМЕР}}. Технические характеристики")
+    kit = _find_body_para(doc, "{{КОМПЛЕКТ_НОМЕР}}. Комплект поставки")
+
+    assert tth is not None, "tth_heading с {{ТТХ_НОМЕР}} не найден"
+    assert kit is not None, "kit_heading с {{КОМПЛЕКТ_НОМЕР}} не найден"
+    assert not _has_para_prop(tth, "w:numPr"), "tth_heading не должен иметь numPr"
+    assert not _has_para_prop(kit, "w:numPr"), "kit_heading не должен иметь numPr"
 
 
 def test_spec_table2_rows_have_cant_split():
@@ -150,28 +164,28 @@ def test_spec_appendix_has_initsialy():
 
 
 def test_spec_kwn_chain_until_signatures():
-    """Цепочка keepNext непрерывна: п.14 → пустые → п.15 → пустой → [61], TABLE[3] cantSplit."""
+    """Цепочка keepNext непрерывна: tth_heading → пустые → kit_heading → подписи."""
     doc = Document(CONTRACTS / "spec_foundation_install.docx")
     body_paras = _body_paras(doc)
 
-    p14_idx = next(
+    tth_idx = next(
         i for i, p in enumerate(body_paras) if "Технические характеристики" in p.text
     )
-    p15_idx = next(
+    kit_idx = next(
         i for i, p in enumerate(body_paras) if "Комплект поставки" in p.text
     )
 
-    # body_paras от п.14 до пустого после п.15 включительно (p14_idx .. p15_idx+1)
-    for i in range(p14_idx, p15_idx + 2):
+    # body_paras от tth_heading до пустого после kit_heading включительно.
+    for i in range(tth_idx, kit_idx + 2):
         p = body_paras[i]
         assert _has_para_prop(p, "w:keepNext"), (
             f"body_paras[{i}] {p.text[:40]!r} должен иметь keepNext"
         )
 
-    # body_paras[p15_idx+2] — пустой параграф [61] перед таблицей подписей
-    p61 = body_paras[p15_idx + 2]
+    # body_paras[kit_idx+2] — пустой параграф перед таблицей подписей.
+    p61 = body_paras[kit_idx + 2]
     assert _has_para_prop(p61, "w:keepNext"), (
-        "Параграф перед таблицей подписей (body_paras[p15_idx+2]) должен иметь keepNext"
+        "Параграф перед таблицей подписей (body_paras[kit_idx+2]) должен иметь keepNext"
     )
 
     # Таблица подписей (doc.tables[3]) — cantSplit
@@ -181,17 +195,17 @@ def test_spec_kwn_chain_until_signatures():
 
 
 def test_spec_max_empty_paras_between_th_and_kompl():
-    """Между таблицей ТХ и заголовком п.15 не более 1 пустого параграфа."""
+    """Между таблицей ТХ и kit_heading не более 1 пустого параграфа."""
     doc = Document(CONTRACTS / "spec_foundation_install.docx")
     body_paras = _body_paras(doc)
-    p14_idx = next(
+    tth_idx = next(
         i for i, p in enumerate(body_paras) if "Технические характеристики" in p.text
     )
-    p15_idx = next(
+    kit_idx = next(
         i for i, p in enumerate(body_paras) if "Комплект поставки" in p.text
     )
-    # p14_idx+2 .. p15_idx — параграфы после p.14 и его empty-пары до заголовка п.15
-    between = body_paras[p14_idx + 2 : p15_idx]
+    # tth_idx+2 .. kit_idx — параграфы после tth_heading до kit_heading.
+    between = body_paras[tth_idx + 2 : kit_idx]
     assert len(between) <= 1, (
         f"Между таблицей ТХ и заголовком п.15 должно быть не более 1 пустого параграфа, "
         f"найдено {len(between)}"

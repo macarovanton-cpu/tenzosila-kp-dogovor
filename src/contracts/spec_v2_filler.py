@@ -16,13 +16,6 @@ _CLAUSE_SECTION_ORDER = [
     "final",
 ]
 
-_CLAUSE_SECTION_HEADERS = {
-    "obligations_supplier": "4. Обязательства Подрядчика",
-    "obligations_customer": "5. Обязательства Заказчика",
-    "special_conditions": "6. Особые условия",
-    "final": "7. Заключительные положения",
-}
-
 _CHECK_LABELS = [
     ("L, мм", "h4, мм", "h11, мм"),
     ("W, мм", "h5, мм", "h12, мм"),
@@ -282,6 +275,19 @@ def fill_spec_v2(
     data.setdefault("ТЕКУЩИЙ_ГОД", str(datetime.now().year))
     data.setdefault("ПРИЛОЖЕНИЕ_НОМЕР", "1")
 
+    # --- Clauses: заранее посчитать номера для плейсхолдеров ТТХ/комплекта ---
+    clauses_by_section = build_contract_clauses(deal)
+    last_clause_number = max(
+        (
+            int(clause.auto_number)
+            for section_clauses in clauses_by_section.values()
+            for clause in section_clauses
+        ),
+        default=3,
+    )
+    data["ТТХ_НОМЕР"] = str(last_clause_number + 1)
+    data["КОМПЛЕКТ_НОМЕР"] = str(last_clause_number + 2)
+
     # --- ТТХ из models.json (дозаполняет отсутствующие ручные значения) ---
     deps = None
     if any(key not in data for key in _TTH_KEYS):
@@ -335,7 +341,6 @@ def fill_spec_v2(
         _remove_marker(doc, "{{APPENDIX_FOUNDATION_CHECK}}")
 
     # --- Clauses ---
-    clauses_by_section = build_contract_clauses(deal)
     for section_id in _CLAUSE_SECTION_ORDER:
         marker = "{{CLAUSE_SECTION_" + section_id + "}}"
         clauses = clauses_by_section.get(section_id, [])
@@ -343,9 +348,6 @@ def fill_spec_v2(
             if marker in para.text:
                 p_el = para._element
                 if clauses:
-                    p_el.addprevious(_make_clause_para(""))
-                    header = _CLAUSE_SECTION_HEADERS[section_id]
-                    p_el.addprevious(_make_clause_para(header, bold=True))
                     for clause in clauses:
                         text = f"{clause.auto_number}. {clause.text}"
                         p_el.addprevious(
