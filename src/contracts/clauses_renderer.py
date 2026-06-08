@@ -37,6 +37,14 @@ def _render_text(template_str: str, params: dict) -> str:
     return env.from_string(template_str).render(**params)
 
 
+def _format_amount(value: object) -> str:
+    if isinstance(value, int):
+        return f"{value:,}".replace(",", " ")
+    if isinstance(value, float):
+        return f"{int(value):,}".replace(",", " ")
+    return str(value or "").strip()
+
+
 def build_contract_clauses(deal: dict) -> dict[str, list[RenderedClause]]:
     """Собрать применимые clauses для deal. Возвращает section_id → [RenderedClause].
 
@@ -87,6 +95,7 @@ def build_contract_clauses(deal: dict) -> dict[str, list[RenderedClause]]:
 
     # Шаг 4: jinja-параметры для подстановки в тексты
     items_by_id = {item["id"]: item for item in (deal.get("items") or [])}
+    flags = deal.get("flags") or {}
     has_orion = context["has_orion"]
     foundation_scope = context["foundation_scope"]
 
@@ -102,6 +111,7 @@ def build_contract_clauses(deal: dict) -> dict[str, list[RenderedClause]]:
         "install_site_label": "месту установки" if foundation_scope == "rama" else "фундаменту",
         "obligations_range": obligations_range,
         "delivery_address_text": deal.get("delivery_address", ""),
+        "winter_surcharge_amount": _format_amount(flags.get("winter_surcharge_amount")),
     }
 
     # Шаг 5: рендеринг

@@ -224,3 +224,47 @@ class TestJinjaSubstitution:
         found = next((c for c in cust if c.id == "customer_builds_foundation_per_spec"), None)
         assert found is not None
         assert "45" in found.text
+
+
+class TestWinterSurcharge:
+    def test_clauses_apply_for_enabled_contractor_foundation(self):
+        from src.contracts.clauses_renderer import build_contract_clauses
+        deal = {
+            **_make_foundation_install_deal(),
+            "flags": {"winter_surcharge": True, "winter_surcharge_amount": 250000},
+        }
+
+        result = build_contract_clauses(deal)
+
+        supplier = result["obligations_supplier"]
+        assert [c.id for c in supplier[-3:]] == [
+            "winter_foundation_surcharge",
+            "winter_foundation_surcharge_payment",
+            "winter_concrete_heating_option",
+        ]
+        assert "250 000 рублей" in supplier[-3].text
+        assert "п.2.2 настоящей Спецификации" in supplier[-2].text
+
+    def test_clauses_do_not_apply_without_flag(self):
+        from src.contracts.clauses_renderer import build_contract_clauses
+
+        result = build_contract_clauses(_make_foundation_install_deal())
+
+        supplier_ids = [c.id for c in result["obligations_supplier"]]
+        assert "winter_foundation_surcharge" not in supplier_ids
+        assert "winter_foundation_surcharge_payment" not in supplier_ids
+        assert "winter_concrete_heating_option" not in supplier_ids
+
+    def test_clauses_do_not_apply_without_foundation_scope(self):
+        from src.contracts.clauses_renderer import build_contract_clauses
+        deal = {
+            **_make_montazh_deal(),
+            "flags": {"winter_surcharge": True, "winter_surcharge_amount": 250000},
+        }
+
+        result = build_contract_clauses(deal)
+
+        supplier_ids = [c.id for c in result.get("obligations_supplier", [])]
+        assert "winter_foundation_surcharge" not in supplier_ids
+        assert "winter_foundation_surcharge_payment" not in supplier_ids
+        assert "winter_concrete_heating_option" not in supplier_ids

@@ -442,12 +442,26 @@ if is_extracted():
     _cs_ovr = st.session_state["contract"]["scope_overrides"]
 
     st.subheader("Особые условия")
-    st.session_state.setdefault("w_winter_concrete", _cs_flags.get("winter_concrete", False))
+    _cs_flags.setdefault("winter_surcharge", bool(_cs_flags.get("winter_concrete", False)))
+    _cs_flags.setdefault("winter_surcharge_amount", 200000)
+    st.session_state.setdefault("w_winter_surcharge", _cs_flags.get("winter_surcharge", False))
     _winter_val = st.checkbox(
         "Зимний период (бетонные работы при +5 °C и ниже)",
-        key="w_winter_concrete",
+        key="w_winter_surcharge",
     )
+    _cs_flags["winter_surcharge"] = _winter_val
     _cs_flags["winter_concrete"] = _winter_val
+    if _winter_val:
+        st.session_state.setdefault(
+            "w_winter_surcharge_amount",
+            int(_cs_flags.get("winter_surcharge_amount") or 200000),
+        )
+        _cs_flags["winter_surcharge_amount"] = int(st.number_input(
+            "Сумма зимнего удорожания, руб.",
+            min_value=0,
+            step=1000,
+            key="w_winter_surcharge_amount",
+        ))
 
     with st.expander("Override-флаги (для нестандартных случаев)", expanded=False):
         st.caption(

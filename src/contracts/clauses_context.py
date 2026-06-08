@@ -30,7 +30,7 @@ def build_clauses_context(deal: dict) -> dict:
     deal:
       items: list[dict]          — SpecItem list
       scope_overrides: dict      — переопределения (применяются если items не содержат значения)
-      flags: dict                — {"winter_concrete": bool}
+      flags: dict                — {"winter_concrete": bool, "winter_surcharge": bool}
     """
     items: list[dict] = deal.get("items", []) or []
     overrides: dict = deal.get("scope_overrides", {}) or {}
@@ -92,6 +92,9 @@ def build_clauses_context(deal: dict) -> dict:
     # --- winter_concrete — ТОЛЬКО из явного флага ---
     winter_concrete = bool(flags.get("winter_concrete", False))
 
+    # --- winter_surcharge — ТОЛЬКО из явного флага ---
+    winter_surcharge = bool(flags.get("winter_surcharge", False))
+
     return {
         "foundation_scope": foundation_scope,
         "base_type": base_type,
@@ -100,4 +103,5 @@ def build_clauses_context(deal: dict) -> dict:
         "has_orion": has_orion,
         "orion_poles_scope": orion_poles_scope,
         "winter_concrete": winter_concrete,
+        "winter_surcharge": winter_surcharge,
     }

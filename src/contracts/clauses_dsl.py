@@ -11,6 +11,7 @@ _ALLOWED_VARS = frozenset({
     "has_orion",
     "orion_poles_scope",
     "winter_concrete",
+    "winter_surcharge",
     "true",
     "false",
 })

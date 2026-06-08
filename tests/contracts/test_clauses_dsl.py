@@ -112,7 +112,7 @@ class TestSecurity:
 
 
 class TestRealClausesYaml:
-    """Все 28 applies_when из data/clauses.yaml должны парситься успешно."""
+    """Все applies_when из data/clauses.yaml должны парситься успешно."""
 
     EXPRS = [
         'verification_scope == "supplier"',
@@ -129,6 +129,8 @@ class TestRealClausesYaml:
         'has_orion and orion_poles_scope == "by_customer"',
         'has_orion',
         'winter_concrete',
+        'winter_surcharge == true',
+        'winter_surcharge == true and foundation_scope in ("contractor_full", "contractor_with_materials")',
         'true',
     ]
 

@@ -150,6 +150,19 @@ class TestOverrides:
         # Нет флага → False
         assert ctx["winter_concrete"] is False
 
+    def test_winter_surcharge_only_from_flag(self):
+        """winter_surcharge=True только из явного флага, не из items."""
+        from src.contracts.clauses_context import build_clauses_context
+        deal = {"items": [_item("foundation", {"scope": "fundament_jb"})]}
+        ctx = build_clauses_context(deal)
+        assert ctx["winter_surcharge"] is False
+
+        flagged = {
+            "items": [_item("foundation", {"scope": "fundament_jb"})],
+            "flags": {"winter_surcharge": True},
+        }
+        assert build_clauses_context(flagged)["winter_surcharge"] is True
+
     def test_old_installation_scope_fundament_maps_to_full(self):
         """Старое значение 'fundament' из from_kp.py → installation_scope='full'."""
         from src.contracts.clauses_context import build_clauses_context

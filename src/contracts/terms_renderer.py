@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from src.contracts.clauses_context import build_clauses_context
+from src.contracts.utils import days_genitive
 from src.term_days import (
     TERM_DAYS_DEFAULTS,
     calculate_term_days_per_item,
@@ -22,6 +23,10 @@ def _role_days(spec_items: list[dict]) -> dict[str, int]:
     return result
 
 
+def _format_work_days(days: int) -> str:
+    return f"{days} ({days_genitive(days)}) рабочих дней"
+
+
 def render_terms_section(deal: dict, spec_items: list[dict]) -> list[str]:
     """Сформировать строки блока «Сроки» для spec_v2.
 
@@ -35,22 +40,35 @@ def render_terms_section(deal: dict, spec_items: list[dict]) -> list[str]:
     install_d = days.get("install", TERM_DAYS_DEFAULTS["install"])
 
     lines: list[str] = []
-
-    lines.append(
-        f"- поставка Весов: в течение {scales_d} рабочих дней "
-        "с момента поступления предоплаты"
+    has_contractor_foundation = ctx["foundation_scope"] in (
+        "contractor_full",
+        "contractor_with_materials",
     )
 
-    if ctx["foundation_scope"] in ("contractor_full", "contractor_with_materials"):
+    if has_contractor_foundation:
         lines.append(
-            f"- строительство фундамента Весов: в течение {foundation_d} рабочих дней "
-            "с момента поступления предоплаты"
+            f"- строительство фундамента Весов: в течение {_format_work_days(foundation_d)} "
+            "с момента поступления предоплаты. "
+            "Работы по строительству фундамента Весов проводятся при условии "
+            "среднесуточной температуры выше +5 °С."
         )
+
+    payment_refs = "п.2.1 и п.2.2" if has_contractor_foundation else "п.2.1"
+    lines.append(
+        f"- поставка Весов: в течение {_format_work_days(scales_d)} "
+        "с момента поступления предоплаты. "
+        "Весы отгружаются Заказчику только после их полной оплаты "
+        f"в соответствии с {payment_refs} настоящей Спецификации."
+    )
 
     if ctx["installation_scope"] != "none":
         lines.append(
-            f"- монтаж Весов и поверка Весов: в течение {install_d} рабочих дней "
-            "при условии получения Подрядчиком предоплаты"
+            f"- монтаж Весов и поверка Весов: в течение {_format_work_days(install_d)} "
+            "при условии получения Подрядчиком предоплаты. "
+            "Выезд монтажной бригады на Объект работ осуществляется при соблюдении "
+            "вышеперечисленных условий и получения Подрядчиком письменного "
+            "уведомления от Заказчика о готовности принять на площадку монтажа "
+            "специалистов Подрядчика."
         )
 
     return lines

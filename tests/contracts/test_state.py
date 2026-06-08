@@ -45,6 +45,23 @@ class TestInitContractState:
         assert manual["contract_date"] is None
         assert manual["spec_number"] == "1"
 
+    def test_winter_surcharge_defaults(self, mock_session_state):
+        from src.contracts.state import init_contract_state
+        init_contract_state()
+        flags = mock_session_state["contract"]["flags"]
+        assert flags["winter_surcharge"] is False
+        assert flags["winter_surcharge_amount"] == 200000
+
+    def test_winter_surcharge_flags_backfilled_for_existing_state(self, mock_session_state):
+        from src.contracts.state import init_contract_state
+        mock_session_state["contract"] = {"flags": {"winter_concrete": True}}
+
+        init_contract_state()
+
+        flags = mock_session_state["contract"]["flags"]
+        assert flags["winter_surcharge"] is True
+        assert flags["winter_surcharge_amount"] == 200000
+
 
 # ------------------------------------------------------------------
 # set_extracted_data

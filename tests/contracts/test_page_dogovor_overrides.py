@@ -15,32 +15,36 @@ def _clause_ids(result: dict) -> set[str]:
     return {c.id for clauses in result.values() for c in clauses}
 
 
-class TestWinterConcreteFlag:
-    def test_winter_concrete_true_adds_surcharge(self):
-        """flags.winter_concrete=True → clause winter_concrete_surcharge появляется."""
+class TestWinterSurchargeFlag:
+    def test_winter_surcharge_true_adds_surcharge(self):
+        """flags.winter_surcharge=True → winter surcharge clauses появляются."""
         from src.contracts.clauses_renderer import build_contract_clauses
 
         deal = {
             "items": [_item("weights"), _item("foundation", {"scope": "contractor_full"})],
             "scope_overrides": {},
-            "flags": {"winter_concrete": True},
+            "flags": {"winter_surcharge": True, "winter_surcharge_amount": 250000},
             "delivery_address": "",
         }
         result = build_contract_clauses(deal)
-        assert "winter_concrete_surcharge" in _clause_ids(result)
+        assert "winter_foundation_surcharge" in _clause_ids(result)
+        assert "winter_foundation_surcharge_payment" in _clause_ids(result)
+        assert "winter_concrete_heating_option" in _clause_ids(result)
 
-    def test_winter_concrete_false_no_surcharge(self):
-        """flags.winter_concrete=False → clause winter_concrete_surcharge отсутствует."""
+    def test_winter_surcharge_false_no_surcharge(self):
+        """flags.winter_surcharge=False → winter surcharge clauses отсутствуют."""
         from src.contracts.clauses_renderer import build_contract_clauses
 
         deal = {
             "items": [_item("weights"), _item("foundation", {"scope": "contractor_full"})],
             "scope_overrides": {},
-            "flags": {"winter_concrete": False},
+            "flags": {"winter_surcharge": False},
             "delivery_address": "",
         }
         result = build_contract_clauses(deal)
-        assert "winter_concrete_surcharge" not in _clause_ids(result)
+        assert "winter_foundation_surcharge" not in _clause_ids(result)
+        assert "winter_foundation_surcharge_payment" not in _clause_ids(result)
+        assert "winter_concrete_heating_option" not in _clause_ids(result)
 
 
 class TestFoundationScopeOverride:

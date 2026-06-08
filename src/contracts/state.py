@@ -22,7 +22,11 @@ _CONTRACT_DEFAULTS: dict[str, Any] = {
     "generated": None,
     "payment_lines": [],
     "kp_payment_snapshot": {},
-    "flags": {"winter_concrete": False},
+    "flags": {
+        "winter_concrete": False,
+        "winter_surcharge": False,
+        "winter_surcharge_amount": 200000,
+    },
     "scope_overrides": {
         "foundation_scope": None,
         "installation_scope": None,
@@ -43,6 +47,10 @@ def init_contract_state() -> None:
             cs.setdefault(key, default.copy())
         else:
             cs.setdefault(key, default)
+    flags = cs.setdefault("flags", {})
+    flags.setdefault("winter_concrete", False)
+    flags.setdefault("winter_surcharge", bool(flags.get("winter_concrete", False)))
+    flags.setdefault("winter_surcharge_amount", 200000)
 
 
 def set_extracted_data(raw: dict) -> None:
