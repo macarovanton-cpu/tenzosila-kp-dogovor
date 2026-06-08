@@ -1,0 +1,169 @@
+"""Ядро конвертации PDF-чертежей фундаментов в DOCX."""
+from __future__ import annotations
+
+import copy
+import io
+import struct
+from pathlib import Path
+from typing import Any
+
+import fitz
+from docx import Document
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Emu
+from docx.text.paragraph import Paragraph
+
+
+ROOT = Path(__file__).resolve().parent.parent
+REFERENCE = ROOT / "templates" / "contracts" / "spec_v2.docx"
+SRC_DIR = ROOT / "data" / "fundament" / "pdf_source"
+OUT_DIR = ROOT / "data" / "fundament" / "build_task"
+CS_SRC = SRC_DIR / "control_sheet"
+CS_OUT = ROOT / "data" / "fundament" / "control_sheet"
+
+DPI = 200
+EMU_PER_MM = 36_000
+USABLE_W_EMU = 6_390_640
+FIRST_PAGE_IMAGE_MAX_H_EMU = (297 - 10 - 35) * EMU_PER_MM
+NEXT_PAGE_IMAGE_MAX_H_EMU = (297 - 10 - 5) * EMU_PER_MM
+TEXTBOX_DOC_PR_BASE_ID = 500_000
+TEXTBOX_ANCHOR_BASE_ID = 0x47FCA4F2
+
+APPENDIX_PARAGRAPH_IDXS = (39, 40, 41, 42, 44)
+IMAGE_PARAGRAPH_IDX = 45
+WPS_TXBX_TAG = "{http://schemas.microsoft.com/office/word/2010/wordprocessingShape}txbx"
+WP14_ANCHOR_ID_ATTR = (
+    "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId"
+)
+
+
+def _load_reference_parts(doc: Any) -> tuple[list[Any], Any, Any]:
+    paragraphs = doc.paragraphs
+    if len(paragraphs) <= IMAGE_PARAGRAPH_IDX:
+        raise ValueError("В эталоне spec_v2.docx не найдены параграфы приложения")
+
+    header_block = [copy.deepcopy(paragraphs[i]._p) for i in APPENDIX_PARAGRAPH_IDXS]
+    image_para = paragraphs[IMAGE_PARAGRAPH_IDX]
+    img_ppr = image_para._p.find(qn("w:pPr"))
+    if img_ppr is None:
+        raise ValueError("В параграфе картинки эталона нет w:pPr")
+
+    textbox_drawing = None
+    for drawing in image_para._p.iter(qn("w:drawing")):
+        if drawing.find(".//" + WPS_TXBX_TAG) is not None:
+            textbox_drawing = drawing
+            break
+    if textbox_drawing is None:
+        raise ValueError("В параграфе картинки эталона не найден floating TextBox")
+
+    return header_block, copy.deepcopy(img_ppr), copy.deepcopy(textbox_drawing)
+
+
+def _render_pages(pdf_path: Path) -> list[bytes]:
+    pages: list[bytes] = []
+    with fitz.open(str(pdf_path)) as pdf:
+        for page in pdf:
+            pixmap = page.get_pixmap(dpi=DPI)
+            pages.append(pixmap.tobytes("png"))
+    return pages
+
+
+def _png_size(data: bytes) -> tuple[int, int]:
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError("Ожидался PNG")
+    return struct.unpack(">II", data[16:24])
+
+
+def _image_emu(px_w: int, px_h: int, page_idx: int) -> tuple[int, int]:
+    if px_w <= 0 or px_h <= 0:
+        raise ValueError("Размеры изображения должны быть положительными")
+
+    aspect = px_w / px_h
+    max_h = FIRST_PAGE_IMAGE_MAX_H_EMU if page_idx == 0 else NEXT_PAGE_IMAGE_MAX_H_EMU
+    target_w = USABLE_W_EMU
+    target_h = round(target_w / aspect)
+    if target_h > max_h:
+        target_h = max_h
+        target_w = round(target_h * aspect)
+    return target_w, target_h
+
+
+def _clone_textbox(drawing: Any, page_idx: int) -> Any:
+    clone = copy.deepcopy(drawing)
+    doc_pr = clone.find(".//" + qn("wp:docPr"))
+    if doc_pr is None:
+        raise ValueError("В TextBox не найден wp:docPr")
+    doc_pr.set("id", str(TEXTBOX_DOC_PR_BASE_ID + page_idx))
+
+    anchor = clone.find(".//" + qn("wp:anchor"))
+    if anchor is None:
+        raise ValueError("В TextBox не найден wp:anchor")
+    anchor.set(WP14_ANCHOR_ID_ATTR, f"{TEXTBOX_ANCHOR_BASE_ID + page_idx:08X}")
+    return clone
+
+
+def _clear_body_keep_section(doc: Any) -> None:
+    body = doc.element.body
+    for child in list(body):
+        if child.tag != qn("w:sectPr"):
+            body.remove(child)
+
+
+def _insert_paragraph_xml(doc: Any, paragraph_xml: Any) -> None:
+    sect_pr = doc.element.body.find(qn("w:sectPr"))
+    if sect_pr is None:
+        doc.element.body.append(paragraph_xml)
+    else:
+        sect_pr.addprevious(paragraph_xml)
+
+
+def _add_empty_paragraph(doc: Any) -> Paragraph:
+    paragraph_xml = OxmlElement("w:p")
+    _insert_paragraph_xml(doc, paragraph_xml)
+    return Paragraph(paragraph_xml, doc._body)
+
+
+def _add_image_paragraph(
+    doc: Any,
+    img_ppr: Any,
+    textbox_drawing: Any,
+    png: bytes,
+    page_idx: int,
+) -> None:
+    paragraph = _add_empty_paragraph(doc)
+    paragraph._p.append(copy.deepcopy(img_ppr))
+    if page_idx > 0:
+        paragraph.add_run().add_break()
+
+    textbox_run = paragraph.add_run()
+    textbox_run._r.append(_clone_textbox(textbox_drawing, page_idx))
+
+    px_w, px_h = _png_size(png)
+    width_emu, height_emu = _image_emu(px_w, px_h, page_idx)
+    paragraph.add_run().add_picture(
+        io.BytesIO(png),
+        width=Emu(width_emu),
+        height=Emu(height_emu),
+    )
+
+
+def convert(pdf_path: Path, out_path: Path) -> None:
+    doc = Document(str(REFERENCE))
+    header_block, img_ppr, textbox_drawing = _load_reference_parts(doc)
+    pages = _render_pages(pdf_path)
+
+    _clear_body_keep_section(doc)
+    for paragraph_xml in header_block:
+        _insert_paragraph_xml(doc, copy.deepcopy(paragraph_xml))
+    for page_idx, png in enumerate(pages):
+        _add_image_paragraph(doc, img_ppr, textbox_drawing, png, page_idx)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(str(out_path))
+
+
+def _pdf_files(path: Path) -> list[Path]:
+    if not path.exists():
+        return []
+    return sorted([*path.glob("*.pdf"), *path.glob("*.PDF")], key=lambda item: item.name.lower())
