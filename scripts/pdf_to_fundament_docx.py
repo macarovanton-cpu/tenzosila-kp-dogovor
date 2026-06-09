@@ -16,6 +16,8 @@ from scripts.pdf_to_fundament_core import (
     SRC_DIR,
     TEXTBOX_ANCHOR_BASE_ID,
     TEXTBOX_DOC_PR_BASE_ID,
+    TEXTBOX_HEIGHT_EMU,
+    TEXTBOX_WIDTH_EMU,
     USABLE_W_EMU,
     WP14_ANCHOR_ID_ATTR,
     WPS_TXBX_TAG,

@@ -9,6 +9,7 @@ from typing import Any
 
 import fitz
 from docx import Document
+from docx.enum.text import WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Emu
@@ -29,6 +30,8 @@ FIRST_PAGE_IMAGE_MAX_H_EMU = (297 - 10 - 35) * EMU_PER_MM
 NEXT_PAGE_IMAGE_MAX_H_EMU = (297 - 10 - 5) * EMU_PER_MM
 TEXTBOX_DOC_PR_BASE_ID = 500_000
 TEXTBOX_ANCHOR_BASE_ID = 0x47FCA4F2
+TEXTBOX_WIDTH_EMU = 100 * EMU_PER_MM
+TEXTBOX_HEIGHT_EMU = 22 * EMU_PER_MM
 
 APPENDIX_PARAGRAPH_IDXS = (39, 40, 41, 42, 44)
 IMAGE_PARAGRAPH_IDX = 45
@@ -100,7 +103,27 @@ def _clone_textbox(drawing: Any, page_idx: int) -> Any:
     if anchor is None:
         raise ValueError("В TextBox не найден wp:anchor")
     anchor.set(WP14_ANCHOR_ID_ATTR, f"{TEXTBOX_ANCHOR_BASE_ID + page_idx:08X}")
+
+    for extent in clone.findall(".//" + qn("wp:extent")):
+        extent.set("cx", str(TEXTBOX_WIDTH_EMU))
+        extent.set("cy", str(TEXTBOX_HEIGHT_EMU))
+    for extent in clone.findall(".//" + qn("a:ext")):
+        extent.set("cx", str(TEXTBOX_WIDTH_EMU))
+        extent.set("cy", str(TEXTBOX_HEIGHT_EMU))
     return clone
+
+
+def _remove_page_breaks(paragraph_xml: Any) -> None:
+    ppr = paragraph_xml.find(qn("w:pPr"))
+    if ppr is not None:
+        for page_break_before in ppr.findall(qn("w:pageBreakBefore")):
+            ppr.remove(page_break_before)
+
+    for br in list(paragraph_xml.iter(qn("w:br"))):
+        if br.get(qn("w:type")) == "page":
+            parent = br.getparent()
+            if parent is not None:
+                parent.remove(br)
 
 
 def _clear_body_keep_section(doc: Any) -> None:
@@ -134,7 +157,7 @@ def _add_image_paragraph(
     paragraph = _add_empty_paragraph(doc)
     paragraph._p.append(copy.deepcopy(img_ppr))
     if page_idx > 0:
-        paragraph.add_run().add_break()
+        paragraph.add_run().add_break(WD_BREAK.PAGE)
 
     textbox_run = paragraph.add_run()
     textbox_run._r.append(_clone_textbox(textbox_drawing, page_idx))
@@ -155,7 +178,9 @@ def convert(pdf_path: Path, out_path: Path) -> None:
 
     _clear_body_keep_section(doc)
     for paragraph_xml in header_block:
-        _insert_paragraph_xml(doc, copy.deepcopy(paragraph_xml))
+        paragraph_copy = copy.deepcopy(paragraph_xml)
+        _remove_page_breaks(paragraph_copy)
+        _insert_paragraph_xml(doc, paragraph_copy)
     for page_idx, png in enumerate(pages):
         _add_image_paragraph(doc, img_ppr, textbox_drawing, png, page_idx)
 

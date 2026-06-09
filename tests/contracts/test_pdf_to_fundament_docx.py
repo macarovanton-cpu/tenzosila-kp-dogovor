@@ -7,6 +7,8 @@ from scripts.pdf_to_fundament_docx import (
     NEXT_PAGE_IMAGE_MAX_H_EMU,
     TEXTBOX_ANCHOR_BASE_ID,
     TEXTBOX_DOC_PR_BASE_ID,
+    TEXTBOX_HEIGHT_EMU,
+    TEXTBOX_WIDTH_EMU,
     USABLE_W_EMU,
     WPS_TXBX_TAG,
     _clone_textbox,
@@ -141,6 +143,12 @@ def test_convert_builds_docx_from_reference_with_two_pdf_pages(tmp_path):
     assert document_xml.count("<wp:inline") == 2
     assert document_xml.count("<wps:txbx") == 2
     assert document_xml.count('w:type="page"') == 1
+    root = docx_root(out_path, "word/document.xml")
+    paragraphs = root.xpath("//w:body/w:p", namespaces=XML_NS)
+    image_idxs = [i for i, p in enumerate(paragraphs) if p.xpath(".//wp:inline", namespaces=XML_NS)]
+    break_idxs = [i for i, p in enumerate(paragraphs) if p.xpath(".//w:br[@w:type='page']", namespaces=XML_NS)]
+    assert break_idxs == image_idxs[1:]
+    assert not root.xpath("//w:pPr/w:pageBreakBefore", namespaces=XML_NS)
     assert document_xml.count("APPENDIX_FOUNDATION_CHECK") == 0
 
 
@@ -172,10 +180,7 @@ def test_convert_preserves_page_geometry_and_image_limits(tmp_path):
 
     textbox_anchors = root.xpath(".//wp:anchor[.//wps:txbx]", namespaces=XML_NS)
     assert len(textbox_anchors) == 2
-    doc_pr_ids = [
-        int(anchor.find("wp:docPr", namespaces=XML_NS).get("id"))
-        for anchor in textbox_anchors
-    ]
+    doc_pr_ids = [int(a.find("wp:docPr", namespaces=XML_NS).get("id")) for a in textbox_anchors]
     anchor_ids = [anchor.get(WP14_ANCHOR_ID_ATTR) for anchor in textbox_anchors]
     assert doc_pr_ids == [TEXTBOX_DOC_PR_BASE_ID, TEXTBOX_DOC_PR_BASE_ID + 1]
     assert anchor_ids == [
@@ -185,3 +190,11 @@ def test_convert_preserves_page_geometry_and_image_limits(tmp_path):
     for anchor in textbox_anchors:
         assert anchor.find("wp:positionH/wp:posOffset", namespaces=XML_NS).text == "642620"
         assert anchor.find("wp:positionV/wp:posOffset", namespaces=XML_NS).text == "4172585"
+        wp_extent = anchor.find("wp:extent", namespaces=XML_NS)
+        shape_extent = anchor.find(".//a:xfrm/a:ext", namespaces=XML_NS)
+        wp_size = (int(wp_extent.get("cx")), int(wp_extent.get("cy")))
+        shape_size = (int(shape_extent.get("cx")), int(shape_extent.get("cy")))
+        assert wp_size == shape_size == (TEXTBOX_WIDTH_EMU, TEXTBOX_HEIGHT_EMU)
+        assert 1_933_575 < wp_size[0] and 90 * 36_000 <= wp_size[0] <= 110 * 36_000
+        placeholder = "{{\u0417\u0410\u041a\u0410\u0417\u0427\u0418\u041a_\u0414\u0418\u0420\u0415\u041a\u0422\u041e\u0420_\u0418\u041d\u0418\u0426\u0418\u0410\u041b\u042b}}"
+        assert placeholder in _xml_text(anchor)

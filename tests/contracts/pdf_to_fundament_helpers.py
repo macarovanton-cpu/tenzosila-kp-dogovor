@@ -12,6 +12,7 @@ WP14_ANCHOR_ID_ATTR = (
     "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId"
 )
 XML_NS = {
+    "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
     "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
     "wp": "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
     "wp14": "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing",
