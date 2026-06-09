@@ -20,6 +20,12 @@ from src.contracts.filler import (  # noqa: E402
     fill_template,
     get_unfilled_placeholders,
 )
+from src.contracts.fundament_lookup import (  # noqa: E402
+    BuildTaskResolution,
+    list_build_task_files,
+    resolve_build_task,
+    resolve_control_sheet,
+)
 from src.contracts.from_kp import (  # noqa: E402
     build_specification_from_kp_snapshot,
     build_specification_items,
@@ -272,6 +278,100 @@ def _render_field_group(
                 )
 
 
+def _family_label(family: str | None) -> str:
+    return family.replace("_", "/") if family else ""
+
+
+def _build_task_auto_text(result: BuildTaskResolution) -> str:
+    if result.path is None:
+        return f"не подобрано: {result.reason}"
+    parts = [result.execution or "без фундамента"]
+    if result.sections:
+        parts.append(f"{result.sections} секции")
+    family = _family_label(result.family)
+    if family:
+        parts.append(family)
+    return f"{', '.join(parts)} → {result.path.name}"
+
+
+def _build_task_choice_index(options: list[str], attachments: dict) -> int:
+    source = attachments.get("build_task_source", "auto")
+    if source == "none":
+        return options.index("Без приложения")
+    if source == "manual":
+        filename = Path(str(attachments.get("build_task_path") or "")).name
+        if filename in options:
+            return options.index(filename)
+    return options.index("Авто-подбор")
+
+
+def _render_fundament_attachment_choice() -> None:
+    """Показать и сохранить выбор фундаментных приложений без склейки DOCX."""
+    cs = st.session_state["contract"]
+    attachments = cs.setdefault("attachments", {})
+    snapshot = cs.get("kp_snapshot") or {}
+    auto_result = resolve_build_task(snapshot)
+
+    st.subheader("Приложения по фундаменту")
+    auto_text = _build_task_auto_text(auto_result)
+    if auto_result.path is not None:
+        st.success(f"Строительное задание: {auto_text}")
+    elif "не найден" in auto_result.reason:
+        st.error(f"Строительное задание: {auto_text}")
+    else:
+        st.info(f"Строительное задание: {auto_text}")
+
+    build_task_files = list_build_task_files()
+    files_by_name = {path.name: path for path in build_task_files}
+    options = ["Авто-подбор", "Без приложения", *files_by_name]
+    widget_key = "w_build_task_choice"
+    if widget_key not in st.session_state or st.session_state[widget_key] not in options:
+        st.session_state[widget_key] = options[_build_task_choice_index(options, attachments)]
+
+    selected = st.selectbox(
+        "Выбор строительного задания",
+        options,
+        key=widget_key,
+        help="Override для нестандартных случаев. Склейка приложений будет добавлена на шаге 9.",
+    )
+    if selected == "Авто-подбор":
+        selected_build_task = auto_result.path
+        attachments["build_task_source"] = "auto"
+    elif selected == "Без приложения":
+        selected_build_task = None
+        attachments["build_task_source"] = "none"
+    else:
+        selected_build_task = files_by_name[selected]
+        attachments["build_task_source"] = "manual"
+    attachments["build_task_path"] = str(selected_build_task or "")
+
+    if selected_build_task:
+        st.caption(f"Итоговый выбор: {selected_build_task.name}")
+    else:
+        st.caption("Итоговый выбор: без строительного задания.")
+
+    control_sheet = resolve_control_sheet(auto_result.execution, auto_result.sections)
+    if control_sheet is None:
+        st.session_state["w_include_control_sheet"] = False
+        attachments["include_control_sheet"] = False
+        attachments["control_sheet_path"] = ""
+        st.caption("Контрольный лист недоступен для текущего типа фундамента и секций.")
+        return
+
+    st.session_state.setdefault(
+        "w_include_control_sheet",
+        bool(attachments.get("include_control_sheet", False)),
+    )
+    include_control_sheet = st.checkbox(
+        "Добавить контрольный лист (Приложение №2)",
+        key="w_include_control_sheet",
+    )
+    attachments["include_control_sheet"] = bool(include_control_sheet)
+    attachments["control_sheet_path"] = str(control_sheet) if include_control_sheet else ""
+    if include_control_sheet:
+        st.caption(f"Контрольный лист: {control_sheet.name}")
+
+
 # ---------------------------------------------------------------------------
 # Секция 0 — Режим источника данных
 # ---------------------------------------------------------------------------
@@ -347,10 +447,11 @@ if mode == "Из базы (по номеру)":
                 kp_row, prices, models_json, payment_terms
             )
             set_specification(spec)
+            _snap = kp_row.get("data") or kp_row.get("snapshot") or {}
+            st.session_state["contract"]["kp_snapshot"] = _snap
             try:
                 items = build_specification_items(kp_row, prices)
                 set_spec_items(items)
-                _snap = kp_row.get("snapshot") or {}
                 st.session_state["contract"]["kp_payment_snapshot"] = (
                     _snap.get("payment") or {}
                 )
@@ -566,6 +667,9 @@ if is_extracted():
 
     st.divider()
     render_payment_lines_editor()
+
+    st.divider()
+    _render_fundament_attachment_choice()
 
     st.divider()
 

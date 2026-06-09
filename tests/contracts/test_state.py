@@ -52,6 +52,16 @@ class TestInitContractState:
         assert flags["winter_surcharge"] is False
         assert flags["winter_surcharge_amount"] == 200000
 
+    def test_attachment_defaults(self, mock_session_state):
+        from src.contracts.state import init_contract_state
+        init_contract_state()
+        cs = mock_session_state["contract"]
+        assert cs["kp_snapshot"] == {}
+        assert cs["attachments"]["build_task_path"] == ""
+        assert cs["attachments"]["build_task_source"] == "auto"
+        assert cs["attachments"]["control_sheet_path"] == ""
+        assert cs["attachments"]["include_control_sheet"] is False
+
     def test_winter_surcharge_flags_backfilled_for_existing_state(self, mock_session_state):
         from src.contracts.state import init_contract_state
         mock_session_state["contract"] = {"flags": {"winter_concrete": True}}

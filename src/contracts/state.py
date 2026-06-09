@@ -20,8 +20,15 @@ _CONTRACT_DEFAULTS: dict[str, Any] = {
     },
     "ai_raw": None,
     "generated": None,
+    "kp_snapshot": {},
     "payment_lines": [],
     "kp_payment_snapshot": {},
+    "attachments": {
+        "build_task_path": "",
+        "build_task_source": "auto",
+        "control_sheet_path": "",
+        "include_control_sheet": False,
+    },
     "flags": {
         "winter_concrete": False,
         "winter_surcharge": False,
