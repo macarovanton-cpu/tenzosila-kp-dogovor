@@ -1,6 +1,7 @@
 """Lookup приложений строительного задания и контрольного листа."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -27,6 +28,15 @@ _FAMILY_BY_LINE = {
     "СЛ": "СЛ_ФЛ",
     "ФЛ": "СЛ_ФЛ",
 }
+_SECTIONS_RE = re.compile(r"_(?P<sections>[234])\s*скц$")
+_PRETTY_BASES = {
+    "пандусный_С_Ф": "Пандусный фундамент 440 мм (С/Ф)",
+    "пандусный_СЛ_ФЛ": "Пандусный фундамент 350 мм (СЛ/ФЛ)",
+    "приямок": "Приямок",
+    "rama_concrete": "Рама, бетонное основание",
+    "rama_road_slabs": "Рама, дорожные плиты",
+    "rama_pag_slabs": "Рама, ПАГ-плиты",
+}
 
 
 @dataclass(frozen=True)
@@ -49,6 +59,30 @@ def list_build_task_files() -> list[Path]:
 def list_control_sheet_files() -> list[Path]:
     """Вернуть DOCX из библиотеки контрольных листов."""
     return _list_docx(CONTROL_SHEET_DIR)
+
+
+def pretty_name(path: Path) -> str:
+    """Вернуть читаемое название фундаментного приложения."""
+    stem = path.stem
+    is_control_sheet = "control_sheet" in stem or "control_sheet" in path.parts
+    base = stem.removeprefix("control_sheet_")
+    sections_match = _SECTIONS_RE.search(base)
+    sections = sections_match.group("sections") if sections_match else ""
+    if sections_match:
+        base = base[: sections_match.start()]
+
+    label = _PRETTY_BASES.get(base)
+    if label is None:
+        label = stem
+        if is_control_sheet:
+            label = f"{label} (контрольный лист)"
+        return label
+
+    if sections:
+        label = f"{label}, {sections} секции"
+    if is_control_sheet:
+        label = f"{label} (контрольный лист)"
+    return label
 
 
 def resolve_build_task(snapshot: Mapping[str, Any]) -> BuildTaskResolution:

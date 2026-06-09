@@ -23,6 +23,7 @@ from src.contracts.filler import (  # noqa: E402
 from src.contracts.fundament_lookup import (  # noqa: E402
     BuildTaskResolution,
     list_build_task_files,
+    pretty_name,
     resolve_build_task,
     resolve_control_sheet,
 )
@@ -278,31 +279,28 @@ def _render_field_group(
                 )
 
 
-def _family_label(family: str | None) -> str:
-    return family.replace("_", "/") if family else ""
-
-
 def _build_task_auto_text(result: BuildTaskResolution) -> str:
     if result.path is None:
         return f"не подобрано: {result.reason}"
-    parts = [result.execution or "без фундамента"]
-    if result.sections:
-        parts.append(f"{result.sections} секции")
-    family = _family_label(result.family)
-    if family:
-        parts.append(family)
-    return f"{', '.join(parts)} → {result.path.name}"
+    return pretty_name(result.path)
 
 
-def _build_task_choice_index(options: list[str], attachments: dict) -> int:
+def _build_task_choice_index(options: list[str | Path], attachments: dict) -> int:
     source = attachments.get("build_task_source", "auto")
     if source == "none":
         return options.index("Без приложения")
     if source == "manual":
-        filename = Path(str(attachments.get("build_task_path") or "")).name
-        if filename in options:
-            return options.index(filename)
+        selected_path = Path(str(attachments.get("build_task_path") or ""))
+        for index, option in enumerate(options):
+            if isinstance(option, Path) and option == selected_path:
+                return index
     return options.index("Авто-подбор")
+
+
+def _build_task_option_label(option: str | Path) -> str:
+    if isinstance(option, Path):
+        return pretty_name(option)
+    return option
 
 
 def _render_fundament_attachment_choice() -> None:
@@ -322,8 +320,7 @@ def _render_fundament_attachment_choice() -> None:
         st.info(f"Строительное задание: {auto_text}")
 
     build_task_files = list_build_task_files()
-    files_by_name = {path.name: path for path in build_task_files}
-    options = ["Авто-подбор", "Без приложения", *files_by_name]
+    options: list[str | Path] = ["Авто-подбор", "Без приложения", *build_task_files]
     widget_key = "w_build_task_choice"
     if widget_key not in st.session_state or st.session_state[widget_key] not in options:
         st.session_state[widget_key] = options[_build_task_choice_index(options, attachments)]
@@ -332,6 +329,7 @@ def _render_fundament_attachment_choice() -> None:
         "Выбор строительного задания",
         options,
         key=widget_key,
+        format_func=_build_task_option_label,
         help="Override для нестандартных случаев. Склейка приложений будет добавлена на шаге 9.",
     )
     if selected == "Авто-подбор":
@@ -341,12 +339,12 @@ def _render_fundament_attachment_choice() -> None:
         selected_build_task = None
         attachments["build_task_source"] = "none"
     else:
-        selected_build_task = files_by_name[selected]
+        selected_build_task = selected
         attachments["build_task_source"] = "manual"
     attachments["build_task_path"] = str(selected_build_task or "")
 
     if selected_build_task:
-        st.caption(f"Итоговый выбор: {selected_build_task.name}")
+        st.caption(f"Итоговый выбор: {pretty_name(selected_build_task)}")
     else:
         st.caption("Итоговый выбор: без строительного задания.")
 
@@ -369,7 +367,7 @@ def _render_fundament_attachment_choice() -> None:
     attachments["include_control_sheet"] = bool(include_control_sheet)
     attachments["control_sheet_path"] = str(control_sheet) if include_control_sheet else ""
     if include_control_sheet:
-        st.caption(f"Контрольный лист: {control_sheet.name}")
+        st.caption(f"Контрольный лист: {pretty_name(control_sheet)}")
 
 
 # ---------------------------------------------------------------------------

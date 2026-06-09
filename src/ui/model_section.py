@@ -84,7 +84,7 @@ def render_model_section(state: dict, models_json: dict, prices: dict) -> None:
 
     model = get_model_by_id(models_json, state["model_id"])
 
-    _render_platform_width_control(state)
+    _render_platform_width_control()
 
     with st.container(border=True):
         st.markdown(
@@ -113,22 +113,16 @@ def render_model_section(state: dict, models_json: dict, prices: dict) -> None:
     _render_model_price_slider(state, price)
 
 
-def _render_platform_width_control(state: dict) -> None:
+def _render_platform_width_control() -> None:
     """UI-выбор стандартной или нестандартной ширины платформы."""
-    current = float(state.get("platform_width_m", 3.0) or 3.0)
-    if current not in PLATFORM_WIDTH_OPTIONS:
-        current = 3.0
-    selected = st.segmented_control(
+    st.segmented_control(
         "Ширина платформы",
         PLATFORM_WIDTH_OPTIONS,
-        default=current,
         key="platform_width_m",
         on_change=on_platform_width_change,
         format_func=lambda width: f"{width:.1f}м",
         help="Нестандартная ширина масштабирует цену модели пропорционально 3.0 м",
     )
-    if state is not st.session_state:
-        state["platform_width_m"] = float(selected or 3.0)
 
 
 def _render_metrology_caption(model: dict | None, is_dual_range: bool) -> str:

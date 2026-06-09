@@ -8,6 +8,51 @@ import pytest
 from src.contracts import fundament_lookup as fl
 
 
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        (
+            Path("data/fundament/build_task/пандусный_С_Ф_3скц.docx"),
+            "Пандусный фундамент 440 мм (С/Ф), 3 секции",
+        ),
+        (
+            Path("data/fundament/build_task/пандусный_С_Ф_3 скц.docx"),
+            "Пандусный фундамент 440 мм (С/Ф), 3 секции",
+        ),
+        (
+            Path("data/fundament/build_task/пандусный_СЛ_ФЛ_2скц.docx"),
+            "Пандусный фундамент 350 мм (СЛ/ФЛ), 2 секции",
+        ),
+        (
+            Path("data/fundament/build_task/приямок_4скц.docx"),
+            "Приямок, 4 секции",
+        ),
+        (
+            Path("data/fundament/build_task/rama_concrete_3скц.docx"),
+            "Рама, бетонное основание, 3 секции",
+        ),
+        (
+            Path("data/fundament/build_task/rama_road_slabs_3скц.docx"),
+            "Рама, дорожные плиты, 3 секции",
+        ),
+        (
+            Path("data/fundament/build_task/rama_pag_slabs_3скц.docx"),
+            "Рама, ПАГ-плиты, 3 секции",
+        ),
+        (
+            Path("data/fundament/control_sheet/control_sheet_приямок_3скц.docx"),
+            "Приямок, 3 секции (контрольный лист)",
+        ),
+        (
+            Path("data/fundament/build_task/custom_name.docx"),
+            "custom_name",
+        ),
+    ],
+)
+def test_pretty_name(path: Path, expected: str) -> None:
+    assert fl.pretty_name(path) == expected
+
+
 @pytest.fixture
 def fundament_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
     build_task = tmp_path / "build_task"

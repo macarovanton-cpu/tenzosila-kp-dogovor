@@ -8,14 +8,12 @@ from src.ui import model_section
 
 def test_platform_width_control_uses_segmented_control(monkeypatch):
     """Ширина платформы выбирается segmented_control с тремя вариантами."""
-    state = {"platform_width_m": 3.0}
     calls = []
 
     def fake_segmented_control(
         label: str,
         options: list[float],
         *,
-        default: float,
         key: str,
         on_change,
         format_func,
@@ -24,7 +22,6 @@ def test_platform_width_control_uses_segmented_control(monkeypatch):
         calls.append({
             "label": label,
             "options": options,
-            "default": default,
             "key": key,
             "on_change": on_change,
             "help": help,
@@ -34,13 +31,11 @@ def test_platform_width_control_uses_segmented_control(monkeypatch):
 
     monkeypatch.setattr(model_section.st, "segmented_control", fake_segmented_control)
 
-    model_section._render_platform_width_control(state)
+    model_section._render_platform_width_control()
 
-    assert state["platform_width_m"] == 3.5
     assert calls == [{
         "label": "Ширина платформы",
         "options": [3.0, 3.5, 4.0],
-        "default": 3.0,
         "key": "platform_width_m",
         "on_change": on_platform_width_change,
         "help": "Нестандартная ширина масштабирует цену модели пропорционально 3.0 м",
