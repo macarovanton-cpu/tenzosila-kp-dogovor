@@ -28,9 +28,9 @@ TRIGGER_TEXTS: dict[PaymentTrigger, str] = {
 
 @dataclass
 class PaymentLine:
-    kind:         Literal["предоплата", "доплата"]
+    kind:         Literal["предоплата", "доплата", "оплата"]
     share_pct:    float | None
-    share_prep:   Literal["от стоимости", "за"] | None
+    share_prep:   Literal["от стоимости", "за", "от"] | None
     share_object: str
     amount:       int
     trigger:      PaymentTrigger
@@ -65,9 +65,105 @@ def format_payment_line(line: PaymentLine, index: int) -> str:
 
 # ---------------------------------------------------------------------------
 # Bridge: snapshot.payment + spec_items → list[PaymentLine]
-# Только для пресета split_by_items; прочие пресеты → []
-# (менеджер заполнит редактор вручную на шаге 4).
 # ---------------------------------------------------------------------------
+
+# Маппинг v3 trigger_id → PaymentTrigger
+_V3_TRIGGER_MAP: dict[str, PaymentTrigger] = {
+    "after_delivery":     PaymentTrigger.DELIVERED,
+    "after_installation": PaymentTrigger.WORK_ACT,
+    "after_act":          PaymentTrigger.WORK_ACT,
+}
+
+
+def _spec_total(spec_items: list[dict]) -> int:
+    """Σ стоимости всех позиций спецификации (зеркало редактора payment_lines_editor)."""
+    return sum(int(it.get("total") or 0) for it in spec_items)
+
+
+def _non_split_phases(
+    payment: dict,
+) -> tuple[list[tuple[str, int, PaymentTrigger]], int]:
+    """Фазы (kind, pct, trigger) и срок для не-split пресетов.
+
+    Возвращает ([], 0) для custom и неизвестных пресетов.
+    Дефолты процентов/дней совпадают с defaults в state.py.
+    """
+    preset_id = payment.get("preset_id", "")
+    days = int(payment.get("days") or 5)
+
+    if preset_id == "v1_prepay_postpay":
+        prepay = int(payment.get("v1_prepay") or 50)
+        postpay = 100 - prepay
+        return [
+            ("предоплата", prepay,   PaymentTrigger.SPEC_SIGNED),
+            ("доплата",    postpay,  PaymentTrigger.WORK_ACT),
+        ], days
+
+    if preset_id == "v2_prepay_preship_postpay":
+        prepay  = int(payment.get("v2_prepay")  or 30)
+        preship = int(payment.get("v2_preship") or 40)
+        postpay = 100 - prepay - preship
+        return [
+            ("предоплата", prepay,   PaymentTrigger.SPEC_SIGNED),
+            ("доплата",    preship,  PaymentTrigger.SHIPMENT_READY),
+            ("доплата",    postpay,  PaymentTrigger.WORK_ACT),
+        ], days
+
+    if preset_id == "v3_postpay_only":
+        v3_days    = int(payment.get("v3_days") or 15)
+        trigger_id = payment.get("v3_trigger_id") or "after_installation"
+        trigger    = _V3_TRIGGER_MAP.get(trigger_id, PaymentTrigger.WORK_ACT)
+        return [
+            ("оплата", 100, trigger),
+        ], v3_days
+
+    if preset_id == "prepay_100":
+        return [
+            ("предоплата", 100, PaymentTrigger.SPEC_SIGNED),
+        ], days
+
+    # custom и неизвестные пресеты — свободный текст, строки не генерируем
+    return [], 0
+
+
+def _build_non_split_lines(
+    payment: dict, spec_items: list[dict]
+) -> list[PaymentLine]:
+    """PaymentLine-строки для не-split пресетов (base = общая сумма спецификации).
+
+    Последняя строка добирает остаток, чтобы Σamount == ИТОГО точно.
+    Фазы с pct == 0 и строки с amount == 0 пропускаются.
+    """
+    phases, due = _non_split_phases(payment)
+    phases = [(k, p, t) for k, p, t in phases if p > 0]
+    if not phases:
+        return []
+
+    total = _spec_total(spec_items)
+    lines: list[PaymentLine] = []
+    assigned = 0
+
+    for i, (kind, pct, trigger) in enumerate(phases):
+        is_last = (i == len(phases) - 1)
+        if is_last:
+            amt = total - assigned
+        else:
+            amt = round(total * pct / 100)
+        if amt == 0:
+            assigned += amt
+            continue
+        lines.append(PaymentLine(
+            kind=kind,
+            share_pct=float(pct),
+            share_prep="от",
+            share_object="общей цены договора",
+            amount=amt,
+            trigger=trigger,
+            due=due,
+        ))
+        assigned += amt
+
+    return lines
 
 # Fallback дефолтов, когда split_state не заполнен. На практике UI
 # (payment_section._render_split) заполняет split_state этими же значениями
@@ -128,14 +224,14 @@ def _amount(total: int, pct: int) -> int:
 def build_lines_from_snapshot(
     payment: dict, spec_items: list[dict]
 ) -> list[PaymentLine]:
-    """Черновые строки платёжного раздела для пресета split_by_items.
+    """Черновые строки платёжного раздела из снапшота оплаты.
 
-    Прочие пресеты (v1/v2/v3/prepay_100/custom) → []. Строка пропускается, если её
-    управляющий процент == 0 или итоговая сумма == 0.
+    split_by_items — строки по бакетам; прочие пресеты — строки от общей суммы;
+    custom → []. Строка пропускается, если управляющий процент == 0 или сумма == 0.
     """
     payment = payment or {}
     if payment.get("preset_id") != "split_by_items":
-        return []
+        return _build_non_split_lines(payment, spec_items)
 
     split_state = payment.get("split_state") or {}
     days = int(payment.get("days") or 5)

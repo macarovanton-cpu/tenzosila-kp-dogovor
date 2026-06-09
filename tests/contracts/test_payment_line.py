@@ -318,17 +318,137 @@ def test_bridge_scales_and_iv_no_foundation():
     assert all("доставк" not in ln.share_object for ln in lines)
 
 
-@pytest.mark.parametrize("preset_id", [
-    "v1_prepay_postpay",
-    "v2_prepay_preship_postpay",
-    "v3_postpay_only",
-    "prepay_100",
-    "custom",
-])
+@pytest.mark.parametrize("preset_id", ["custom", "unknown_preset"])
 def test_bridge_non_split_presets_return_empty(preset_id: str):
+    """Только custom и неизвестные пресеты → []. v1/v2/v3/prepay_100 теперь возвращают строки."""
     spec_items = [_item("vesta-c-60-18", "scales", 1_000_000)]
     payment = {"preset_id": preset_id, "days": 5, "split_state": _split()}
     assert build_lines_from_snapshot(payment, spec_items) == []
+
+
+# ---------------------------------------------------------------------------
+# Не-split пресеты — v1 / v2 / v3 / prepay_100
+# ---------------------------------------------------------------------------
+
+def test_bridge_v1_default_50_50():
+    """v1 prepay=50 → 2 строки; 50/50; SPEC_SIGNED/WORK_ACT; Σ == ИТОГО."""
+    spec_items = [_item("vesta-c-60-18", "scales", 1_000_000)]
+    payment = {"preset_id": "v1_prepay_postpay", "days": 5, "v1_prepay": 50}
+    lines = build_lines_from_snapshot(payment, spec_items)
+    assert len(lines) == 2
+    l1, l2 = lines
+    assert l1.kind == "предоплата"
+    assert l1.share_pct == 50.0
+    assert l1.share_prep == "от"
+    assert l1.share_object == "общей цены договора"
+    assert l1.trigger == PaymentTrigger.SPEC_SIGNED
+    assert l1.amount == 500_000
+    assert l2.kind == "доплата"
+    assert l2.share_pct == 50.0
+    assert l2.trigger == PaymentTrigger.WORK_ACT
+    assert l2.amount == 500_000
+    assert l1.amount + l2.amount == 1_000_000
+
+
+def test_bridge_v1_custom_30_70():
+    """v1 prepay=30 → суммы 300 000 / 700 000."""
+    spec_items = [_item("vesta-c-60-18", "scales", 1_000_000)]
+    payment = {"preset_id": "v1_prepay_postpay", "days": 5, "v1_prepay": 30}
+    lines = build_lines_from_snapshot(payment, spec_items)
+    assert len(lines) == 2
+    assert lines[0].amount == 300_000
+    assert lines[1].amount == 700_000
+    assert lines[0].amount + lines[1].amount == 1_000_000
+
+
+def test_bridge_v2_30_40_30():
+    """v2 prepay=30 preship=40 → 3 строки; pct [30,40,30]; SPEC_SIGNED/SHIPMENT_READY/WORK_ACT; Σ == ИТОГО."""
+    spec_items = [_item("vesta-c-60-18", "scales", 1_000_000)]
+    payment = {
+        "preset_id": "v2_prepay_preship_postpay",
+        "days": 5,
+        "v2_prepay": 30,
+        "v2_preship": 40,
+    }
+    lines = build_lines_from_snapshot(payment, spec_items)
+    assert len(lines) == 3
+    l1, l2, l3 = lines
+    assert [ln.share_pct for ln in lines] == [30.0, 40.0, 30.0]
+    assert [ln.trigger for ln in lines] == [
+        PaymentTrigger.SPEC_SIGNED,
+        PaymentTrigger.SHIPMENT_READY,
+        PaymentTrigger.WORK_ACT,
+    ]
+    assert [ln.kind for ln in lines] == ["предоплата", "доплата", "доплата"]
+    assert l1.amount + l2.amount + l3.amount == 1_000_000
+
+
+def test_bridge_v3_after_installation():
+    """v3 after_installation → 1 строка; kind=оплата; trigger=WORK_ACT; due==v3_days; amount==ИТОГО."""
+    spec_items = [_item("vesta-c-60-18", "scales", 1_200_000)]
+    payment = {
+        "preset_id": "v3_postpay_only",
+        "v3_days": 15,
+        "v3_trigger_id": "after_installation",
+    }
+    lines = build_lines_from_snapshot(payment, spec_items)
+    assert len(lines) == 1
+    ln = lines[0]
+    assert ln.kind == "оплата"
+    assert ln.share_pct == 100.0
+    assert ln.trigger == PaymentTrigger.WORK_ACT
+    assert ln.due == 15
+    assert ln.amount == 1_200_000
+
+
+def test_bridge_v3_after_delivery():
+    """v3 after_delivery → trigger=DELIVERED."""
+    spec_items = [_item("vesta-c-60-18", "scales", 500_000)]
+    payment = {
+        "preset_id": "v3_postpay_only",
+        "v3_days": 30,
+        "v3_trigger_id": "after_delivery",
+    }
+    lines = build_lines_from_snapshot(payment, spec_items)
+    assert len(lines) == 1
+    assert lines[0].trigger == PaymentTrigger.DELIVERED
+    assert lines[0].amount == 500_000
+
+
+def test_bridge_prepay_100():
+    """prepay_100 → 1 строка; предоплата; pct=100; SPEC_SIGNED; amount==ИТОГО."""
+    spec_items = [_item("vesta-c-60-18", "scales", 800_000)]
+    payment = {"preset_id": "prepay_100", "days": 5}
+    lines = build_lines_from_snapshot(payment, spec_items)
+    assert len(lines) == 1
+    ln = lines[0]
+    assert ln.kind == "предоплата"
+    assert ln.share_pct == 100.0
+    assert ln.trigger == PaymentTrigger.SPEC_SIGNED
+    assert ln.amount == 800_000
+
+
+def test_bridge_non_split_remainder_exact():
+    """Последняя строка добирает остаток — Σ точно равна ИТОГО при нецелом делении."""
+    spec_items = [_item("vesta-c-60-18", "scales", 1_000_001)]
+    payment = {"preset_id": "v1_prepay_postpay", "days": 5, "v1_prepay": 33}
+    lines = build_lines_from_snapshot(payment, spec_items)
+    assert len(lines) == 2
+    assert lines[0].amount == 330_000      # round(1_000_001 × 33/100)
+    assert lines[1].amount == 670_001      # остаток
+    assert lines[0].amount + lines[1].amount == 1_000_001
+
+
+def test_bridge_non_split_format_text():
+    """format_payment_line для не-split строки читается «X% от общей цены договора»."""
+    from src.contracts.payment_line import format_payment_line
+    spec_items = [_item("vesta-c-60-18", "scales", 1_000_000)]
+    payment = {"preset_id": "v1_prepay_postpay", "days": 5, "v1_prepay": 50}
+    lines = build_lines_from_snapshot(payment, spec_items)
+    text = format_payment_line(lines[0], 1)
+    assert text.startswith("1. Предоплата 50% от общей цены договора в размере")
+    assert "от общей цены договора" in text
+    assert "от стоимости" not in text
 
 
 def test_bridge_has_orion_in_object():

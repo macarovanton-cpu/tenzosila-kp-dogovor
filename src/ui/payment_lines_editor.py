@@ -26,8 +26,8 @@ _TRIGGER_LABELS: dict[str, PaymentTrigger] = {
 _TRIGGER_BY_LABEL = {v: k for k, v in _TRIGGER_LABELS.items()}
 
 _COLUMNS = ["Тип", "%", "Основа", "Объект", "Сумма, ₽", "Событие", "Дней", "Ед."]
-_KINDS = ["предоплата", "доплата"]
-_PREPS = ["от стоимости", "за", "—"]
+_KINDS = ["предоплата", "доплата", "оплата"]
+_PREPS = ["от стоимости", "за", "от", "—"]
 _DUE_UNITS = ["банковских", "рабочих", "календарных"]
 
 
@@ -53,14 +53,14 @@ def _row_to_line(row: dict) -> PaymentLine:
     """dict-строка редактора -> PaymentLine."""
     share_pct = None if _is_blank(row.get("%")) else float(row.get("%"))
     prep = row.get("Основа")
-    share_prep = prep if prep in ("от стоимости", "за") else None
+    share_prep = prep if prep in ("от стоимости", "за", "от") else None
     if share_pct is None:
         share_prep = None
 
     trigger_label = row.get("Событие") or "Подписание спецификации"
     due_unit = row.get("Ед.") or "банковских"
     return PaymentLine(
-        kind=row.get("Тип") if row.get("Тип") in _KINDS else "предоплата",
+        kind=row.get("Тип") if row.get("Тип") in _KINDS else "предоплата",  # type: ignore[arg-type]
         share_pct=share_pct,
         share_prep=share_prep,
         share_object=str(row.get("Объект") or ""),
