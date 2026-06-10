@@ -14,6 +14,8 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from src.contracts.clauses_renderer import build_contract_clauses  # noqa: E402
+from src.contracts.clauses_context import build_clauses_context  # noqa: E402
+from src.contracts.compose import compose_spec_with_attachments  # noqa: E402
 from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  # noqa: E402
 from src.contracts.filler import (  # noqa: E402
     fill_spec_with_items,
@@ -789,6 +791,19 @@ if not generated:
                     st.error(f"❌ fill_spec_v2 упал. Traceback: {_tb_path}")
                     st.code(traceback.format_exc(), language="python")
                     fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path))
+
+                attachments = _gen_cs.get("attachments", {})
+                compose_spec_with_attachments(spec_path, attachments, data)
+                clauses_ctx = build_clauses_context(_gen_deal)
+                build_task_missing = (
+                    not attachments.get("build_task_path")
+                    or attachments.get("build_task_source") == "none"
+                )
+                if clauses_ctx["foundation_scope"] == "customer_builds" and build_task_missing:
+                    st.warning(
+                        "В тексте Спецификации есть ссылка на Приложение №1 "
+                        "(строительное задание), но файл не приложен."
+                    )
             else:
                 fill_template(str(SPEC_TEMPLATE), data, str(spec_path))
 

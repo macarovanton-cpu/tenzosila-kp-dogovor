@@ -186,6 +186,32 @@ def patch_appendix(doc) -> bool:
     return False
 
 
+def patch_remove_inline_appendix(doc) -> bool:
+    """Удалить статический inline-блок приложения в конце spec_v2."""
+    body = doc.element.body
+    body_children = list(body.iterchildren())
+    start_idx = None
+    for idx, child in enumerate(body_children):
+        if child.tag != qn("w:p"):
+            continue
+        text = "".join(t.text or "" for t in child.findall(".//" + qn("w:t")))
+        if "Приложение" in text and "к Спецификации" in text:
+            start_idx = idx
+            break
+    if start_idx is None:
+        return False
+
+    to_remove = []
+    for child in body_children[start_idx:]:
+        if child.tag == qn("w:sectPr"):
+            break
+        if child.tag in {qn("w:p"), qn("w:tbl")}:
+            to_remove.append(child)
+    for child in to_remove:
+        body.remove(child)
+    return bool(to_remove)
+
+
 def patch_tth_discreteness(doc) -> bool:
     """Восстановить 2-параграфную ячейку дискретности (если была затёрта старым патчем)."""
     cell = doc.tables[1].rows[4].cells[2]
@@ -271,8 +297,7 @@ def main():
     print(f"ТТХ дискретность → 2 параграфа: {patch_tth_discreteness(doc)}")
     print(f"Комплект → шаблон: {patch_kit(doc)}")
     print(f"Год → плейсхолдер: {patch_year(doc)}")
-    print(f"Приложение → номер: {patch_appendix(doc)}")
-    print(f"Контрольный лист → маркер: {patch_foundation_check(doc)}")
+    print(f"Инлайн-приложение → удалено: {patch_remove_inline_appendix(doc)}")
     print(f"ТТХ границы → плейсхолдеры: {patch_tth_boundaries(doc)}")
 
     doc.save(str(TEMPLATE))

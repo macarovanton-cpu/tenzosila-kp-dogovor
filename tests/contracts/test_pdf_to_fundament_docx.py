@@ -38,7 +38,7 @@ def test_load_reference_parts_copies_appendix_block_without_check_marker():
 
     header_block, img_ppr, textbox_drawing = _load_reference_parts(doc)
 
-    assert [_xml_text(p) for p in header_block] == [
+    assert [_xml_text(p).lstrip("\t") for p in header_block] == [
         "Приложение №{{ПРИЛОЖЕНИЕ_НОМЕР}} к Спецификации №{{СПЕЦ_НОМЕР}} "
         "от {{ДОГОВОР_ДАТА_ПОЛНАЯ}} г.",
         "",

@@ -169,7 +169,7 @@ class TestExample2_C80_ContractorFull:
 class TestExample3_C100_CustomerBuilds:
     """ВЕСТА-С-100-24 — customer_builds + монтаж + ОРИОН.
 
-    Ожидаем: Прил.№1 + контр. лист, все 4 секции.
+    Ожидаем: ссылки на Прил.№1/№2, без inline-контрольного листа, все 4 секции.
     """
 
     def test_no_unfilled_placeholders(self, tmp_path, json_data):
@@ -187,7 +187,7 @@ class TestExample3_C100_CustomerBuilds:
         unfilled = get_unfilled_placeholders(output)
         assert unfilled == [], f"Unfilled: {unfilled}"
 
-    def test_foundation_check_present(self, tmp_path, json_data):
+    def test_foundation_check_is_external_only(self, tmp_path, json_data):
         models, prices, pt, es = json_data
         kp = _make_kp("vesta-с-100-24", "С", 100, 24, 5_500_000, options={
             "install_default": {"qty": 1, "price": 100_000, "customer_side": False},
@@ -200,7 +200,10 @@ class TestExample3_C100_CustomerBuilds:
         fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
         doc = Document(output)
         all_text = _all_text(doc)
-        assert "Контрольный лист" in all_text
+        assert "Приложение №1" in all_text
+        assert "Приложение №2" in all_text
+        assert "Контрольный лист" not in all_text
+        assert "APPENDIX_FOUNDATION_CHECK" not in all_text
 
     def test_all_four_sections(self, tmp_path, json_data):
         models, prices, pt, es = json_data

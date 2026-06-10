@@ -342,7 +342,7 @@ class TestKitSection:
 
 
 class TestFoundationCheck:
-    """Контрольный лист — при customer_builds."""
+    """Инлайн-приложение больше не рендерится из spec_v2."""
 
     def test_check_present_when_customer_builds(self, tmp_path):
         data = dict(MOCK_DATA)
@@ -357,7 +357,9 @@ class TestFoundationCheck:
         fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
         doc = Document(output)
         all_text = "\n".join(p.text for p in doc.paragraphs)
-        assert "Контрольный лист" in all_text
+        assert "Строительное задание на фундамент" not in all_text
+        assert "Приложение №1 к Спецификации №" not in all_text
+        assert "Контрольный лист" not in all_text
         assert "APPENDIX_FOUNDATION_CHECK" not in all_text
 
     def test_check_absent_when_contractor(self, tmp_path):
@@ -376,6 +378,8 @@ class TestFoundationCheck:
         fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
         doc = Document(output)
         all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "Строительное задание на фундамент" not in all_text
+        assert "Приложение №1 к Спецификации №" not in all_text
         assert "Контрольный лист" not in all_text
         assert "APPENDIX_FOUNDATION_CHECK" not in all_text
 
@@ -451,21 +455,6 @@ class TestYearPlaceholder:
         sig_text = doc.tables[3].rows[0].cells[0].text
         assert "2026" not in sig_text
         assert "2025" in sig_text
-
-
-class TestAppendixNumber:
-    """Приложение №{{ПРИЛОЖЕНИЕ_НОМЕР}} заполнен."""
-
-    def test_appendix_filled(self, tmp_path):
-        data = dict(MOCK_DATA, ПРИЛОЖЕНИЕ_НОМЕР="1")
-        items = [_item("weights")]
-        deal = {"items": items, "delivery_address": "г. Тест"}
-        output = str(tmp_path / "spec_v2_app.docx")
-        fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)
-        doc = Document(output)
-        all_text = "\n".join(p.text for p in doc.paragraphs)
-        assert "Приложение №1" in all_text
-        assert "ПРИЛОЖЕНИЕ_НОМЕР" not in all_text
 
 
 class TestFillSpecV2Max:

@@ -6,7 +6,6 @@ from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
-from src.contracts.clauses_context import build_clauses_context
 from src.contracts.filler import _set_cell_text, fill_spec_with_items
 
 _CLAUSE_SECTION_ORDER = [
@@ -14,16 +13,6 @@ _CLAUSE_SECTION_ORDER = [
     "obligations_customer",
     "special_conditions",
     "final",
-]
-
-_CHECK_LABELS = [
-    ("L, мм", "h4, мм", "h11, мм"),
-    ("W, мм", "h5, мм", "h12, мм"),
-    ("Х1, мм", "h6, мм", "L1, мм"),
-    ("Х2, мм", "h7, мм", "L2, мм"),
-    ("h1, мм", "h8, мм", "L3, мм"),
-    ("h2, мм", "h9, мм", ""),
-    ("h3, мм", "h10, мм", ""),
 ]
 
 _TTH_KEYS = (
@@ -123,72 +112,6 @@ def _fill_kit_table(doc, kit_items: list[dict]) -> None:
         header_tr.addnext(new_tr)
 
 
-def _make_table_3col(labels: list[tuple[str, str, str]]):
-    """Создать XML таблицы 3 колонки из списка кортежей-меток."""
-    tbl = OxmlElement('w:tbl')
-    tblPr = OxmlElement('w:tblPr')
-    tblStyle = OxmlElement('w:tblStyle')
-    tblStyle.set(qn('w:val'), 'TableGrid')
-    tblPr.append(tblStyle)
-    tblW = OxmlElement('w:tblW')
-    tblW.set(qn('w:w'), '0')
-    tblW.set(qn('w:type'), 'auto')
-    tblPr.append(tblW)
-    tbl.append(tblPr)
-    tblGrid = OxmlElement('w:tblGrid')
-    for _ in range(3):
-        tblGrid.append(OxmlElement('w:gridCol'))
-    tbl.append(tblGrid)
-
-    for row_labels in labels:
-        tr = OxmlElement('w:tr')
-        for label in row_labels:
-            tc = OxmlElement('w:tc')
-            p = OxmlElement('w:p')
-            if label:
-                r = OxmlElement('w:r')
-                t = OxmlElement('w:t')
-                t.text = label
-                t.set(qn('xml:space'), 'preserve')
-                r.append(t)
-                p.append(r)
-            tc.append(p)
-            tr.append(tc)
-        tbl.append(tr)
-    return tbl
-
-
-def _render_foundation_check(doc, data: dict) -> bool:
-    """Вставить контрольный лист фундамента вместо маркера."""
-    marker = "{{APPENDIX_FOUNDATION_CHECK}}"
-    for para in doc.paragraphs:
-        if marker in para.text:
-            p_el = para._element
-            parent = p_el.getparent()
-
-            model_short = data.get("СПЕЦ_МОДЕЛЬ_КРАТКОЕ", "")
-
-            note_p = _make_clause_para(
-                "Примечание: Размеры h – абсолютные значения по нивелиру (по рейке в мм)"
-            )
-            parent.insert(list(parent).index(p_el) + 1, note_p)
-
-            check_tbl = _make_table_3col(_CHECK_LABELS)
-            parent.insert(list(parent).index(p_el) + 1, check_tbl)
-
-            subtitle = _make_clause_para(
-                f"Контрольный лист на фундамент весов {model_short}",
-                bold=True,
-            )
-            parent.insert(list(parent).index(p_el) + 1, subtitle)
-
-            parent.insert(list(parent).index(p_el) + 1, _make_clause_para(""))
-
-            parent.remove(p_el)
-            return True
-    return False
-
-
 def _payment_lines_from_data(data: dict) -> list[str]:
     """Собрать строки оплаты из СПЕЦ_ОПЛАТА_П1-6 в data."""
     return [data[k] for k in (f"СПЕЦ_ОПЛАТА_П{i}" for i in range(1, 7)) if data.get(k)]
@@ -262,7 +185,6 @@ def fill_spec_v2(
       _kit_items:     list[dict] — [{name, qty}] для комплекта
       ТТХ_*:          str — значения ТТХ-плейсхолдеров
       ТЕКУЩИЙ_ГОД:    str — год в подписном блоке
-      ПРИЛОЖЕНИЕ_НОМЕР: str — номер приложения
 
     Если перечисленные ключи отсутствуют — вычисляются автоматически из deal.
     """
@@ -273,7 +195,6 @@ def fill_spec_v2(
 
     # --- Константы ---
     data.setdefault("ТЕКУЩИЙ_ГОД", str(datetime.now().year))
-    data.setdefault("ПРИЛОЖЕНИЕ_НОМЕР", "1")
 
     # --- Clauses: заранее посчитать номера для плейсхолдеров ТТХ/комплекта ---
     clauses_by_section = build_contract_clauses(deal)
@@ -332,13 +253,6 @@ def fill_spec_v2(
             kit_items = build_kit_items(deps[0], deps[1], deps[2], deps[3], cable_m)
     if kit_items:
         _fill_kit_table(doc, kit_items)
-
-    # --- Foundation check appendix ---
-    ctx = build_clauses_context(deal)
-    if ctx["foundation_scope"] == "customer_builds":
-        _render_foundation_check(doc, data)
-    else:
-        _remove_marker(doc, "{{APPENDIX_FOUNDATION_CHECK}}")
 
     # --- Clauses ---
     for section_id in _CLAUSE_SECTION_ORDER:

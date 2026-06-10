@@ -17,11 +17,11 @@ from docx.text.paragraph import Paragraph
 
 
 ROOT = Path(__file__).resolve().parent.parent
-REFERENCE = ROOT / "templates" / "contracts" / "spec_v2.docx"
 SRC_DIR = ROOT / "data" / "fundament" / "pdf_source"
 OUT_DIR = ROOT / "data" / "fundament" / "build_task"
 CS_SRC = SRC_DIR / "control_sheet"
 CS_OUT = ROOT / "data" / "fundament" / "control_sheet"
+REFERENCE = OUT_DIR / "пандусный_С_Ф_3 скц.docx"
 
 DPI = 200
 EMU_PER_MM = 36_000
@@ -33,8 +33,6 @@ TEXTBOX_ANCHOR_BASE_ID = 0x47FCA4F2
 TEXTBOX_WIDTH_EMU = 100 * EMU_PER_MM
 TEXTBOX_HEIGHT_EMU = 22 * EMU_PER_MM
 
-APPENDIX_PARAGRAPH_IDXS = (39, 40, 41, 42, 44)
-IMAGE_PARAGRAPH_IDX = 45
 WPS_TXBX_TAG = "{http://schemas.microsoft.com/office/word/2010/wordprocessingShape}txbx"
 WP14_ANCHOR_ID_ATTR = (
     "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId"
@@ -43,22 +41,32 @@ WP14_ANCHOR_ID_ATTR = (
 
 def _load_reference_parts(doc: Any) -> tuple[list[Any], Any, Any]:
     paragraphs = doc.paragraphs
-    if len(paragraphs) <= IMAGE_PARAGRAPH_IDX:
-        raise ValueError("В эталоне spec_v2.docx не найдены параграфы приложения")
+    start_idx = None
+    for idx, paragraph in enumerate(paragraphs):
+        if "Приложение" in paragraph.text and "к Спецификации" in paragraph.text:
+            start_idx = idx
+            break
+    if start_idx is None:
+        raise ValueError("В эталоне не найден заголовок приложения")
 
-    header_block = [copy.deepcopy(paragraphs[i]._p) for i in APPENDIX_PARAGRAPH_IDXS]
-    image_para = paragraphs[IMAGE_PARAGRAPH_IDX]
+    image_idx = None
+    textbox_drawing = None
+    for idx, paragraph in enumerate(paragraphs[start_idx + 1:], start=start_idx + 1):
+        for drawing in paragraph._p.iter(qn("w:drawing")):
+            if drawing.find(".//" + WPS_TXBX_TAG) is not None:
+                image_idx = idx
+                textbox_drawing = drawing
+                break
+        if image_idx is not None:
+            break
+    if image_idx is None or textbox_drawing is None:
+        raise ValueError("В эталоне не найден параграф картинки с floating TextBox")
+
+    header_block = [copy.deepcopy(p._p) for p in paragraphs[start_idx:image_idx]]
+    image_para = paragraphs[image_idx]
     img_ppr = image_para._p.find(qn("w:pPr"))
     if img_ppr is None:
         raise ValueError("В параграфе картинки эталона нет w:pPr")
-
-    textbox_drawing = None
-    for drawing in image_para._p.iter(qn("w:drawing")):
-        if drawing.find(".//" + WPS_TXBX_TAG) is not None:
-            textbox_drawing = drawing
-            break
-    if textbox_drawing is None:
-        raise ValueError("В параграфе картинки эталона не найден floating TextBox")
 
     return header_block, copy.deepcopy(img_ppr), copy.deepcopy(textbox_drawing)
 
