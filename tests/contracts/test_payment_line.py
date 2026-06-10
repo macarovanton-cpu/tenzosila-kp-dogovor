@@ -278,6 +278,13 @@ def test_bridge_full_scenario():
     assert all(ln.share_prep == "от стоимости" for ln in [l1, l2, l4, l5])
     assert all(ln.due == 5 for ln in lines)
 
+    # base_amount — комбинированный итог бакетов строки
+    assert l1.base_amount == 3_000_000  # весы 2млн + фундамент 1млн
+    assert l2.base_amount == 1_000_000  # фундамент
+    assert l3.base_amount == 2_200_000  # весы 2млн + доставка 200к
+    assert l4.base_amount == 100_000    # монтаж+поверка
+    assert l5.base_amount == 100_000
+
 
 def test_bridge_only_scales_uses_default_fallback():
     """Только весы, split_state пустой → fallback 50/50 → 2 строки."""
@@ -348,6 +355,9 @@ def test_bridge_v1_default_50_50():
     assert l2.trigger == PaymentTrigger.WORK_ACT
     assert l2.amount == 500_000
     assert l1.amount + l2.amount == 1_000_000
+    # не-split: база каждой строки = ИТОГО спецификации
+    assert l1.base_amount == 1_000_000
+    assert l2.base_amount == 1_000_000
 
 
 def test_bridge_v1_custom_30_70():

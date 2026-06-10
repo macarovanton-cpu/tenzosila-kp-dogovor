@@ -36,6 +36,9 @@ class PaymentLine:
     trigger:      PaymentTrigger
     due:          int
     due_unit:     Literal["банковских", "рабочих", "календарных"] = field(default="банковских")
+    # База, от которой считается amount = round(share_pct/100 × base_amount).
+    # Не-split — ИТОГО спецификации; split — комбинированный итог бакетов строки.
+    base_amount:  int | None = field(default=None)
 
 
 def format_payment_line(line: PaymentLine, index: int) -> str:
@@ -160,6 +163,7 @@ def _build_non_split_lines(
             amount=amt,
             trigger=trigger,
             due=due,
+            base_amount=total,
         ))
         assigned += amt
 
@@ -253,10 +257,12 @@ def build_lines_from_snapshot(
     amt = _amount(scales_total, s_prepay)
     obj = "Весов (включая ПАК ОРИОН)" if has_orion else "Весов"
     share_pct_l1: float | None = float(s_prepay)
+    base_l1 = scales_total
     if g["foundation"]:
         obj += " и фундамента Весов"
         f_prepay = pct("foundation", "prepay")
         amt += _amount(foundation_total, f_prepay)
+        base_l1 += foundation_total
         if f_prepay != s_prepay:
             share_pct_l1 = None
     if s_prepay != 0 and amt != 0:
@@ -264,6 +270,7 @@ def build_lines_from_snapshot(
             "предоплата", share_pct_l1,
             "от стоимости" if share_pct_l1 is not None else None,
             obj, amt, PaymentTrigger.SPEC_SIGNED, days,
+            base_amount=base_l1,
         ))
 
     # L2 — доплата FOUNDATION_ACT
@@ -274,6 +281,7 @@ def build_lines_from_snapshot(
             lines.append(PaymentLine(
                 "доплата", float(f_post), "от стоимости", "фундамента Весов", amt,
                 PaymentTrigger.FOUNDATION_ACT, days,
+                base_amount=foundation_total,
             ))
 
     # L3 — доплата SHIPMENT_READY (весы [+ доставка])
@@ -281,10 +289,12 @@ def build_lines_from_snapshot(
     amt = _amount(scales_total, s_post)
     obj = "Весов"
     share_pct_l3: float | None = float(s_post)
+    base_l3 = scales_total
     if g["delivery"]:
         obj += " и доставки"
         d_post = pct("delivery", "postpay")
         amt += _amount(delivery_total, d_post)
+        base_l3 += delivery_total
         if d_post != s_post:
             share_pct_l3 = None
     if s_post != 0 and amt != 0:
@@ -292,6 +302,7 @@ def build_lines_from_snapshot(
             "доплата", share_pct_l3,
             "от стоимости" if share_pct_l3 is not None else None,
             obj, amt, PaymentTrigger.SHIPMENT_READY, days,
+            base_amount=base_l3,
         ))
 
     # L4/L5 — монтаж и поверка
@@ -304,6 +315,7 @@ def build_lines_from_snapshot(
                     "предоплата", float(iv_prepay), "от стоимости",
                     "монтажных работ и поверки", amt,
                     PaymentTrigger.BRIGADE_READY, days,
+                    base_amount=iv_total,
                 ))
         iv_post = pct("installation_and_verification", "postpay")
         amt = _amount(iv_total, iv_post)
@@ -312,6 +324,7 @@ def build_lines_from_snapshot(
                 "доплата", float(iv_post), "от стоимости",
                 "монтажных работ и поверки", amt,
                 PaymentTrigger.WORK_ACT, days,
+                base_amount=iv_total,
             ))
 
     return lines
