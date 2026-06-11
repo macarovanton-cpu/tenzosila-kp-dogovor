@@ -26,6 +26,12 @@ def merge_runs(paragraph) -> None:
         curr = runs[i]
         next_r = runs[i + 1]
 
+        # run.text= вызывает CT_R.clear_content() и уничтожает w:drawing; пропускаем
+        if (curr._r.find(qn('w:drawing')) is not None
+                or next_r._r.find(qn('w:drawing')) is not None):
+            i += 1
+            continue
+
         # Склеиваем если форматирование совпадает
         curr_rpr = curr._r.find(qn('w:rPr'))
         next_rpr = next_r._r.find(qn('w:rPr'))

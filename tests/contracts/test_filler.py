@@ -349,3 +349,110 @@ def test_fill_spec_with_items_e2e_from_kp_snapshot(tmp_path):
     assert any("Фундамент" in n for n in item_names)
     assert any("Монтаж" in n for n in item_names)
     assert any("Доставка" in n for n in item_names)
+
+
+# ---------------------------------------------------------------------------
+# Тесты сохранения drawing-объектов (regression: merge_runs не должен их
+# уничтожать через CT_R.clear_content при слиянии рунов без rPr)
+# ---------------------------------------------------------------------------
+
+BUILD_TASK_PATH = os.path.normpath(
+    os.path.join(
+        os.path.dirname(__file__), "..", "..",
+        "data", "fundament", "build_task", "пандусный_С_Ф_3скц.docx",
+    )
+)
+
+
+@pytest.mark.skipif(
+    not os.path.exists(BUILD_TASK_PATH),
+    reason="build_task fixture not present",
+)
+def test_fill_template_preserves_drawings_in_build_task(tmp_path):
+    """fill_template не должен уничтожать w:drawing в шаблоне строительного задания.
+
+    До фикса merge_runs: drawings=0 после fill_template.
+    После фикса: drawings=14 (7 inline + 7 anchor).
+    """
+    import zipfile
+    from lxml import etree
+
+    output = str(tmp_path / "build_task_filled.docx")
+    fill_template(
+        BUILD_TASK_PATH,
+        {"ПРИЛОЖЕНИЕ_НОМЕР": "1", "СПЕЦ_НОМЕР": "7", "ДОГОВОР_ДАТА_ПОЛНАЯ": "01.06.2026",
+         "ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ": "И.И. Иванов", "ДОГОВОР_НОМЕР": "Д-1"},
+        output,
+    )
+
+    with zipfile.ZipFile(output) as z:
+        doc_xml = z.read("word/document.xml")
+    root = etree.fromstring(doc_xml)
+    ns = {"wp": "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"}
+    inline = root.findall(".//wp:inline", ns)
+    anchor = root.findall(".//wp:anchor", ns)
+
+    assert len(inline) == 7, f"Ожидалось 7 inline-drawing, получено {len(inline)}"
+    assert len(anchor) == 7, f"Ожидалось 7 anchor-drawing, получено {len(anchor)}"
+
+
+def test_fill_template_spec_preserves_drawings(tmp_path):
+    """Регресс: fill_template не трогает drawing в spec_foundation_install.docx."""
+    import zipfile
+    from lxml import etree
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_drawings_regression.docx")
+    fill_template(template, SPEC_MOCK_DATA, output)
+
+    with zipfile.ZipFile(output) as z:
+        doc_xml = z.read("word/document.xml")
+    root = etree.fromstring(doc_xml)
+    ns = {"wp": "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"}
+    inline = root.findall(".//wp:inline", ns)
+    anchor = root.findall(".//wp:anchor", ns)
+
+    assert len(inline) >= 1, "inline drawing исчез из spec_foundation_install после fill_template"
+    assert len(anchor) >= 1, "anchor drawing исчез из spec_foundation_install после fill_template"
+
+    # Данные из SPEC_MOCK_DATA подставлены (хотя бы один известный ключ)
+    assert get_unfilled_placeholders(output) != ["{{ДОГОВОР_НОМЕР}}"], (
+        "ДОГОВОР_НОМЕР не заполнен"
+    )
+
+
+def test_merge_runs_drawing_adjacent_to_split_placeholder(tmp_path):
+    """Drawing в параграфе рядом с разорванным плейсхолдером — оба сохраняются.
+
+    Параграф: [run '{{'][run 'TEST_KEY'][run '}}'][drawing run]
+    После replace_in_paragraph: drawing цел, {{TEST_KEY}} → 'VALUE'.
+    """
+    from docx import Document
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn as _qn
+    from src.contracts.filler import replace_in_paragraph
+
+    doc = Document()
+    para = doc.add_paragraph()
+
+    # Три рана симулируют Word-разрыв плейсхолдера {{TEST_KEY}}
+    para.add_run("{{")
+    para.add_run("TEST_KEY")
+    para.add_run("}}")
+
+    # Drawing run — minimal w:drawing без содержимого, как маркер
+    r_el = OxmlElement("w:r")
+    drawing_el = OxmlElement("w:drawing")
+    r_el.append(drawing_el)
+    para._p.append(r_el)
+
+    replace_in_paragraph(para, {"TEST_KEY": "VALUE"})
+
+    # Плейсхолдер заполнен
+    assert para.text == "VALUE", f"Плейсхолдер не заполнен: {para.text!r}"
+
+    # Drawing ран не уничтожен
+    drawings_in_para = para._p.findall(f".//{_qn('w:drawing')}")
+    assert len(drawings_in_para) == 1, (
+        f"w:drawing уничтожен merge_runs: найдено {len(drawings_in_para)}"
+    )
