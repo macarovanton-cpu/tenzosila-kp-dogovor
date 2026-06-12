@@ -15,8 +15,8 @@
 | AP-000 | Документация формата прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/test_pricing.py -q` | n/a | формат описан; B=36 по `price_class`, из них 1 `on_request` |
 | AP-003 | Canonical model + normalizer прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_normalizer.py -q` | n/a | плоские price items без подключения к runtime |
 | AP-004 | Валидатор формата прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_validator.py -q` | n/a | текущий прайс без error; `data_incomplete` = warning |
-| AP-013 | Price diff (две версии прайса) | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | NEXT_TASK; dep AP-003; чистая функция |
-| AP-009 | Read-only диагностика прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | dep AP-004; без UI/БД |
+| AP-013 | Price diff (две версии прайса) | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_diff.py -q` | n/a | added/removed/changed по `(item_type, key)` |
+| AP-009 | Read-only диагностика прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | NEXT_TASK; dep AP-004; без UI/БД |
 
 ## Фаза 2 — Minimal admin UI (ACTIVE · JSON · после v2.1)
 
