@@ -16,7 +16,7 @@
 | AP-003 | Canonical model + normalizer прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_normalizer.py -q` | n/a | плоские price items без подключения к runtime |
 | AP-004 | Валидатор формата прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_validator.py -q` | n/a | текущий прайс без error; `data_incomplete` = warning |
 | AP-013 | Price diff (две версии прайса) | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_diff.py -q` | n/a | added/removed/changed по `(item_type, key)` |
-| AP-009 | Read-only диагностика прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin -q`; `rtk python -m src.admin.price_diagnostics` | n/a | Фаза 1 завершена; дальше human review перед Фазой 2 |
+| AP-009 | Read-only диагностика прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin -q`; `rtk python -m src.admin.price_diagnostics` | n/a | R1 resolved: без `valid_until` warning, не expired; дальше human review перед Фазой 2 |
 
 ## Фаза 2 — Minimal admin UI (ACTIVE · JSON · после v2.1)
 

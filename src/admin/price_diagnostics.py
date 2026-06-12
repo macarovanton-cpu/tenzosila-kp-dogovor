@@ -33,6 +33,7 @@ class PriceDiagnostics:
     class_counts: dict[str, int]
     on_request_count: int
     valid_from: str | None
+    valid_until: str | None
     is_expired: bool
     validation_issues: list[ValidationIssue]
     zero_price_items: list[DiagnosticItem]
@@ -61,6 +62,9 @@ def diagnose_prices(
     models = [item for item in items if item.item_type == "model"]
     options = [item for item in items if item.item_type == "option"]
     valid_from = _valid_from(prices)
+    valid_until = _valid_until(prices)
+    validation_issues = validate_prices(items)
+    validation_issues.extend(_expiry_warnings(valid_until))
 
     return PriceDiagnostics(
         model_count=len(models),
@@ -68,8 +72,9 @@ def diagnose_prices(
         class_counts=dict(Counter(item.price_class for item in options)),
         on_request_count=sum(1 for item in options if item.on_request),
         valid_from=valid_from,
-        is_expired=_is_expired(valid_from, current_date),
-        validation_issues=validate_prices(items),
+        valid_until=valid_until,
+        is_expired=_is_expired(valid_until, current_date),
+        validation_issues=validation_issues,
         zero_price_items=_zero_price_items(items),
         models_without_price=_models_without_price(models),
     )
@@ -90,6 +95,7 @@ def format_diagnostics(diagnostics: PriceDiagnostics) -> str:
         *class_lines,
         f"on_request: {diagnostics.on_request_count}",
         f"valid_from: {diagnostics.valid_from or 'unknown'}",
+        f"valid_until: {diagnostics.valid_until or 'unknown'}",
         f"expired: {'yes' if diagnostics.is_expired else 'no'}",
         f"errors: {diagnostics.error_count}",
         f"warnings: {diagnostics.warning_count}",
@@ -124,13 +130,31 @@ def _valid_from(prices: dict[str, Any]) -> str | None:
     return str(value) if value else None
 
 
-def _is_expired(valid_from: str | None, today: date) -> bool:
-    if not valid_from:
+def _valid_until(prices: dict[str, Any]) -> str | None:
+    value = prices.get("_meta", {}).get("valid_until")
+    return str(value) if value else None
+
+
+def _is_expired(valid_until: str | None, today: date) -> bool:
+    if not valid_until:
         return False
     try:
-        return date.fromisoformat(valid_from) < today
+        return date.fromisoformat(valid_until) < today
     except ValueError:
         return False
+
+
+def _expiry_warnings(valid_until: str | None) -> list[ValidationIssue]:
+    if valid_until:
+        return []
+    return [
+        ValidationIssue(
+            level="warning",
+            item_key="_meta",
+            field="valid_until_missing",
+            message="В _meta нет valid_until: срок окончания действия прайса неизвестен.",
+        )
+    ]
 
 
 def _zero_price_items(items: list) -> list[DiagnosticItem]:
