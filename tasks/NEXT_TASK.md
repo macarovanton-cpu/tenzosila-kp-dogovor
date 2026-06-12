@@ -1,31 +1,30 @@
-# NEXT_TASK → AP-003
+# NEXT_TASK → AP-004
 
-Следующая задача для реализации: **AP-003 — Canonical model + normalizer прайса**.
-Полное описание: `tasks/AP-003_price_contracts_normalizer.md`.
+Следующая задача для реализации: **AP-004 — Валидатор формата прайса**.
+Полное описание: `tasks/AP-004_price_import_validator.md`.
 
 - **Phase:** 1 (Foundation)
 - **Agent safety level:** `safe_for_autonomous_agent` (можно автономно/ночью)
-- **Depends on:** AP-000
+- **Depends on:** AP-003
 - **Размер:** medium
 
 ## Почему именно она первая
 
-- AP-000 завершена: формат `data/prices.json` описан в `docs/price_format.md`.
-- Нормализатор даёт единый плоский формат для следующих задач Фазы 1:
-  валидатора, diff и read-only диагностики.
+- AP-000 и AP-003 завершены: формат описан, canonical price items доступны.
+- Валидатор использует нормализованный слой и ловит плохой прайс до runtime.
 - Задача остаётся локальной и безопасной: без БД, UI, расчёта цен и записи в
   `data/`.
 
 ## Что сделать (кратко)
 
-Добавить canonical-модели price item и нормализатор `data/prices.json` в плоский
-список без потери исходных полей. Покрыть unit-тестами counts и распределение
-классов.
+Добавить чистый валидатор формата прайса: обязательные поля, типы, классы,
+диапазоны `C_manual_range`, `on_request` и ошибки/предупреждения без изменения
+runtime.
 
 Полные шаги, allowed/forbidden changes, tests, done criteria и stop condition —
-в `tasks/AP-003_price_contracts_normalizer.md`.
+в `tasks/AP-004_price_import_validator.md`.
 
-## После AP-003
+## После AP-004
 
 По текущей инструкции пользователя в этом запуске можно перейти к следующей
 задаче Фазы 1 только после успешных тестов и отдельного commit.

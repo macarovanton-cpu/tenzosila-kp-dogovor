@@ -13,8 +13,8 @@
 | task_id | title | phase | safety | status | commit | tests | human_review | notes |
 |---|---|---|---|---|---|---|---|---|
 | AP-000 | Документация формата прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/test_pricing.py -q` | n/a | формат описан; B=36 по `price_class`, из них 1 `on_request` |
-| AP-003 | Canonical model + normalizer прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | dep AP-000; БД-зависимость снята |
-| AP-004 | Валидатор формата прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | dep AP-003; чистый, без БД |
+| AP-003 | Canonical model + normalizer прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_normalizer.py -q` | n/a | плоские price items без подключения к runtime |
+| AP-004 | Валидатор формата прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | NEXT_TASK; dep AP-003; чистый, без БД |
 | AP-013 | Price diff (две версии прайса) | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | dep AP-003; чистая функция |
 | AP-009 | Read-only диагностика прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | dep AP-004; без UI/БД |
 
