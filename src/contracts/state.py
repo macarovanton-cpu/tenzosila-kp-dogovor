@@ -133,6 +133,20 @@ def set_requisites(requisites: dict[str, str]) -> None:
         st.session_state[f"w_{key}"] = val
 
 
+def merge_requisites(values: dict[str, str]) -> None:
+    """Слить переданные поля в requisites namespace и в widget-ключи.
+
+    В отличие от set_requisites НЕ заменяет весь dict — обновляет только
+    переданные ключи (parsed/derived), сохраняя ручной ввод остальных полей.
+    """
+    cs = st.session_state["contract"]
+    req = cs.setdefault("requisites", {})
+    for key, val in values.items():
+        v = val or ""
+        req[key] = v
+        st.session_state[f"w_{key}"] = v
+
+
 def clear_generated() -> None:
     """Очистить сгенерированные файлы — вернуть страницу к форме генерации."""
     st.session_state["contract"]["generated"] = None

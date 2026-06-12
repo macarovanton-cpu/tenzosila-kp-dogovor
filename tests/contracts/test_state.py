@@ -338,3 +338,48 @@ class TestIsExtractedWithItems:
         mock_session_state["contract"]["specification"]["СПЕЦ_НДС"] = "22"
         set_spec_items([{"id": "weights"}])
         assert is_extracted() is True
+
+
+# ------------------------------------------------------------------
+# merge_requisites
+# ------------------------------------------------------------------
+
+class TestMergeRequisites:
+    def test_updates_only_passed_keys(self, mock_session_state):
+        """merge_requisites обновляет только переданные ключи, не трогает остальные."""
+        from src.contracts.state import init_contract_state, merge_requisites
+        init_contract_state()
+        cs = mock_session_state["contract"]
+        cs["requisites"]["ЗАКАЗЧИК_ИНН"] = "existing"
+        cs["requisites"]["ЗАКАЗЧИК_КПП"] = "keep_me"
+        merge_requisites({"ЗАКАЗЧИК_ИНН": "new_value"})
+        assert cs["requisites"]["ЗАКАЗЧИК_ИНН"] == "new_value"
+        assert cs["requisites"]["ЗАКАЗЧИК_КПП"] == "keep_me"  # не снесён
+
+    def test_pushes_widget_keys(self, mock_session_state):
+        from src.contracts.state import init_contract_state, merge_requisites
+        init_contract_state()
+        merge_requisites({"ЗАКАЗЧИК_EMAIL": "test@example.com"})
+        assert mock_session_state.get("w_ЗАКАЗЧИК_EMAIL") == "test@example.com"
+
+    def test_none_value_becomes_empty_string(self, mock_session_state):
+        from src.contracts.state import init_contract_state, merge_requisites
+        init_contract_state()
+        merge_requisites({"ЗАКАЗЧИК_ТЕЛЕФОН": None})
+        cs = mock_session_state["contract"]
+        assert cs["requisites"]["ЗАКАЗЧИК_ТЕЛЕФОН"] == ""
+
+    def test_collect_for_template_unaffected(self, mock_session_state):
+        """Регресс: collect_for_template возвращает тот же dict после merge."""
+        from src.contracts.state import (
+            init_contract_state, merge_requisites,
+            set_specification, collect_for_template,
+        )
+        init_contract_state()
+        set_specification({"СПЕЦ_НДС": "22", "СПЕЦ_ИТОГО": "1000000"})
+        merge_requisites({"ЗАКАЗЧИК_ИНН": "7707083893", "ЗАКАЗЧИК_КПП": "770701001"})
+        data = collect_for_template()
+        assert data["ЗАКАЗЧИК_ИНН"] == "7707083893"
+        assert data["ЗАКАЗЧИК_КПП"] == "770701001"
+        assert data["СПЕЦ_НДС"] == "22"
+        assert data["СПЕЦ_ИТОГО"] == "1000000"

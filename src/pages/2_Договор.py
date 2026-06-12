@@ -43,6 +43,7 @@ from src.contracts.state import (  # noqa: E402
     get_spec_items,
     init_contract_state,
     is_extracted,
+    merge_requisites,
     set_extracted_data,
     set_requisites,
     set_spec_items,
@@ -50,6 +51,8 @@ from src.contracts.state import (  # noqa: E402
     sync_field,
     sync_manual_field,
 )
+from src.contracts.requisites_parser import parse_requisites  # noqa: E402
+from src.contracts.requisites_transforms import derive_requisites  # noqa: E402
 from src.contracts.utils import format_date_parts, infer_director_gender  # noqa: E402
 from src.data_loader import load_models, load_payment_terms, load_prices  # noqa: E402
 from src.storage.supabase_client import (  # noqa: E402
@@ -509,32 +512,74 @@ else:
 st.divider()
 
 # ---------------------------------------------------------------------------
-# Секция 2 — Форма проверки и правки (общая для обоих режимов)
+# Секция 2 — Реквизиты заказчика (всегда видима, не зависит от is_extracted)
 # ---------------------------------------------------------------------------
 
 edited_df = None  # Будет установлен в блоке data_editor если items существуют
 
-if is_extracted():
-    _render_field_group("Реквизиты заказчика", REQUISITE_FIELDS, "requisites")
-
-    # Пол директора — предзаполняем из ФИО, пользователь может изменить вручную
-    _req = st.session_state["contract"]["requisites"]
-    _stored_gender = _req.get("ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", "")
-    if not _stored_gender:
-        _fio = _req.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", "")
-        _stored_gender = infer_director_gender(_fio) if _fio else "male"
-        _req["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = _stored_gender
-    st.session_state.setdefault("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", _stored_gender)
-    st.selectbox(
-        "Пол директора (для согласования «действующего/действующей»)",
-        options=["male", "female"],
-        format_func=lambda x: {"male": "мужской", "female": "женский"}[x],
-        key="w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ",
-        on_change=sync_field,
-        args=("requisites", "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"),
+# Панель вставки текста + парсер
+with st.expander("Вставить реквизиты текстом", expanded=not is_extracted()):
+    st.caption(
+        "Скопируйте блок реквизитов из карточки контрагента и нажмите «Распознать». "
+        "Поля заполнятся автоматически — можно редактировать. "
+        "«Заполнить производные» пересчитывает полное наименование, инициалы и "
+        "родительный падеж из уже введённых данных."
     )
+    st.text_area(
+        "Блок реквизитов",
+        key="w_requisites_paste",
+        height=200,
+        label_visibility="collapsed",
+        placeholder="Вставьте реквизиты контрагента...",
+    )
+    _btn_col1, _btn_col2 = st.columns(2)
+    with _btn_col1:
+        if st.button("Распознать", key="btn_parse_requisites"):
+            _paste = st.session_state.get("w_requisites_paste", "")
+            _parsed = parse_requisites(_paste)
+            _cur = st.session_state["contract"]["requisites"]
+            _derived, _warns = derive_requisites({**_cur, **_parsed})
+            merge_requisites({**_parsed, **_derived})
+            for _w in _warns:
+                st.warning(_w)
+            if _parsed:
+                st.success(f"Распознано полей: {len(_parsed)}. Проверьте и дополните.")
+            else:
+                st.info("Не удалось распознать реквизиты. Введите поля вручную.")
+    with _btn_col2:
+        if st.button("Заполнить производные поля", key="btn_derive_requisites"):
+            _cur = st.session_state["contract"]["requisites"]
+            _derived, _warns = derive_requisites(_cur)
+            merge_requisites(_derived)
+            for _w in _warns:
+                st.warning(_w)
+            if _derived:
+                st.success(f"Заполнено производных полей: {len(_derived)}.")
+            else:
+                st.info("Нечего вычислять — заполните ФИО и краткое наименование.")
 
-    st.divider()
+_render_field_group("Реквизиты заказчика", REQUISITE_FIELDS, "requisites")
+
+# Пол директора — предзаполняем из ФИО, пользователь может изменить вручную
+_req = st.session_state["contract"]["requisites"]
+_stored_gender = _req.get("ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", "")
+if not _stored_gender:
+    _fio = _req.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", "")
+    _stored_gender = infer_director_gender(_fio) if _fio else "male"
+    _req["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = _stored_gender
+st.session_state.setdefault("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", _stored_gender)
+st.selectbox(
+    "Пол директора (для согласования «действующего/действующей»)",
+    options=["male", "female"],
+    format_func=lambda x: {"male": "мужской", "female": "женский"}[x],
+    key="w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ",
+    on_change=sync_field,
+    args=("requisites", "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"),
+)
+
+st.divider()
+
+if is_extracted():
 
     # ------------------------------------------------------------------
     # Секция 2.5 — Особые условия (override-флаги + clauses preview)

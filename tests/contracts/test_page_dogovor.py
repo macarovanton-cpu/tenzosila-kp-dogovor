@@ -56,6 +56,15 @@ class _FakeColumn:
         return False
 
 
+# Универсальный контекстный менеджер для expander, container и т.п.
+class _FakeContextManager:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+
 class _FakeStreamlitModule:
     session_state: dict = {}
 
@@ -74,8 +83,23 @@ class _FakeStreamlitModule:
     def info(self, *args, **kwargs):
         pass
 
+    def success(self, *args, **kwargs):
+        pass
+
+    def warning(self, *args, **kwargs):
+        pass
+
+    def error(self, *args, **kwargs):
+        pass
+
+    def caption(self, *args, **kwargs):
+        pass
+
     def subheader(self, *args, **kwargs):
         pass
+
+    def expander(self, *args, **kwargs):
+        return _FakeContextManager()
 
     def columns(self, spec, *args, **kwargs):
         count = spec if isinstance(spec, int) else len(spec)
@@ -89,6 +113,13 @@ class _FakeStreamlitModule:
 
     def text_input(self, *args, **kwargs):
         return ""
+
+    def text_area(self, *args, **kwargs):
+        return ""
+
+    def selectbox(self, *args, **kwargs):
+        options = kwargs.get("options", args[1] if len(args) > 1 else [])
+        return options[0] if options else None
 
     def date_input(self, *args, **kwargs):
         return None
