@@ -6,9 +6,9 @@
 Легенда статуса: `planned` · `in_progress` · `done` · `blocked` · `deferred` ·
 `parked`. Агент берёт только задачу из `tasks/NEXT_TASK.md`.
 
-`NEXT_TASK = AP-000`.
+`NEXT_TASK = HUMAN_REVIEW_BEFORE_PHASE_2`.
 
-## Фаза 1 — Foundation (ACTIVE · JSON-only · safe_for_autonomous_agent)
+## Фаза 1 — Foundation (DONE · JSON-only · safe_for_autonomous_agent)
 
 | task_id | title | phase | safety | status | commit | tests | human_review | notes |
 |---|---|---|---|---|---|---|---|---|
@@ -16,7 +16,7 @@
 | AP-003 | Canonical model + normalizer прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_normalizer.py -q` | n/a | плоские price items без подключения к runtime |
 | AP-004 | Валидатор формата прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_validator.py -q` | n/a | текущий прайс без error; `data_incomplete` = warning |
 | AP-013 | Price diff (две версии прайса) | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_diff.py -q` | n/a | added/removed/changed по `(item_type, key)` |
-| AP-009 | Read-only диагностика прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | NEXT_TASK; dep AP-004; без UI/БД |
+| AP-009 | Read-only диагностика прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin -q`; `rtk python -m src.admin.price_diagnostics` | n/a | Фаза 1 завершена; дальше human review перед Фазой 2 |
 
 ## Фаза 2 — Minimal admin UI (ACTIVE · JSON · после v2.1)
 

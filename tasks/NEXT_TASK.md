@@ -1,34 +1,42 @@
-# NEXT_TASK → AP-009
+# NEXT_TASK → HUMAN_REVIEW_BEFORE_PHASE_2
 
-Следующая задача для реализации: **AP-009 — Read-only диагностика прайса**.
-Полное описание: `tasks/AP-009_admin_price_overview.md`.
+Фаза 1 (Foundation) завершена:
 
-- **Phase:** 1 (Foundation)
-- **Agent safety level:** `safe_for_autonomous_agent` (можно автономно/ночью)
-- **Depends on:** AP-004
-- **Размер:** small
+- AP-000 — документация формата прайса;
+- AP-003 — canonical model + normalizer прайса;
+- AP-004 — валидатор формата прайса;
+- AP-013 — diff двух версий прайса;
+- AP-009 — read-only диагностика прайса.
 
-## Почему именно она первая
+## Что дальше
 
-- AP-000, AP-003, AP-004 и AP-013 завершены: формат описан, canonical items,
-  валидатор и diff готовы.
-- Диагностика даёт read-only сводку здоровья текущего прайса из терминала.
-- Задача остаётся локальной и безопасной: без БД, UI, расчёта цен и записи в
-  `data/`.
+Перед стартом Фазы 2 нужен human review результатов Фазы 1.
 
-## Что сделать (кратко)
+Первая задача Фазы 2 после review и с учётом гейта v2.1:
+**AP-008 — Shell страницы админки**.
+Полное описание: `tasks/AP-008_admin_page_shell.md`.
 
-Добавить read-only диагностическую функцию/CLI для counts, классов,
-структурных issues, истёкшего `valid_from`, пустых/нулевых цен и моделей без
-цены.
+## Почему не стартовать AP-008 автоматически
 
-Полные шаги, allowed/forbidden changes, tests, done criteria и stop condition —
-в `tasks/AP-009_admin_price_overview.md`.
+- Фаза 2 впервые добавляет Streamlit-UI.
+- По `docs/admin_panel_agent_rules.md` UI-задачи требуют human review after.
+- По `docs/admin_panel_task_breakdown.md` Фаза 2 желательно начинается после
+  закрытия v2.1; в `docs/STATUS.md` v2.1 ещё открыт.
 
-## После AP-009
+## Для human review
 
-По текущей инструкции пользователя в этом запуске можно перейти к следующей
-задаче Фазы 1 только после успешных тестов и отдельного commit.
+Проверить:
 
-Порядок Фазы 1:
-`AP-000 → AP-003 → AP-004 → AP-013 → AP-009`.
+- `docs/price_format.md`;
+- `src/admin/price_models.py`;
+- `src/admin/price_normalizer.py`;
+- `src/admin/price_validator.py`;
+- `src/admin/price_diff.py`;
+- `src/admin/price_diagnostics.py`;
+- `tests/admin/`.
+
+CLI-проверка диагностики:
+
+```bash
+rtk python -m src.admin.price_diagnostics
+```
