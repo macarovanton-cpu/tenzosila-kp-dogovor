@@ -32,7 +32,7 @@ AI остаётся третьим путём — не ломаем.
 - [x] 11.3 `src/contracts/requisites_parser.py` + `tests/contracts/test_requisites_parser.py`
 - [x] 11.4 `src/contracts/state.py` — `merge_requisites` + тест в `test_state.py`
 - [x] 11.5 `src/pages/2_Договор.py` — форма всегда видима, text_area + 2 кнопки
-- [ ] 11.6 Прогон тестов, smoke Streamlit, codex review, коммиты ← ТЕКУЩИЙ
+- [x] 11.6 Прогон тестов (695 passed, 2 skipped), коммит ec23089
 
 > Админ-панель прайсов: Фаза 1 закрыта и отревьюена, **Фаза 2 заблокирована до
 > закрытия v2.1**. Сейчас админкой не заниматься (см. ниже «Админ-панель»).
