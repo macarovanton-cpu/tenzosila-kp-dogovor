@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "version": "test-candidate",
+    "currency": "RUB"
+  },
+  "models": {
+    "test_model": {
+      "retail": 1000000,
+      "dealer_ru": 920000,
+      "dealer_discount_pct": 8
+    }
+  },
+  "options": {
+    "test_option": {
+      "label": "Тестовая опция",
+      "price_class": "B_retail_only",
+      "price_retail": 125000
+    }
+  }
+}

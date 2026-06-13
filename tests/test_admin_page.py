@@ -36,6 +36,8 @@ def test_admin_page_shows_price_diagnostics() -> None:
     joined_text = "\n".join(page_text)
     assert "Админка" in joined_text
     assert "Диагностика текущего прайса" in joined_text
+    assert "Проверка загруженного прайса" in joined_text
+    assert "не сохраняется автоматически" in joined_text
     assert "read-only" in joined_text
     metrics = {metric.label: metric.value for metric in at.metric}
     assert metrics["Модели"] == "45"

@@ -24,7 +24,7 @@
 |---|---|---|---|---|---|---|---|---|
 | AP-008 | Shell страницы админки | 2 | requires_human_review_after | done | this_commit | `rtk python -m pytest tests/test_admin_page.py -q`; `rtk python -m pytest tests/admin -q`; `rtk python -m pytest tests/test_app_flow.py::test_app_starts_without_exception tests/test_app_flow.py::test_app_has_specification_section_in_main -q` | pending | read-only страница показывает диагностику текущего прайса; ролей нет, страница видна всем; записей в data/БД нет |
 | AP-015 | Read-only панель прайса и правил | 2 | requires_human_review_after | done | this_commit | `rtk python -m pytest tests/admin/test_price_overview_view.py -q`; `rtk python -m pytest tests/admin -q`; `rtk python -m pytest tests/test_admin_page.py -q` | pending | read-only view-model и таблица правил A/B/C/UNKNOWN/on_request; коэффициенты читаются из `src/config.py`; записей в data/БД нет |
-| AP-010 | Validate + diff + download прайса | 2 | requires_human_review_after | planned |  | not_run | pending | dep AP-004, AP-013, AP-008; НЕ пишет в data/ и БД |
+| AP-010 | Validate + diff + download прайса | 2 | requires_human_review_after | done | this_commit | `rtk python -m pytest tests/admin/test_price_upload_view.py -q`; `rtk python -m pytest tests/admin -q`; `rtk python -m pytest tests/test_admin_page.py -q`; `rtk python -m pytest tests/test_app_flow.py::test_app_starts_without_exception tests/test_app_flow.py::test_app_has_specification_section_in_main -q`; AppTest `pages/2_Договор.py`; `rtk git diff -- data/prices.json` | pending | file-based validate/diff/download; download блокируется при errors; записей в data/БД нет; browser smoke подготовлен для human review |
 
 ## Фаза 3 — DEFERRED: версионирование прайса в БД (после v2.1 + пользы от Фазы 2)
 
