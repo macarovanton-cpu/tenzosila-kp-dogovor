@@ -1,5 +1,4 @@
 """Тесты на корректность плейсхолдеров и вёрстки DOCX-шаблонов договора."""
-import re
 from pathlib import Path
 
 from docx import Document
@@ -212,7 +211,7 @@ def test_spec_max_empty_paras_between_th_and_kompl():
     )
 
 
-# --- плейсхолдер ПОЛНОЕ_НАИМЕНОВАНИЕ ---
+# --- плейсхолдер КРАТКОЕ_НАИМЕНОВАНИЕ ---
 
 def _filled_text(template_name: str) -> str:
     """Генерирует документ с тестовой карточкой, возвращает текст всех параграфов и таблиц."""
@@ -275,17 +274,15 @@ def _filled_text(template_name: str) -> str:
             os.unlink(out)
 
 
-def test_contract_preamble_and_signatures_use_full_name():
-    """В преамбуле, реквизитах и подписях договора должно быть ООО «МЕРИДИАН», не просто МЕРИДИАН."""
+def test_contract_preamble_and_signatures_use_short_name():
+    """В преамбуле, реквизитах и подписях договора должно быть краткое наименование."""
     text = _filled_text("contract.docx")
-    assert 'ООО «МЕРИДИАН»' in text, "Полное наименование отсутствует в договоре"
-    bare = re.findall(r'(?<!«)МЕРИДИАН', text)
-    assert bare == [], f"Найдено голое «МЕРИДИАН» без ООО «»: {bare}"
+    assert "МЕРИДИАН" in text, "Краткое наименование отсутствует в договоре"
+    assert 'ООО «МЕРИДИАН»' not in text, "Полное наименование не должно использоваться в договоре"
 
 
-def test_spec_preamble_and_signatures_use_full_name():
-    """В преамбуле и подписях спецификации должно быть ООО «МЕРИДИАН», не просто МЕРИДИАН."""
-    text = _filled_text("spec_foundation_install.docx")
-    assert 'ООО «МЕРИДИАН»' in text, "Полное наименование отсутствует в спецификации"
-    bare = re.findall(r'(?<!«)МЕРИДИАН', text)
-    assert bare == [], f"Найдено голое «МЕРИДИАН» без ООО «»: {bare}"
+def test_spec_v2_preamble_and_signatures_use_short_name():
+    """В преамбуле и подписях spec_v2 должно быть краткое наименование."""
+    text = _filled_text("spec_v2.docx")
+    assert "МЕРИДИАН" in text, "Краткое наименование отсутствует в спецификации"
+    assert 'ООО «МЕРИДИАН»' not in text, "Полное наименование не должно использоваться в спецификации"
