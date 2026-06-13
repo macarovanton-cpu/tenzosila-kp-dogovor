@@ -9,6 +9,7 @@ pg = st.navigation(
     [
         st.Page(str(_pages / "1_Коммерческое_предложение.py"), title="Коммерческое предложение"),
         st.Page(str(_pages / "2_Договор.py"), title="Договор"),
+        st.Page(str(_pages / "3_Админка.py"), title="Админка"),
     ]
 )
 pg.run()

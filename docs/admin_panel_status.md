@@ -6,7 +6,7 @@
 Легенда статуса: `planned` · `in_progress` · `done` · `blocked` · `deferred` ·
 `parked`. Агент берёт только задачу из `tasks/NEXT_TASK.md`.
 
-`NEXT_TASK = HUMAN_REVIEW_BEFORE_PHASE_2`.
+`NEXT_TASK = AP-015_AFTER_HUMAN_REVIEW_AP-008`.
 
 ## Фаза 1 — Foundation (DONE · JSON-only · safe_for_autonomous_agent)
 
@@ -22,7 +22,7 @@
 
 | task_id | title | phase | safety | status | commit | tests | human_review | notes |
 |---|---|---|---|---|---|---|---|---|
-| AP-008 | Shell страницы админки | 2 | requires_human_review_after | planned |  | not_run | pending | dep AP-000; видимая страница |
+| AP-008 | Shell страницы админки | 2 | requires_human_review_after | done | this_commit | `rtk python -m pytest tests/test_admin_page.py -q`; `rtk python -m pytest tests/admin -q`; `rtk python -m pytest tests/test_app_flow.py::test_app_starts_without_exception tests/test_app_flow.py::test_app_has_specification_section_in_main -q` | pending | read-only страница показывает диагностику текущего прайса; ролей нет, страница видна всем; записей в data/БД нет |
 | AP-015 | Read-only панель прайса и правил | 2 | requires_human_review_after | planned |  | not_run | pending | dep AP-008, AP-009 |
 | AP-010 | Validate + diff + download прайса | 2 | requires_human_review_after | planned |  | not_run | pending | dep AP-004, AP-013, AP-008; НЕ пишет в data/ и БД |
 
