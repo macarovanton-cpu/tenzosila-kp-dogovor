@@ -53,8 +53,12 @@ _DIGITS_ONLY = re.compile(r"\d{7,25}")
 # Email
 _EMAIL_RE = re.compile(r"[\w.\-+]+@[\w.\-]+\.[a-zA-Z]{2,}")
 
-# Телефон: +7/8 и дальше цифры (с любыми разделителями)
-_PHONE_RE = re.compile(r"(?:\+7|8)[\s\-(]?\d{3}[\s\-)]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}")
+# Телефон: +7/8 и дальше цифры (с любыми разделителями).
+# Цифровые границы (?<!\d)…(?!\d) — чтобы не матчить телефон внутри длинного
+# числа (р/с, к/с), где «8…» — просто внутренняя цифра счёта.
+_PHONE_RE = re.compile(
+    r"(?<!\d)(?:\+7|8)[\s\-(]?\d{3}[\s\-)]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}(?!\d)"
+)
 
 # Наименование организации: ОПФ + кавычки (жадный захват содержимого кавычек)
 _NAME_RE = re.compile(
@@ -196,22 +200,26 @@ def _extract_numeric_fields(text: str, result: dict[str, str]) -> None:
 def _resolve_bik_kpp(digits: str, context: str, result: dict[str, str]) -> None:
     """9 цифр: определить БИК или КПП по префиксу и якорям.
 
-    БИК: начинается на 04.
-    КПП: не начинается на 04.
-    При неоднозначности (нестандартный префикс + нет якоря) — не записываем.
+    БИК РФ всегда начинается на 04. Но КПП регионов с кодом 04 (напр. налоговые
+    органы) — тоже на 04. Поэтому:
+    - не 04 → БИК физически невозможен → КПП (якорь БИК без КПП = противоречие → пусто);
+    - 04 → формат подходит обоим → явный одиночный якорь КПП перебивает дефолт-БИК.
     """
     starts_04 = digits.startswith("04")
+    has_bik = bool(_ANCHOR_BIK.search(context))
+    has_kpp = bool(_ANCHOR_KPP.search(context))
 
     if starts_04:
-        if "ЗАКАЗЧИК_БИК" not in result:
-            result["ЗАКАЗЧИК_БИК"] = digits
+        if has_kpp and not has_bik:
+            result.setdefault("ЗАКАЗЧИК_КПП", digits)
+        else:
+            # якорь БИК, оба якоря или нет якоря → БИК (дефолт для 04)
+            result.setdefault("ЗАКАЗЧИК_БИК", digits)
     else:
-        # не 04 → КПП, но только если нет якоря БИК рядом
-        if _ANCHOR_BIK.search(context):
-            # Якорь БИК есть, но префикс не 04 — неоднозначность → пусто
+        if has_bik and not has_kpp:
+            # не 04 + якорь БИК → противоречие → пусто (не угадываем)
             return
-        if "ЗАКАЗЧИК_КПП" not in result:
-            result["ЗАКАЗЧИК_КПП"] = digits
+        result.setdefault("ЗАКАЗЧИК_КПП", digits)
 
 
 def _resolve_rs_ks(digits: str, context: str, result: dict[str, str]) -> None:
@@ -256,8 +264,10 @@ def _extract_addresses(text: str, result: dict[str, str]) -> None:
         if not stripped:
             continue
         # Строка выглядит как адрес?
+        # Индекс — отдельностоящее 6-значное число, а НЕ подстрока длинного
+        # реквизита (ИНН/ОГРН/счёт): иначе любая числовая строка станет адресом.
         is_addr = (
-            re.search(r"\d{6}", stripped)  # индекс
+            re.search(r"(?<!\d)\d{6}(?!\d)", stripped)  # индекс
             or re.search(r"(?:г\.|ул\.|пер\.|пр-т|проспект|бульвар)\s", stripped, re.IGNORECASE)
         )
         if not is_addr:
@@ -306,9 +316,13 @@ def _extract_director_fields(text: str, result: dict[str, str]) -> None:
     director_positions: list[str] = []
 
     for anchor_match in _ANCHOR_DIRECTOR.finditer(text):
-        # Окно: 200 символов после якоря
+        # Окно: строка самого якоря (до ближайшего \n). НЕ перетекаем на
+        # следующую строку — иначе ФИО из строки главбуха/контакта попадёт
+        # в директора.
         window_start = anchor_match.start()
-        window = text[window_start: window_start + 200]
+        newline = text.find("\n", window_start)
+        window_end = newline if newline != -1 else len(text)
+        window = text[window_start:window_end]
 
         # Ищем должность в окне
         pos_m = _POSITION_WORDS.search(window)

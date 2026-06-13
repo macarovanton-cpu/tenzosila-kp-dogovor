@@ -231,14 +231,103 @@ class TestDirectorFio:
 
 
 # ---------------------------------------------------------------------------
-# TODO: фикстуры реальных реквизитов от Антона
-# Раскомментировать и дополнить при наличии реальных данных.
+# P1 (audit 2026-06-13): «трудные» карточки — тихие ошибки в юр. данных
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skip(reason="Фикстуры реальных реквизитов — добавить от Антона")
+class TestBugFalseAddressFromNumbers:
+    """P1 №1: строка-реквизит (ИНН/ОГРН/КПП/р-с/БИК) не должна стать адресом.
+
+    Корень: индекс детектился как любые 6 подряд цифр, в т.ч. внутри длинного
+    числа. Теперь индекс — отдельностоящее 6-значное число.
+    """
+
+    def test_inn_line_not_address(self):
+        result = parse_requisites("ИНН 7707083893")
+        assert result.get("ЗАКАЗЧИК_ИНН") == "7707083893"
+        assert "ЗАКАЗЧИК_АДРЕС_ЮР" not in result
+
+    def test_account_line_not_address(self):
+        result = parse_requisites("р/с 40702810938000060473")
+        assert "ЗАКАЗЧИК_АДРЕС_ЮР" not in result
+
+    def test_requisites_block_without_address(self):
+        text = (
+            "ИНН 7707083893\n"
+            "ОГРН 1027700132195\n"
+            "КПП 770701001\n"
+            "р/с 40702810938000060473\n"
+            "БИК 044525225"
+        )
+        result = parse_requisites(text)
+        assert "ЗАКАЗЧИК_АДРЕС_ЮР" not in result
+
+    def test_real_address_with_index_still_found(self):
+        """Регресс: реальный адрес с индексом по-прежнему ловится."""
+        result = parse_requisites("117997 г. Москва ул. Вавилова д. 5")
+        assert "ЗАКАЗЧИК_АДРЕС_ЮР" in result
+
+
+class TestBugPhoneFromAccount:
+    """P1 №2: телефон не должен матчиться внутри расчётного счёта."""
+
+    def test_account_not_parsed_as_phone(self):
+        result = parse_requisites("р/с 40702810938000060473")
+        assert "ЗАКАЗЧИК_ТЕЛЕФОН" not in result
+        assert result.get("ЗАКАЗЧИК_РС") == "40702810938000060473"
+
+    def test_real_phone_still_found(self):
+        """Регресс: нормальный телефон распознаётся."""
+        result = parse_requisites("Тел. +7 495 123-45-67")
+        assert "ЗАКАЗЧИК_ТЕЛЕФОН" in result
+
+
+class TestBugDirectorVsBuh:
+    """P1 №3: ФИО главбуха со следующей строки не должно уйти в директора."""
+
+    def test_director_no_fio_buh_next_line(self):
+        text = (
+            "Генеральный директор\n"
+            "Главный бухгалтер Петрова Мария Ивановна"
+        )
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") != "Петрова Мария Ивановна"
+        assert "ЗАКАЗЧИК_ДИРЕКТОР_ФИО" not in result
+
+    def test_director_with_fio_same_line(self):
+        """Регресс: ФИО директора на той же строке — ловится."""
+        result = parse_requisites("в лице директора Иванова Ивана Ивановича")
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") == "Иванова Ивана Ивановича"
+
+
+class TestBugKpp04Prefix:
+    """P1 №4: КПП с префиксом 04 + явный якорь не должен уходить в БИК."""
+
+    def test_kpp_04_with_anchor(self):
+        result = parse_requisites("КПП 040101001")
+        assert result.get("ЗАКАЗЧИК_КПП") == "040101001"
+        assert "ЗАКАЗЧИК_БИК" not in result
+
+    def test_bik_04_no_anchor_still_bik(self):
+        """Регресс: 04-префикс без якоря по-прежнему БИК."""
+        result = parse_requisites("044525225")
+        assert result.get("ЗАКАЗЧИК_БИК") == "044525225"
+        assert "ЗАКАЗЧИК_КПП" not in result
+
+    def test_bik_and_kpp_04_both_anchored(self):
+        """БИК и КПП-на-04 на разных строках с якорями → оба верны."""
+        text = "БИК 044525225\nКПП 040101001"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_БИК") == "044525225"
+        assert result.get("ЗАКАЗЧИК_КПП") == "040101001"
+
+
+# ---------------------------------------------------------------------------
+# Регресс целой карточки (бывший плейсхолдер — активирован как регресс-тест)
+# ---------------------------------------------------------------------------
+
 class TestRealRequisitesFixtures:
     def test_case_ooo_standard(self):
-        """Типовая карточка ООО — все поля распознаны."""
+        """Типовая карточка ООО — все поля распознаны, без ложных адреса/телефона."""
         text = """
         ООО "Пример"
         ИНН 7707083893
@@ -256,3 +345,7 @@ class TestRealRequisitesFixtures:
         assert result["ЗАКАЗЧИК_РС"] == "40702810938000060473"
         assert result["ЗАКАЗЧИК_КС"] == "30101810400000000225"
         assert result["ЗАКАЗЧИК_БИК"] == "044525225"
+        # Адрес — это адресная строка, а не реквизит-число
+        assert result["ЗАКАЗЧИК_АДРЕС_ЮР"].startswith("117997")
+        # В карточке нет телефона — он не должен «вытечь» из р/с
+        assert "ЗАКАЗЧИК_ТЕЛЕФОН" not in result
