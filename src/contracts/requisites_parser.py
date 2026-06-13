@@ -50,6 +50,13 @@ _NBSP = re.compile(r"[\xa0  ]+")
 # Числовые токены: последовательности цифр (для ИНН/КПП/ОГРН/счетов/БИК)
 _DIGITS_ONLY = re.compile(r"\d{7,25}")
 
+# Слитный формат «ИНН/КПП 10цифр/9цифр»: первое → ИНН, второе → КПП.
+# Подпись + формат 10/9 однозначны, берём по ДЛИНЕ (без контрольной суммы).
+# Границы (?<!\d)…(?!\d) — ровно 10/9; иначе формат не совпал → не угадываем.
+_INN_KPP_SLASH_RE = re.compile(
+    r"ИНН\s*/\s*КПП\s*:?\s*(?<!\d)(\d{10})\s*/\s*(\d{9})(?!\d)", re.IGNORECASE
+)
+
 # Email
 _EMAIL_RE = re.compile(r"[\w.\-+]+@[\w.\-]+\.[a-zA-Z]{2,}")
 
@@ -102,6 +109,12 @@ _POSITION_WORDS = re.compile(
     re.IGNORECASE,
 )
 
+# Маркеры «чужой» строки: ФИО оттуда НЕ принадлежит директору
+# (главбух / контакт / телефон / e-mail / почта / факс).
+_OTHER_ROLE_RE = re.compile(
+    r"бухгалт|главбух|контакт|тел\b|телефон|e-?mail|почт|факс", re.IGNORECASE
+)
+
 # ФИО: три слова с заглавной буквы (фамилия имя отчество)
 _FIO_RE = re.compile(r"[А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+")
 
@@ -149,6 +162,9 @@ def parse_requisites(text: str) -> dict[str, str]:
     # ------------------------------------------------------------------
     # 3. Числовые токены: ИНН, ОГРН, БИК, КПП, р/с, к/с
     # ------------------------------------------------------------------
+    # Слитный «ИНН/КПП …/…» разбираем ДО общей логики (она не перетрёт —
+    # использует not-in/setdefault).
+    _extract_inn_kpp_slash(text, result)
     _extract_numeric_fields(text, result)
 
     # ------------------------------------------------------------------
@@ -162,6 +178,14 @@ def parse_requisites(text: str) -> dict[str, str]:
     _extract_director_fields(text, result)
 
     return result
+
+
+def _extract_inn_kpp_slash(text: str, result: dict[str, str]) -> None:
+    """Слитный «ИНН/КПП 10цифр/9цифр» → ИНН (первое) и КПП (второе) по длине."""
+    m = _INN_KPP_SLASH_RE.search(text)
+    if m:
+        result.setdefault("ЗАКАЗЧИК_ИНН", m.group(1))
+        result.setdefault("ЗАКАЗЧИК_КПП", m.group(2))
 
 
 def _extract_numeric_fields(text: str, result: dict[str, str]) -> None:
@@ -298,6 +322,15 @@ def _extract_addresses(text: str, result: dict[str, str]) -> None:
             result["ЗАКАЗЧИК_АДРЕС_ЮР"] = addr_clean
 
 
+def _next_content_line(text: str, anchor_start: int) -> str:
+    """Первая непустая строка ПОСЛЕ строки, на которой стоит якорь."""
+    for line in text[anchor_start:].split("\n")[1:]:
+        stripped = line.strip()
+        if stripped:
+            return stripped
+    return ""
+
+
 def _extract_director_fields(text: str, result: dict[str, str]) -> None:
     """Извлечь ФИО директора, должность, основание — консервативно.
 
@@ -329,8 +362,15 @@ def _extract_director_fields(text: str, result: dict[str, str]) -> None:
         if pos_m:
             director_positions.append(pos_m.group(1).strip())
 
-        # Ищем ФИО в окне
+        # Ищем ФИО на строке якоря; если нет — на следующей непустой строке,
+        # но только если та не вводит новую должность/контакт (главбух и т.п.).
         fio_m = _FIO_RE.search(window)
+        if not fio_m:
+            next_line = _next_content_line(text, window_start)
+            if (next_line
+                    and not _OTHER_ROLE_RE.search(next_line)
+                    and not _ANCHOR_DIRECTOR.search(next_line)):
+                fio_m = _FIO_RE.search(next_line)
         if fio_m:
             director_fios.append(fio_m.group(0))
 

@@ -298,6 +298,26 @@ class TestBugDirectorVsBuh:
         result = parse_requisites("в лице директора Иванова Ивана Ивановича")
         assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") == "Иванова Ивана Ивановича"
 
+    def test_director_fio_on_next_line(self):
+        """P2: ФИО на следующей строке (без чужого якоря) — ловится."""
+        result = parse_requisites("Директор\nИванов Иван Иванович")
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") == "Иванов Иван Иванович"
+
+    def test_director_fio_next_line_buh_after(self):
+        """P2: ФИО директора на след. строке, главбух — через строку (не мешает)."""
+        text = (
+            "Директор\n"
+            "Иванов Иван Иванович\n"
+            "Главный бухгалтер Петрова Мария Ивановна"
+        )
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") == "Иванов Иван Иванович"
+
+    def test_director_next_line_is_contact_empty(self):
+        """P2: следующая строка — контакт, не ФИО → поле пустое."""
+        result = parse_requisites("Директор\nтел. +7 495 123-45-67")
+        assert "ЗАКАЗЧИК_ДИРЕКТОР_ФИО" not in result
+
 
 class TestBugKpp04Prefix:
     """P1 №4: КПП с префиксом 04 + явный якорь не должен уходить в БИК."""
@@ -319,6 +339,49 @@ class TestBugKpp04Prefix:
         result = parse_requisites(text)
         assert result.get("ЗАКАЗЧИК_БИК") == "044525225"
         assert result.get("ЗАКАЗЧИК_КПП") == "040101001"
+
+
+class TestInnKppSlash:
+    """Слитный формат «ИНН/КПП 10цифр/9цифр» — частый в реальных карточках.
+
+    Первое число (10) → ИНН, второе (9) → КПП. Берём по длине (подпись + формат
+    однозначны), без контрольной суммы. Несовпадение длин → не угадываем.
+    """
+
+    def test_slash_canonical(self):
+        result = parse_requisites("ИНН/КПП 7707083893/771001001")
+        assert result.get("ЗАКАЗЧИК_ИНН") == "7707083893"
+        assert result.get("ЗАКАЗЧИК_КПП") == "771001001"
+
+    def test_slash_with_spaces(self):
+        result = parse_requisites("ИНН / КПП: 7707083893 / 771001001")
+        assert result.get("ЗАКАЗЧИК_ИНН") == "7707083893"
+        assert result.get("ЗАКАЗЧИК_КПП") == "771001001"
+
+    def test_slash_inn_invalid_checksum_still_taken(self):
+        """ИНН с неверной контрольной суммой в слитном формате — не теряется."""
+        result = parse_requisites("ИНН/КПП 7707083890/771001001")
+        assert result.get("ЗАКАЗЧИК_ИНН") == "7707083890"
+        assert result.get("ЗАКАЗЧИК_КПП") == "771001001"
+
+    def test_slash_wrong_lengths_no_guess(self):
+        """Вторая часть 10 цифр (не 9) → КПП не угадываем."""
+        result = parse_requisites("ИНН/КПП 7707083893/7710010019")
+        assert "ЗАКАЗЧИК_КПП" not in result
+
+
+class TestBikKppSameLine:
+    """P3-гард: КПП и БИК на одной строке разводятся по формату (04/не-04)."""
+
+    def test_kpp_then_bik(self):
+        result = parse_requisites("КПП 771001001 БИК 044525225")
+        assert result.get("ЗАКАЗЧИК_КПП") == "771001001"
+        assert result.get("ЗАКАЗЧИК_БИК") == "044525225"
+
+    def test_bik_then_kpp(self):
+        result = parse_requisites("БИК 044525225 КПП 771001001")
+        assert result.get("ЗАКАЗЧИК_КПП") == "771001001"
+        assert result.get("ЗАКАЗЧИК_БИК") == "044525225"
 
 
 # ---------------------------------------------------------------------------
