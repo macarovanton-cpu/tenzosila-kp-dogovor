@@ -6,17 +6,17 @@
 Легенда статуса: `planned` · `in_progress` · `done` · `blocked` · `deferred` ·
 `parked`. Агент берёт только задачу из `tasks/NEXT_TASK.md`.
 
-`NEXT_TASK = AP-000`.
+`NEXT_TASK = HUMAN_REVIEW_BEFORE_PHASE_2`.
 
-## Фаза 1 — Foundation (ACTIVE · JSON-only · safe_for_autonomous_agent)
+## Фаза 1 — Foundation (DONE · JSON-only · safe_for_autonomous_agent)
 
 | task_id | title | phase | safety | status | commit | tests | human_review | notes |
 |---|---|---|---|---|---|---|---|---|
-| AP-000 | Документация формата прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | NEXT_TASK |
-| AP-003 | Canonical model + normalizer прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | dep AP-000; БД-зависимость снята |
-| AP-004 | Валидатор формата прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | dep AP-003; чистый, без БД |
-| AP-013 | Price diff (две версии прайса) | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | dep AP-003; чистая функция |
-| AP-009 | Read-only диагностика прайса | 1 | safe_for_autonomous_agent | planned |  | not_run | n/a | dep AP-004; без UI/БД |
+| AP-000 | Документация формата прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/test_pricing.py -q` | n/a | формат описан; B=36 по `price_class`, из них 1 `on_request` |
+| AP-003 | Canonical model + normalizer прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_normalizer.py -q` | n/a | плоские price items без подключения к runtime |
+| AP-004 | Валидатор формата прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_validator.py -q` | n/a | текущий прайс без error; `data_incomplete` = warning |
+| AP-013 | Price diff (две версии прайса) | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin/test_price_diff.py -q` | n/a | added/removed/changed по `(item_type, key)` |
+| AP-009 | Read-only диагностика прайса | 1 | safe_for_autonomous_agent | done | this_commit | `rtk python -m pytest tests/admin -q`; `rtk python -m src.admin.price_diagnostics` | n/a | R1 resolved: без `valid_until` warning, не expired; дальше human review перед Фазой 2 |
 
 ## Фаза 2 — Minimal admin UI (ACTIVE · JSON · после v2.1)
 

@@ -1,33 +1,42 @@
-# NEXT_TASK → AP-000
+# NEXT_TASK → HUMAN_REVIEW_BEFORE_PHASE_2
 
-Следующая задача для реализации: **AP-000 — Документация формата прайса**.
-Полное описание: `tasks/AP-000_price_format_doc.md`.
+Фаза 1 (Foundation) завершена:
 
-- **Phase:** 1 (Foundation)
-- **Agent safety level:** `safe_for_autonomous_agent` (можно автономно/ночью)
-- **Depends on:** none
-- **Размер:** small
+- AP-000 — документация формата прайса;
+- AP-003 — canonical model + normalizer прайса;
+- AP-004 — валидатор формата прайса;
+- AP-013 — diff двух версий прайса;
+- AP-009 — read-only диагностика прайса.
 
-## Почему именно она первая
+## Что дальше
 
-- Безопасно: чистая документация, ноль кода, ноль изменений расчёта и runtime.
-- Маленькая и самодостаточная.
-- Полезная: единый референс формата прайса разблокирует AP-003 (нормализатор) и
-  AP-004 (валидатор).
-- Не требует бизнес-решения и не трогает `data/`, КП, договор, БД.
+Перед стартом Фазы 2 нужен human review результатов Фазы 1.
 
-## Что сделать (кратко)
+Первая задача Фазы 2 после review и с учётом гейта v2.1:
+**AP-008 — Shell страницы админки**.
+Полное описание: `tasks/AP-008_admin_page_shell.md`.
 
-Создать `docs/price_format.md` с описанием реального формата `data/prices.json`
-(`_meta`, запись модели, запись опции, классы A/B/C/UNKNOWN/on_request с
-обязательными полями), обновить строку AP-000 в `docs/admin_panel_status.md`,
-сделать один commit и остановиться.
+## Почему не стартовать AP-008 автоматически
 
-Полные шаги, allowed/forbidden changes, tests, done criteria и stop condition —
-в `tasks/AP-000_price_format_doc.md`.
+- Фаза 2 впервые добавляет Streamlit-UI.
+- По `docs/admin_panel_agent_rules.md` UI-задачи требуют human review after.
+- По `docs/admin_panel_task_breakdown.md` Фаза 2 желательно начинается после
+  закрытия v2.1; в `docs/STATUS.md` v2.1 ещё открыт.
 
-## После AP-000
+## Для human review
 
-Не брать следующую задачу автоматически. Порядок Фазы 1:
-`AP-000 → AP-003 → AP-004 → AP-013 → AP-009`. Следующую задачу назначает человек,
-обновив этот файл.
+Проверить:
+
+- `docs/price_format.md`;
+- `src/admin/price_models.py`;
+- `src/admin/price_normalizer.py`;
+- `src/admin/price_validator.py`;
+- `src/admin/price_diff.py`;
+- `src/admin/price_diagnostics.py`;
+- `tests/admin/`.
+
+CLI-проверка диагностики:
+
+```bash
+rtk python -m src.admin.price_diagnostics
+```
