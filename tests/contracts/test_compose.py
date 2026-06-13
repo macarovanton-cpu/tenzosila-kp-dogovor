@@ -183,19 +183,21 @@ def test_numbering_is_fixed_by_attachment_type(tmp_path: Path) -> None:
     assert "Приложение №2. Контрольный лист" in text
 
 
-def test_no_blank_page_break_between_spec_and_first_appendix(tmp_path: Path) -> None:
+def test_each_appendix_starts_with_single_page_break(tmp_path: Path) -> None:
     spec = tmp_path / "spec.docx"
     build_task = tmp_path / "build_task.docx"
+    control_sheet = tmp_path / "control_sheet.docx"
     _make_spec(spec)
     _make_appendix(build_task, "Строительное задание", page_break_before=True)
+    _make_appendix(control_sheet, "Контрольный лист", page_break_before=True)
 
     compose_spec_with_attachments(
         spec,
         {
             "build_task_path": str(build_task),
             "build_task_source": "manual",
-            "include_control_sheet": False,
-            "control_sheet_path": "",
+            "include_control_sheet": True,
+            "control_sheet_path": str(control_sheet),
         },
         _data(),
     )
@@ -210,8 +212,20 @@ def test_no_blank_page_break_between_spec_and_first_appendix(tmp_path: Path) -> 
         i for i, p_el in enumerate(paragraphs)
         if "Приложение №1. Строительное задание" in _paragraph_text(p_el)
     )
-    between = paragraphs[spec_end_idx + 1:appendix_idx]
+    control_idx = next(
+        i for i, p_el in enumerate(paragraphs)
+        if "Приложение №2. Контрольный лист" in _paragraph_text(p_el)
+    )
+    first_appendix_end_idx = next(
+        i for i, p_el in enumerate(paragraphs[appendix_idx + 1:], appendix_idx + 1)
+        if "Утверждаю" in _paragraph_text(p_el)
+    )
+    before_build_task = paragraphs[spec_end_idx + 1:appendix_idx]
+    before_control_sheet = paragraphs[first_appendix_end_idx + 1:control_idx]
 
-    assert all(_paragraph_text(p_el).strip() for p_el in between)
-    assert not any(_has_page_break(p_el) for p_el in between)
-    assert not _has_page_break(paragraphs[appendix_idx])
+    assert all(_paragraph_text(p_el).strip() for p_el in before_build_task)
+    assert not any(_has_page_break(p_el) for p_el in before_build_task)
+    assert all(_paragraph_text(p_el).strip() for p_el in before_control_sheet)
+    assert not any(_has_page_break(p_el) for p_el in before_control_sheet)
+    assert _has_page_break(paragraphs[appendix_idx])
+    assert _has_page_break(paragraphs[control_idx])

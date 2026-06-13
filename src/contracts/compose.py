@@ -2,7 +2,6 @@
 from pathlib import Path
 
 from docx import Document
-from docx.oxml.ns import qn
 from docxcompose.composer import Composer
 
 from src.contracts.filler import fill_template
@@ -21,16 +20,11 @@ def _collect_appendices(attachments: dict) -> list[tuple[Path, int]]:
     return out
 
 
-def _remove_first_page_break_before(doc) -> None:
-    """Убрать pageBreakBefore с первого параграфа приложения перед docxcompose."""
+def _ensure_first_page_break_before(doc) -> None:
+    """Поставить pageBreakBefore на первый параграф приложения перед docxcompose."""
     if not doc.paragraphs:
         return
-    p_pr = doc.paragraphs[0]._p.pPr
-    if p_pr is None:
-        return
-    page_break = p_pr.find(qn("w:pageBreakBefore"))
-    if page_break is not None:
-        p_pr.remove(page_break)
+    doc.paragraphs[0].paragraph_format.page_break_before = True
 
 
 def compose_spec_with_attachments(
@@ -60,7 +54,7 @@ def compose_spec_with_attachments(
             )
             tmp_files.append(filled)
             appendix_doc = Document(str(filled))
-            _remove_first_page_break_before(appendix_doc)
+            _ensure_first_page_break_before(appendix_doc)
             appendix_doc.save(str(filled))
             composer.append(appendix_doc)
         composer.save(str(spec_path))
