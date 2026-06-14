@@ -219,6 +219,33 @@ def test_recompute_split_bucket_remainder_per_base():
     assert out[1]["Сумма, ₽"] + out[2]["Сумма, ₽"] == 100_000  # iv добран до базы
 
 
+def test_recompute_does_not_close_remainder_when_pct_sum_over_tolerance():
+    """Σ%=100.4 не считается «100%» и не добирает последнюю строку до базы."""
+    rows = [
+        _row(pct=60.2, base=1_000_000),
+        _row(pct=40.2, base=1_000_000, kind="доплата"),
+    ]
+
+    out = _recompute_amounts(rows, 1_000_000)
+
+    assert out[0]["Сумма, ₽"] == 602_000
+    assert out[1]["Сумма, ₽"] == 402_000
+    assert out[0]["Сумма, ₽"] + out[1]["Сумма, ₽"] == 1_004_000
+
+
+def test_recompute_same_numeric_base_different_objects_does_not_share_remainder():
+    """Одинаковая числовая база разных бакетов не создаёт общую группу остатка."""
+    rows = [
+        _row(pct=50.0, base=1_000_001, obj="Весов"),
+        _row(pct=50.0, base=1_000_001, obj="фундамента Весов", kind="доплата"),
+    ]
+
+    out = _recompute_amounts(rows, 2_000_002)
+
+    assert out[0]["Сумма, ₽"] == 500_000
+    assert out[1]["Сумма, ₽"] == 500_000
+
+
 def test_recompute_pct_none_keeps_amount():
     """Строка без процента не пересчитывается — сумма из bridge сохраняется."""
     out = _recompute_amounts(
@@ -283,6 +310,51 @@ def test_validate_over_100_per_base_errors():
             _row(pct=60.0, base=1_000_000, kind="доплата")]
     error, _ = _validate_rows(rows, 1_000_000)
     assert error is not None and "100" in error
+
+
+def test_validate_pct_over_tolerance_errors():
+    rows = [_row(pct=60.2, base=1_000_000, amount=602_000),
+            _row(pct=40.2, base=1_000_000, amount=402_000, kind="доплата")]
+    error, _ = _validate_rows(rows, 1_004_000)
+    assert error is not None and "100" in error
+
+
+def test_validate_amount_overrun_warns_even_one_ruble():
+    rows = [_row(pct=None, base=1_000_000, amount=1_000_001, prep="—")]
+    error, warnings = _validate_rows(rows, 1_000_000)
+    assert error is None
+    assert any("превышают" in w and "1" in w for w in warnings)
+
+
+def test_validate_legit_split_remainder_does_not_warn():
+    rows = _recompute_amounts([
+        _row(pct=17.0, base=1_000_001),
+        _row(pct=83.0, base=1_000_001, kind="доплата"),
+    ], 1_000_001)
+
+    error, warnings = _validate_rows(rows, 1_000_001)
+
+    assert rows[0]["Сумма, ₽"] + rows[1]["Сумма, ₽"] == 1_000_001
+    assert error is None
+    assert warnings == []
+
+
+def test_validate_same_numeric_base_different_objects_does_not_merge_pct():
+    rows = [
+        _row(pct=60.0, base=1_000_000, amount=600_000, obj="Весов"),
+        _row(
+            pct=60.0,
+            base=1_000_000,
+            amount=600_000,
+            obj="фундамента Весов",
+            kind="доплата",
+        ),
+    ]
+
+    error, warnings = _validate_rows(rows, 1_200_000)
+
+    assert error is None
+    assert warnings == []
 
 
 def test_validate_undershoot_warns():

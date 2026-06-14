@@ -34,6 +34,8 @@ _COLUMNS = ["Тип", "%", "Основа", "Объект", "База, ₽", "С�
 _KINDS = ["предоплата", "доплата", "оплата"]
 _PREPS = ["от стоимости", "за", "от", "—"]
 _DUE_UNITS = ["банковских", "рабочих", "календарных"]
+_PCT_TOLERANCE = 0.01
+_FLOAT_EPSILON = 1e-9
 
 
 def _is_blank(value: Any) -> bool:
@@ -141,12 +143,29 @@ def _normalize_rows(rows: Any) -> list[dict]:
     ]
 
 
+def _pct_group_key(row: dict) -> tuple[int, str] | None:
+    """Ключ смысловой группы процента: база + объект; пустой объект группируется по базе."""
+    base = row.get("База, ₽")
+    if base is None:
+        return None
+    obj = str(row.get("Объект") or "").strip().casefold()
+    return int(base), obj or "__base_only__"
+
+
+def _pct_sum_is_full(total: float) -> bool:
+    return abs(total - 100.0) <= _PCT_TOLERANCE + _FLOAT_EPSILON
+
+
+def _pct_sum_over_limit(total: float) -> bool:
+    return total > 100.0 + _PCT_TOLERANCE + _FLOAT_EPSILON
+
+
 def _recompute_amounts(rows: list[dict], spec_total: int) -> list[dict]:
     """Пересчитать «Сумма, ₽» из «%» и «База, ₽».
 
     Пустая база → ИТОГО. amount = round(% / 100 × база). Строки без процента
-    (share_pct=None) не пересчитываются. В группе строк с одинаковой базой, если
-    Σ% == 100, последняя добирает остаток (Σ группы == база точно).
+    (share_pct=None) не пересчитываются. Если Σ% смысловой группы равна 100
+    в пределах допуска, последняя строка добирает остаток (Σ группы == база).
     """
     rows = [dict(r) for r in rows]
     for r in rows:
@@ -156,12 +175,14 @@ def _recompute_amounts(rows: list[dict], spec_total: int) -> list[dict]:
         if pct is not None:
             r["Сумма, ₽"] = int(round(pct / 100 * r["База, ₽"]))
 
-    groups: dict[int, list[dict]] = {}
+    groups: dict[tuple[int, str], list[dict]] = {}
     for r in rows:
         if r.get("%") is not None:
-            groups.setdefault(r["База, ₽"], []).append(r)
-    for base, grp in groups.items():
-        if round(sum(r["%"] for r in grp)) == 100:
+            key = _pct_group_key(r)
+            if key is not None:
+                groups.setdefault(key, []).append(r)
+    for (base, _), grp in groups.items():
+        if _pct_sum_is_full(sum(r["%"] for r in grp)):
             assigned = sum(r["Сумма, ₽"] for r in grp[:-1])
             grp[-1]["Сумма, ₽"] = int(base) - assigned
     return rows
@@ -176,15 +197,17 @@ def _validate_rows(rows: list[dict], spec_total: int) -> tuple[str | None, list[
     if not rows:
         return None, []
 
-    pct_by_base: dict[int, float] = {}
+    pct_by_group: dict[tuple[int, str], float] = {}
     for r in rows:
         pct = r.get("%")
-        base = r.get("База, ₽")
-        if pct is None or base is None:
+        if pct is None:
             continue
-        pct_by_base[base] = pct_by_base.get(base, 0.0) + pct
+        key = _pct_group_key(r)
+        if key is None:
+            continue
+        pct_by_group[key] = pct_by_group.get(key, 0.0) + pct
     error = None
-    if any(round(total) > 100 for total in pct_by_base.values()):
+    if any(_pct_sum_over_limit(total) for total in pct_by_group.values()):
         error = "Σ процентов по одной базе превышает 100%. Проверьте проценты."
 
     warnings: list[str] = []
@@ -192,7 +215,15 @@ def _validate_rows(rows: list[dict], spec_total: int) -> tuple[str | None, list[
         warnings.append(
             "База строки больше ИТОГО спецификации — возможно, авто-база сломана."
         )
-    missing = spec_total - _rows_amount_total(rows)
+    amount_total = _rows_amount_total(rows)
+    overrun = amount_total - spec_total
+    if overrun > 0:
+        over_text = f"{overrun:,}".replace(",", " ")
+        warnings.append(
+            f"Суммы превышают ИТОГО спецификации на {over_text} ₽. "
+            "Возможно, какой-то платёж распределён сверх общей суммы."
+        )
+    missing = spec_total - amount_total
     if missing > max(len(rows), 1):  # допуск округления ~рубль на строку
         miss_text = f"{missing:,}".replace(",", " ")
         warnings.append(

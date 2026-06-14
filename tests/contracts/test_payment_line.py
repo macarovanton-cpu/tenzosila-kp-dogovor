@@ -393,6 +393,28 @@ def test_bridge_v2_30_40_30():
     assert l1.amount + l2.amount + l3.amount == 1_000_000
 
 
+def test_bridge_v2_preship_zero_is_not_defaulted():
+    """v2 preship=0 сохраняется как 0, а не подменяется дефолтом 40."""
+    spec_items = [_item("vesta-c-60-18", "scales", 1_000_000)]
+    payment = {
+        "preset_id": "v2_prepay_preship_postpay",
+        "days": 5,
+        "v2_prepay": 30,
+        "v2_preship": 0,
+    }
+
+    lines = build_lines_from_snapshot(payment, spec_items)
+
+    assert len(lines) == 2
+    assert [ln.share_pct for ln in lines] == [30.0, 70.0]
+    assert [ln.trigger for ln in lines] == [
+        PaymentTrigger.SPEC_SIGNED,
+        PaymentTrigger.WORK_ACT,
+    ]
+    assert all(ln.trigger != PaymentTrigger.SHIPMENT_READY for ln in lines)
+    assert sum(ln.amount for ln in lines) == 1_000_000
+
+
 def test_bridge_v3_after_installation():
     """v3 after_installation → 1 строка; kind=оплата; trigger=WORK_ACT; due==v3_days; amount==ИТОГО."""
     spec_items = [_item("vesta-c-60-18", "scales", 1_200_000)]
@@ -485,6 +507,48 @@ def test_bridge_prepay_zero_skips_prepay_line():
     assert lines[0].kind == "доплата"
     assert lines[0].trigger == PaymentTrigger.SHIPMENT_READY
     assert all(ln.trigger != PaymentTrigger.SPEC_SIGNED for ln in lines)
+
+
+def test_bridge_split_foundation_prepay_survives_when_scales_prepay_zero():
+    """Предоплата фундамента не теряется, если у весов prepay=0."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 1_000_000),
+        _item("foundation_s_f_18", "foundation", 1_000_000),
+    ]
+    payment = {
+        "preset_id": "split_by_items",
+        "days": 5,
+        "split_state": _split(scales=(0, 100), foundation=(50, 50)),
+    }
+
+    lines = build_lines_from_snapshot(payment, spec_items)
+    l1 = next(ln for ln in lines if ln.trigger == PaymentTrigger.SPEC_SIGNED)
+
+    assert l1.amount == 500_000
+    assert l1.share_pct is None
+    assert l1.share_prep is None
+    assert "фундамента" in l1.share_object
+
+
+def test_bridge_split_delivery_postpay_survives_when_scales_postpay_zero():
+    """Доплата доставки не теряется, если у весов postpay=0."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 1_000_000),
+        _item("delivery_default", "delivery", 200_000),
+    ]
+    payment = {
+        "preset_id": "split_by_items",
+        "days": 5,
+        "split_state": _split(scales=(100, 0), delivery=(0, 100)),
+    }
+
+    lines = build_lines_from_snapshot(payment, spec_items)
+    l3 = next(ln for ln in lines if ln.trigger == PaymentTrigger.SHIPMENT_READY)
+
+    assert l3.amount == 200_000
+    assert l3.share_pct is None
+    assert l3.share_prep is None
+    assert "доставк" in l3.share_object
 
 
 # ---------------------------------------------------------------------------
