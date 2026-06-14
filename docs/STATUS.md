@@ -127,10 +127,10 @@ v2.1 закрыта. Следующие направления (на выбор,
 - [ ] **Разбор находок аудита 2026-06-13** → docs/audit_2026-06-13.md
   4×P1 парсер реквизитов (адрес/телефон/ФИО/КПП-БИК), 5×P2 платежи,
   2×P3 compose/filler. P1 — первый приоритет, Opus-сессия.
-- [ ] P1 clauses: `contractor_supervised` — оплаченное кураторство фундамента даёт 0 обязательств (нет scope в clauses.yaml). См. docs/audit_clauses_2026-06-10.md
-- [ ] P2 clauses: override scope молча игнорируется при наличии item (clauses_context.py:43-49)
-- [ ] P2 clauses: зимний чекбокс не гейтится по foundation_scope (2_Договор.py:594-599)
-- [ ] P2 clauses: ОРИОН-опоры by_contractor при F∉{cf,cwm} — обязательство по опорам выпадает (из аудита Fable, по yaml)
+- [x] P1 clauses: `contractor_supervised` — ЗАКРЫТ (dbf0c06): supplier-клоз + customer-клозы стройки.
+- [x] P2 clauses: override scope молча игнорируется — ЗАКРЫТ (dbf0c06): visible-UI + guard legacy.
+- [x] P2 clauses: зимний чекбокс не гейтится — ЗАКРЫТ (dbf0c06): winter_surcharge_allowed().
+- [ ] P2 clauses: ОРИОН-опоры by_contractor при F∉{cf,cwm} — обязательство по опорам выпадает (отложен в тех-долг ОРИОН)
 
 ---
 
