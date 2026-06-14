@@ -15,7 +15,7 @@ if str(_ROOT) not in sys.path:
 
 from src.contracts.clauses_renderer import build_contract_clauses  # noqa: E402
 from src.contracts.clauses_context import build_clauses_context, winter_surcharge_allowed  # noqa: E402
-from src.contracts.compose import compose_spec_with_attachments  # noqa: E402
+from src.contracts.compose import compose_spec_with_attachments, compose_supply  # noqa: E402
 from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  # noqa: E402
 from src.contracts.filler import (  # noqa: E402
     fill_spec_with_items,
@@ -36,6 +36,7 @@ from src.contracts.from_kp import (  # noqa: E402
 from src.contracts.payment_line import format_payment_line  # noqa: E402
 from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
 from src.contracts.spec_v2_filler import fill_spec_v2  # noqa: E402
+from src.contracts.supply_filler import build_supply_context, decide_contract_type  # noqa: E402
 from src.contracts.state import (  # noqa: E402
     clear_generated,
     collect_for_template,
@@ -449,6 +450,7 @@ if mode == "Из базы (по номеру)":
             st.error(f"Ошибка поиска: {e}")
 
     if kp_row is not None:
+        st.session_state.pop("w_contract_type", None)
         try:
             prices = load_prices()
             models_json = load_models()
@@ -813,6 +815,13 @@ with manual_col2:
         key="w_spec_number",
         on_change=sync_manual_field, args=("spec_number",),
     )
+    st.session_state.setdefault("w_valid_until", _manual.get("valid_until"))
+    st.date_input(
+        "Срок действия договора до",
+        key="w_valid_until",
+        value=_manual.get("valid_until"),
+        on_change=sync_manual_field, args=("valid_until",),
+    )
 
 st.divider()
 
@@ -822,6 +831,31 @@ st.divider()
 
 cs = st.session_state["contract"]
 generated = cs.get("generated")
+
+# --- Автовыбор типа документа ---
+_items_now = get_spec_items()
+_cs_ovr_now = cs.get("scope_overrides", {})
+_auto_deal = {
+    "items": _items_now,
+    "scope_overrides": _cs_ovr_now,
+    "flags": cs.get("flags", {}),
+    "delivery_address": cs.get("manual", {}).get("object_address", ""),
+}
+_clauses_ctx_now = build_clauses_context(_auto_deal)
+_auto_type = decide_contract_type(
+    _clauses_ctx_now.get("installation_scope", "none"),
+    _clauses_ctx_now.get("foundation_scope", "none"),
+    bool(_clauses_ctx_now.get("has_orion", False)),
+)
+_DOC_TYPE_OPTIONS = ["Спецификация", "Поставка"]
+_default_idx = 1 if _auto_type == "supply" else 0
+w_contract_type = st.radio(
+    "Тип документа",
+    _DOC_TYPE_OPTIONS,
+    index=_default_idx,
+    horizontal=True,
+    key="w_contract_type",
+)
 
 if not generated:
     generate_disabled = (
@@ -856,93 +890,130 @@ if not generated:
         contract_path = OUTPUT_DIR / contract_fname
         spec_path = OUTPUT_DIR / spec_fname
 
-        try:
-            fill_template(str(CONTRACT_TEMPLATE), data, str(contract_path))
-            items_for_docx = get_spec_items()
-            if items_for_docx:
-                if edited_df is not None and hasattr(edited_df, "to_dict"):
-                    items_for_docx = _rows_to_items(edited_df, items_for_docx)
-                    for _i in items_for_docx:
-                        _i["total"] = _i["quantity"] * _i["price_per_unit"]
-                _gen_cs = st.session_state["contract"]
-                _gen_deal = {
-                    "items": items_for_docx,
-                    "scope_overrides": _gen_cs.get("scope_overrides", {}),
-                    "flags": _gen_cs.get("flags", {}),
-                    "delivery_address": _gen_cs.get("manual", {}).get("object_address", ""),
-                }
-                _prows = get_payment_lines()
-                if _prows:
-                    from src.ui.payment_lines_editor import _row_to_line
-                    data["_payment_lines"] = [
-                        format_payment_line(_row_to_line(row), f"2.{i + 1}")
-                        for i, row in enumerate(_prows)
-                    ]
-                try:
-                    fill_spec_v2(str(SPEC_V2_TEMPLATE), data, items_for_docx, _gen_deal, str(spec_path))
-                except Exception as exc_v2:
-                    import traceback
-                    from datetime import datetime
-                    _tb_path = Path("docs") / f"v1.0_fillspec_traceback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-                    _tb_path.parent.mkdir(exist_ok=True)
-                    with open(_tb_path, "w", encoding="utf-8") as f:
-                        f.write(f"=== EXCEPTION ===\n{type(exc_v2).__name__}: {exc_v2}\n\n")
-                        f.write(f"=== TRACEBACK ===\n{traceback.format_exc()}\n\n")
-                        f.write(f"=== DATA KEYS ===\n{list(data.keys())}\n\n")
-                        f.write(f"=== ITEMS COUNT ===\n{len(items_for_docx)}\n\n")
-                        f.write("=== DEAL ===\n")
-                        import json
-                        f.write(json.dumps(_gen_deal, ensure_ascii=False, indent=2, default=str))
-                    st.error(f"❌ fill_spec_v2 упал. Traceback: {_tb_path}")
-                    st.code(traceback.format_exc(), language="python")
-                    fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path))
+        # --- Подготовка items и deal (общая для обоих флоу) ---
+        items_for_docx = get_spec_items()
+        if items_for_docx and edited_df is not None and hasattr(edited_df, "to_dict"):
+            items_for_docx = _rows_to_items(edited_df, items_for_docx)
+            for _i in items_for_docx:
+                _i["total"] = _i["quantity"] * _i["price_per_unit"]
+        _gen_cs = st.session_state["contract"]
+        _gen_deal = {
+            "items": items_for_docx,
+            "scope_overrides": _gen_cs.get("scope_overrides", {}),
+            "flags": _gen_cs.get("flags", {}),
+            "delivery_address": _gen_cs.get("manual", {}).get("object_address", ""),
+        }
+        _prows = get_payment_lines()
 
-                attachments = _gen_cs.get("attachments", {})
-                compose_spec_with_attachments(spec_path, attachments, data)
-                clauses_ctx = build_clauses_context(_gen_deal)
-                build_task_missing = (
-                    not attachments.get("build_task_path")
-                    or attachments.get("build_task_source") == "none"
+        if w_contract_type == "Поставка":
+            # ----------------------------------------------------------
+            # Supply-флоу: три docxtpl-шаблона → один DOCX
+            # ----------------------------------------------------------
+            try:
+                supply_fname = f"Договор_поставки_{safe_number}_{safe_name}.docx"
+                supply_path = OUTPUT_DIR / supply_fname
+                supply_ctx = build_supply_context(
+                    data, items_for_docx, _gen_deal, _prows,
+                    _gen_cs.get("manual", {}), contract_date,
                 )
-                if clauses_ctx["foundation_scope"] in ("customer_builds", "contractor_supervised") and build_task_missing:
-                    st.warning(
-                        "В тексте Спецификации есть ссылка на Приложение №1 "
-                        "(строительное задание), но файл не приложен."
+                compose_supply(supply_ctx, supply_path)
+                cs["generated"] = {
+                    "contract_type": "supply",
+                    "supply_bytes": supply_path.read_bytes(),
+                    "supply_filename": supply_fname,
+                }
+                generated = cs["generated"]
+            except Exception as exc:
+                import traceback
+                st.error(f"Ошибка генерации договора поставки: {exc}")
+                st.code(traceback.format_exc(), language="python")
+        else:
+            # ----------------------------------------------------------
+            # Spec-флоу: Договор + Спецификация (без изменений)
+            # ----------------------------------------------------------
+            try:
+                fill_template(str(CONTRACT_TEMPLATE), data, str(contract_path))
+                if items_for_docx:
+                    if _prows:
+                        from src.ui.payment_lines_editor import _row_to_line
+                        data["_payment_lines"] = [
+                            format_payment_line(_row_to_line(row), f"2.{i + 1}")
+                            for i, row in enumerate(_prows)
+                        ]
+                    try:
+                        fill_spec_v2(str(SPEC_V2_TEMPLATE), data, items_for_docx, _gen_deal, str(spec_path))
+                    except Exception as exc_v2:
+                        import traceback
+                        from datetime import datetime
+                        _tb_path = Path("docs") / f"v1.0_fillspec_traceback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                        _tb_path.parent.mkdir(exist_ok=True)
+                        with open(_tb_path, "w", encoding="utf-8") as f:
+                            f.write(f"=== EXCEPTION ===\n{type(exc_v2).__name__}: {exc_v2}\n\n")
+                            f.write(f"=== TRACEBACK ===\n{traceback.format_exc()}\n\n")
+                            f.write(f"=== DATA KEYS ===\n{list(data.keys())}\n\n")
+                            f.write(f"=== ITEMS COUNT ===\n{len(items_for_docx)}\n\n")
+                            f.write("=== DEAL ===\n")
+                            import json
+                            f.write(json.dumps(_gen_deal, ensure_ascii=False, indent=2, default=str))
+                        st.error(f"❌ fill_spec_v2 упал. Traceback: {_tb_path}")
+                        st.code(traceback.format_exc(), language="python")
+                        fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path))
+
+                    attachments = _gen_cs.get("attachments", {})
+                    compose_spec_with_attachments(spec_path, attachments, data)
+                    clauses_ctx = build_clauses_context(_gen_deal)
+                    build_task_missing = (
+                        not attachments.get("build_task_path")
+                        or attachments.get("build_task_source") == "none"
                     )
-            else:
-                fill_template(str(SPEC_TEMPLATE), data, str(spec_path))
+                    if clauses_ctx["foundation_scope"] in ("customer_builds", "contractor_supervised") and build_task_missing:
+                        st.warning(
+                            "В тексте Спецификации есть ссылка на Приложение №1 "
+                            "(строительное задание), но файл не приложен."
+                        )
+                else:
+                    fill_template(str(SPEC_TEMPLATE), data, str(spec_path))
 
-            for label, path in [("Договор", contract_path), ("Спецификация", spec_path)]:
-                unfilled = get_unfilled_placeholders(str(path))
-                if unfilled:
-                    st.warning(f"{label} — не заполнены: {', '.join(unfilled)}")
+                for label, path in [("Договор", contract_path), ("Спецификация", spec_path)]:
+                    unfilled = get_unfilled_placeholders(str(path))
+                    if unfilled:
+                        st.warning(f"{label} — не заполнены: {', '.join(unfilled)}")
 
-            cs["generated"] = {
-                "contract_bytes": contract_path.read_bytes(),
-                "contract_filename": contract_fname,
-                "spec_bytes": spec_path.read_bytes(),
-                "spec_filename": spec_fname,
-            }
-            generated = cs["generated"]
-        except Exception as exc:
-            st.error(f"Ошибка генерации: {exc}")
+                cs["generated"] = {
+                    "contract_type": "spec",
+                    "contract_bytes": contract_path.read_bytes(),
+                    "contract_filename": contract_fname,
+                    "spec_bytes": spec_path.read_bytes(),
+                    "spec_filename": spec_fname,
+                }
+                generated = cs["generated"]
+            except Exception as exc:
+                st.error(f"Ошибка генерации: {exc}")
 
 if generated:
-    dl_col1, dl_col2 = st.columns(2)
-    with dl_col1:
+    if generated.get("contract_type") == "supply":
         st.download_button(
-            f"Скачать {generated['contract_filename']}",
-            data=generated["contract_bytes"],
-            file_name=generated["contract_filename"],
+            f"Скачать {generated['supply_filename']}",
+            data=generated["supply_bytes"],
+            file_name=generated["supply_filename"],
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
-    with dl_col2:
-        st.download_button(
-            f"Скачать {generated['spec_filename']}",
-            data=generated["spec_bytes"],
-            file_name=generated["spec_filename"],
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
+    else:
+        dl_col1, dl_col2 = st.columns(2)
+        with dl_col1:
+            st.download_button(
+                f"Скачать {generated['contract_filename']}",
+                data=generated["contract_bytes"],
+                file_name=generated["contract_filename"],
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        with dl_col2:
+            st.download_button(
+                f"Скачать {generated['spec_filename']}",
+                data=generated["spec_bytes"],
+                file_name=generated["spec_filename"],
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
     st.success("Документы сгенерированы")
     if st.button("Сгенерировать заново"):
         clear_generated()

@@ -13,6 +13,7 @@ _CONTRACT_DEFAULTS: dict[str, Any] = {
         "contract_date": None,
         "object_address": "",
         "spec_number": "1",
+        "valid_until": None,
     },
     "uploads": {
         "kp": None,
