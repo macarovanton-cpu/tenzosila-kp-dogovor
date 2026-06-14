@@ -58,14 +58,19 @@ def _make_foundation_install_deal() -> dict:
 
 
 class TestClauseCount:
-    def test_montazh_7_clauses(self):
+    def test_montazh_9_clauses(self):
+        """Монтаж без позиции фундамента → 9 клозов.
+        Дефолт customer_builds (монтаж есть) добавляет 2 customer-клоза стройки фундамента.
+        """
         from src.contracts.clauses_renderer import build_contract_clauses
         result = build_contract_clauses(_make_montazh_deal())
         all_ids = [c.id for section_clauses in result.values() for c in section_clauses]
-        assert len(all_ids) == 7
+        assert len(all_ids) == 9
         expected_ids = {
             "supplier_prepares_docs",
             "customer_unable_to_accept_team_delays_work",
+            "customer_builds_foundation_per_spec",
+            "customer_provides_foundation_photos",
             "customer_provides_scales_near_install_site",
             "customer_provides_crane",
             "customer_provides_test_vehicle",

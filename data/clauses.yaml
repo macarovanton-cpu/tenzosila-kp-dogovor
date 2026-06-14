@@ -4,6 +4,7 @@
 # DSL applies_when — Python-выражения, доступны:
 #   foundation_scope:    "none" | "customer_builds" | "contractor_full"
 #                      | "contractor_with_materials" | "rama"
+#                      | "contractor_supervised" | "existing_foundation"
 #   installation_scope:  "none" | "full" | "shefmontazh"
 #   verification_scope:  "none" | "supplier" | "customer"
 #   has_orion:           bool
@@ -45,6 +46,13 @@ clauses:
     applies_when: 'verification_scope == "supplier"'
     text: |
       Подрядчик обеспечивает подготовку комплекта документации, в т.ч. Паспорта/РЭ на Весы к моменту проведения поверки Весов.
+
+  - id: supplier_supervises_foundation_construction
+    section: obligations_supplier
+    order: 15
+    applies_when: 'foundation_scope == "contractor_supervised"'
+    text: |
+      Подрядчик направляет специалиста строительной бригады для выполнения работ по курированию строительства фундамента Весов (Приложение №1 к настоящей Спецификации) в течение 15 (пятнадцати) рабочих дней с момента поступления предоплаты в соответствии с п.2.1 настоящей Спецификации, по предварительному письменному согласованию Сторон.
 
   - id: supplier_dispatches_construction_team
     section: obligations_supplier
@@ -95,14 +103,14 @@ clauses:
   - id: customer_builds_foundation_per_spec
     section: obligations_customer
     order: 10
-    applies_when: 'foundation_scope == "customer_builds"'
+    applies_when: 'foundation_scope in ("customer_builds", "contractor_supervised")'
     text: |
       Заказчик обязуется изготовить фундамент своими силами по строительному заданию Подрядчика (Приложение №1 к настоящей Спецификации) в течение {{ foundation_term_days_by_customer }} рабочих дней с момента подписания настоящей Спецификации.
 
   - id: customer_provides_foundation_photos
     section: obligations_customer
     order: 20
-    applies_when: 'foundation_scope == "customer_builds"'
+    applies_when: 'foundation_scope in ("customer_builds", "contractor_supervised")'
     text: |
       Заказчик предоставляет Подрядчику согласно контрольному листу (Приложение №2 к настоящей Спецификации) фотографии фундамента с разных ракурсов (общий вид, вид на закладные, вид на пандусы) и фактические размеры (в миллиметрах) готового фундамента (расстояния между закладными по двум осям, абсолютные высотные отметки каждой закладной, уголков (по нивелиру)) в соответствии с размерами, указанными в Строительном задании на фундамент Весов. В случае обнаружения Подрядчиком несоответствий фактических размеров фундамента со строительным заданием, Заказчик самостоятельно устраняет замечания и высылает новые данные Подрядчику. Выезд на монтаж Весов производится только после согласования фундамента Весов с Подрядчиком, при наличии замечаний к фундаменту сроки монтажа откладываются до устранения замечаний.
 
@@ -235,6 +243,13 @@ clauses:
   # ============================================================
   # ОСОБЫЕ УСЛОВИЯ
   # ============================================================
+
+  - id: scales_for_existing_foundation
+    section: special_conditions
+    order: 5
+    applies_when: 'foundation_scope == "existing_foundation"'
+    text: |
+      Весы изготавливаются под существующий фундамент Заказчика. Размеры фундамента согласованы Сторонами до начала производства Весов. Обязательства по устройству фундамента у Сторон не возникают.
 
   - id: additional_work_during_construction
     section: special_conditions

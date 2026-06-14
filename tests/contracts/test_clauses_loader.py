@@ -6,7 +6,7 @@ CLAUSES_PATH = Path("data/clauses.yaml")
 
 
 class TestSuccessfulLoad:
-    def test_loads_29_clauses(self):
+    def test_loads_31_clauses(self):
         from src.contracts.clauses_loader import load_clauses
         lib = load_clauses(CLAUSES_PATH)
         all_clauses = [
@@ -14,7 +14,8 @@ class TestSuccessfulLoad:
             for s in lib.get_sections()
             for c in lib.get_clauses_for_section(s.id)
         ]
-        assert len(all_clauses) == 29
+        # 29 изначальных + supplier_supervises_foundation_construction + scales_for_existing_foundation
+        assert len(all_clauses) == 31
 
     def test_four_sections_with_numbers(self):
         from src.contracts.clauses_loader import load_clauses
@@ -52,9 +53,11 @@ class TestSuccessfulLoad:
         from src.contracts.clauses_loader import load_clauses
         lib = load_clauses(CLAUSES_PATH)
         supplier = lib.get_clauses_for_section("obligations_supplier")
-        assert len(supplier) == 6
+        # 6 изначальных + supplier_supervises_foundation_construction
+        assert len(supplier) == 7
         ids = [c.id for c in supplier]
         assert "supplier_prepares_docs" in ids
+        assert "supplier_supervises_foundation_construction" in ids
         assert "winter_foundation_surcharge" in ids
 
     def test_clause_order_field_present(self):

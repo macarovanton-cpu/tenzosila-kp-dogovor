@@ -132,6 +132,10 @@ class TestRealClausesYaml:
         'winter_surcharge == true',
         'winter_surcharge == true and foundation_scope in ("contractor_full", "contractor_with_materials")',
         'true',
+        # Новые выражения из редизайна scope (docs/scope_redesign_2026-06-13.md)
+        'foundation_scope in ("customer_builds", "contractor_supervised")',
+        'foundation_scope == "contractor_supervised"',
+        'foundation_scope == "existing_foundation"',
     ]
 
     def test_all_real_exprs_parse(self):

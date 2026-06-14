@@ -14,7 +14,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from src.contracts.clauses_renderer import build_contract_clauses  # noqa: E402
-from src.contracts.clauses_context import build_clauses_context  # noqa: E402
+from src.contracts.clauses_context import build_clauses_context, winter_surcharge_allowed  # noqa: E402
 from src.contracts.compose import compose_spec_with_attachments  # noqa: E402
 from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  # noqa: E402
 from src.contracts.filler import (  # noqa: E402
@@ -150,17 +150,24 @@ _SECTION_LABELS: dict[str, str] = {
     "final": "Заключительные положения",
 }
 
-_FOUND_OPTS = [
-    "Авто (из позиций)", "Заказчик строит", "Подрядчик строит",
-    "Подрядчик с материалами Заказчика", "Рама", "Без фундамента",
-]
-_FOUND_MAP: dict[str, str | None] = {
-    "Авто (из позиций)": None, "Заказчик строит": "customer_builds",
-    "Подрядчик строит": "contractor_full",
-    "Подрядчик с материалами Заказчика": "contractor_with_materials",
-    "Рама": "rama", "Без фундамента": "none",
+# Читаемые метки scope для caption в режиме авто-определения из позиций
+_FOUND_LABELS: dict[str, str] = {
+    "contractor_full": "Подрядчик строит фундамент",
+    "contractor_with_materials": "Подрядчик строит (материалы Заказчика)",
+    "contractor_supervised": "Курирование строительства Подрядчиком",
+    "rama": "Основание под раму",
+    "customer_builds": "Заказчик строит фундамент",
+    "existing_foundation": "Готовый фундамент Заказчика",
+    "none": "Нет обязательств по фундаменту",
 }
-_FOUND_RMAP = {v: k for k, v in _FOUND_MAP.items()}
+
+# Видимый выбор менеджера — только в случае 4 (нет позиции фундамента + есть монтаж)
+_FOUND_MANUAL_OPTS = ["Заказчик строит фундамент", "Готовый фундамент Заказчика"]
+_FOUND_MANUAL_MAP: dict[str, str | None] = {
+    "Заказчик строит фундамент": None,          # дефолт customer_builds из else-ветки
+    "Готовый фундамент Заказчика": "existing_foundation",
+}
+_FOUND_MANUAL_RMAP = {v: k for k, v in _FOUND_MANUAL_MAP.items()}
 
 _INST_OPTS = ["Авто (из позиций)", "Полный монтаж", "Шеф-монтаж", "Без монтажа"]
 _INST_MAP: dict[str, str | None] = {
@@ -582,43 +589,97 @@ st.divider()
 if is_extracted():
 
     # ------------------------------------------------------------------
-    # Секция 2.5 — Особые условия (override-флаги + clauses preview)
+    # Секция 2.5 — Особые условия (foundation + зимний + overrides)
     # ------------------------------------------------------------------
     _cs_flags = st.session_state["contract"]["flags"]
     _cs_ovr = st.session_state["contract"]["scope_overrides"]
 
     st.subheader("Особые условия")
+
+    # Вычислить предварительный контекст, чтобы понять что есть в позициях
+    _spec_items_0 = get_spec_items()
+    _ctx0 = build_clauses_context({
+        "items": _spec_items_0,
+        "scope_overrides": _cs_ovr,
+        "flags": _cs_flags,
+    })
+    _install_present = _ctx0["installation_scope"] != "none"
+    _has_found_item = any(it.get("id") in ("foundation", "rama") for it in _spec_items_0)
+
+    # --- Контроль основания ---
+    st.markdown("**Основание под весы**")
+    if _has_found_item:
+        # Случаи 1–3: scope определён из позиции КП — показываем read-only метку
+        _auto_label = _FOUND_LABELS.get(_ctx0["foundation_scope"], _ctx0["foundation_scope"])
+        st.caption(f"Определено из позиций КП: {_auto_label}")
+        # Guard: legacy-снапшот мог записать conflicting override
+        _leg_ovr = _cs_ovr.get("foundation_scope")
+        if _leg_ovr in ("customer_builds", "existing_foundation"):
+            st.warning(
+                f"⚠️ В снапшоте КП сохранён override «{_FOUND_LABELS.get(_leg_ovr, _leg_ovr)}», "
+                "но в позициях есть фундамент/рама — позиция приоритетнее. "
+                "Override проигнорирован."
+            )
+    elif _install_present:
+        # Случай 4: нет позиции фундамента, но есть монтаж — менеджер выбирает
+        _cur_f_manual = _cs_ovr.get("foundation_scope")
+        _cur_f_label = _FOUND_MANUAL_RMAP.get(_cur_f_manual, "Заказчик строит фундамент")
+        st.session_state.setdefault("w_foundation_scope_manual", _cur_f_label)
+        _sel_f_manual = st.selectbox(
+            "Тип основания",
+            _FOUND_MANUAL_OPTS,
+            key="w_foundation_scope_manual",
+            help=(
+                "«Заказчик строит»: заказчик строит фундамент по Строительному заданию (Приложение №1). "
+                "«Готовый фундамент»: весы под существующий фундамент заказчика, без обязательств по стройке."
+            ),
+        )
+        _cs_ovr["foundation_scope"] = _FOUND_MANUAL_MAP[_sel_f_manual]
+    else:
+        # Чистая поставка без монтажа — нет обязательств по фундаменту
+        st.caption("Поставка без монтажа — обязательства по фундаменту не формируются.")
+        # Сбросить stale foundation override чтобы не влиял на контекст
+        _cs_ovr["foundation_scope"] = None
+
+    # Вычислить итоговый scope после применения выбора
+    _found_scope_final = build_clauses_context({
+        "items": _spec_items_0,
+        "scope_overrides": _cs_ovr,
+        "flags": _cs_flags,
+    })["foundation_scope"]
+
+    # --- Зимний период — только если Подрядчик льёт бетон ---
     _cs_flags.setdefault("winter_surcharge", bool(_cs_flags.get("winter_concrete", False)))
     _cs_flags.setdefault("winter_surcharge_amount", 200000)
-    st.session_state.setdefault("w_winter_surcharge", _cs_flags.get("winter_surcharge", False))
-    _winter_val = st.checkbox(
-        "Зимний период (бетонные работы при +5 °C и ниже)",
-        key="w_winter_surcharge",
-    )
-    _cs_flags["winter_surcharge"] = _winter_val
-    _cs_flags["winter_concrete"] = _winter_val
-    if _winter_val:
-        st.session_state.setdefault(
-            "w_winter_surcharge_amount",
-            int(_cs_flags.get("winter_surcharge_amount") or 200000),
+    if winter_surcharge_allowed(_found_scope_final):
+        st.session_state.setdefault("w_winter_surcharge", _cs_flags.get("winter_surcharge", False))
+        _winter_val = st.checkbox(
+            "Зимний период (бетонные работы при +5 °C и ниже)",
+            key="w_winter_surcharge",
         )
-        _cs_flags["winter_surcharge_amount"] = int(st.number_input(
-            "Сумма зимнего удорожания, руб.",
-            min_value=0,
-            step=1000,
-            key="w_winter_surcharge_amount",
-        ))
+        _cs_flags["winter_surcharge"] = _winter_val
+        _cs_flags["winter_concrete"] = _winter_val
+        if _winter_val:
+            st.session_state.setdefault(
+                "w_winter_surcharge_amount",
+                int(_cs_flags.get("winter_surcharge_amount") or 200000),
+            )
+            _cs_flags["winter_surcharge_amount"] = int(st.number_input(
+                "Сумма зимнего удорожания, руб.",
+                min_value=0,
+                step=1000,
+                key="w_winter_surcharge_amount",
+            ))
+    else:
+        # Скрыт — сбрасываем залипшие флаги чтобы не попали в договор
+        _cs_flags["winter_surcharge"] = False
+        _cs_flags["winter_concrete"] = False
 
     with st.expander("Override-флаги (для нестандартных случаев)", expanded=False):
         st.caption(
-            "По умолчанию scope вычисляется из позиций спецификации. "
+            "По умолчанию scope монтажа, поверки и ОРИОН вычисляется из позиций КП. "
             "Здесь можно вручную переопределить."
         )
-        _cur_f = _cs_ovr.get("foundation_scope")
-        st.session_state.setdefault("w_foundation_scope", _FOUND_RMAP.get(_cur_f, "Авто (из позиций)"))
-        _sel_f = st.selectbox("Тип фундамента", _FOUND_OPTS, key="w_foundation_scope")
-        _cs_ovr["foundation_scope"] = _FOUND_MAP[_sel_f]
-
         _cur_i = _cs_ovr.get("installation_scope")
         st.session_state.setdefault("w_installation_scope", _INST_RMAP.get(_cur_i, "Авто (из позиций)"))
         _sel_i = st.selectbox("Тип монтажа", _INST_OPTS, key="w_installation_scope")
@@ -629,8 +690,7 @@ if is_extracted():
         _sel_v = st.selectbox("Поверку организует", _VERIF_OPTS, key="w_verification_scope")
         _cs_ovr["verification_scope"] = _VERIF_MAP[_sel_v]
 
-        _items_check = get_spec_items()
-        _has_orion = any(item.get("id") == "orion" for item in _items_check)
+        _has_orion = any(item.get("id") == "orion" for item in _spec_items_0)
         if _has_orion:
             _cur_o = _cs_ovr.get("orion_poles_scope")
             st.session_state.setdefault("w_orion_poles_scope", _ORION_RMAP.get(_cur_o, "Авто (из позиций)"))
@@ -844,7 +904,7 @@ if not generated:
                     not attachments.get("build_task_path")
                     or attachments.get("build_task_source") == "none"
                 )
-                if clauses_ctx["foundation_scope"] == "customer_builds" and build_task_missing:
+                if clauses_ctx["foundation_scope"] in ("customer_builds", "contractor_supervised") and build_task_missing:
                     st.warning(
                         "В тексте Спецификации есть ссылка на Приложение №1 "
                         "(строительное задание), но файл не приложен."

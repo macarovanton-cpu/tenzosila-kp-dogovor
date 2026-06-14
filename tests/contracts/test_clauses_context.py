@@ -27,7 +27,9 @@ class TestNineScenarios:
         assert ctx["winter_concrete"] is False
 
     def test_2_montazh(self):
-        """Монтаж: full монтаж + поверка подрядчиком."""
+        """Монтаж: full монтаж + поверка подрядчиком, нет позиции фундамента.
+        Дефолт foundation_scope = customer_builds (монтаж есть → заказчик строит).
+        """
         from src.contracts.clauses_context import build_clauses_context
         deal = {"items": [
             _item("weights"),
@@ -37,7 +39,7 @@ class TestNineScenarios:
         ctx = build_clauses_context(deal)
         assert ctx["installation_scope"] == "full"
         assert ctx["verification_scope"] == "supplier"
-        assert ctx["foundation_scope"] == "none"
+        assert ctx["foundation_scope"] == "customer_builds"
         assert ctx["has_orion"] is False
 
     def test_3_montazh_orion(self):

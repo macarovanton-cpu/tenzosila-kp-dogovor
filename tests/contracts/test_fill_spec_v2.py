@@ -181,7 +181,9 @@ class TestFillSpecV2CellContent:
 
 
 class TestFillSpecV2Medium:
-    """Средний кейс: монтаж → секции 4, 5, 7 (7 пунктов)."""
+    """Средний кейс: монтаж без позиции фундамента → дефолт customer_builds.
+    Секции 4, 5, 7 (9 пунктов: +2 customer_builds-клоза по стройке фундамента).
+    """
 
     def _make_deal(self):
         items = [
@@ -206,9 +208,10 @@ class TestFillSpecV2Medium:
         all_text = _all_text(doc)
 
         _assert_no_clause_headers(all_text)
-        assert _flat_clause_numbers(doc) == list(range(4, 11))
+        assert _flat_clause_numbers(doc) == list(range(4, 13))
 
-    def test_seven_clause_numbers(self, tmp_path):
+    def test_nine_clause_numbers(self, tmp_path):
+        """Монтаж без позиции фундамента → 9 клозов (дефолт customer_builds)."""
         deal, items = self._make_deal()
         output = str(tmp_path / "spec_v2_med_cnt.docx")
 
@@ -217,7 +220,7 @@ class TestFillSpecV2Medium:
         doc = Document(output)
         all_text = _all_text(doc)
 
-        assert _flat_clause_numbers(doc) == list(range(4, 11))
+        assert _flat_clause_numbers(doc) == list(range(4, 13))
         assert "4.1." not in all_text
 
     def test_delivery_address_substituted(self, tmp_path):
