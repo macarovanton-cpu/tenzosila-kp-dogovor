@@ -41,11 +41,21 @@ class PaymentLine:
     base_amount:  int | None = field(default=None)
 
 
-def format_payment_line(line: PaymentLine, index: int) -> str:
+def format_payment_line(
+    line: PaymentLine,
+    index: int,
+    trigger_texts: dict | None = None,
+) -> str:
+    """Форматировать строку оплаты.
+
+    trigger_texts — опциональный словарь текстов триггеров (например,
+    SUPPLY_TRIGGER_TEXTS из supply_filler.py). Дефолт — TRIGGER_TEXTS.
+    Spec-флоу вызывает без этого аргумента → поведение не меняется.
+    """
     amount_fmt  = "{:,}".format(line.amount).replace(",", chr(32))
     words       = number_to_words(line.amount).strip()
     due_words   = days_genitive(line.due)
-    trigger_txt = TRIGGER_TEXTS[line.trigger]
+    trigger_txt = (trigger_texts or TRIGGER_TEXTS)[line.trigger]
     kind_cap    = line.kind.capitalize()
 
     if line.share_pct is not None:
@@ -104,7 +114,8 @@ def _non_split_phases(
 
     if preset_id == "v2_prepay_preship_postpay":
         prepay  = int(payment.get("v2_prepay")  or 30)
-        preship = int(payment.get("v2_preship") or 40)
+        v2_preship = payment.get("v2_preship")
+        preship = 40 if v2_preship is None else int(v2_preship)
         postpay = 100 - prepay - preship
         return [
             ("предоплата", prepay,   PaymentTrigger.SPEC_SIGNED),
@@ -265,7 +276,7 @@ def build_lines_from_snapshot(
         base_l1 += foundation_total
         if f_prepay != s_prepay:
             share_pct_l1 = None
-    if s_prepay != 0 and amt != 0:
+    if amt != 0:
         lines.append(PaymentLine(
             "предоплата", share_pct_l1,
             "от стоимости" if share_pct_l1 is not None else None,
@@ -297,7 +308,7 @@ def build_lines_from_snapshot(
         base_l3 += delivery_total
         if d_post != s_post:
             share_pct_l3 = None
-    if s_post != 0 and amt != 0:
+    if amt != 0:
         lines.append(PaymentLine(
             "доплата", share_pct_l3,
             "от стоимости" if share_pct_l3 is not None else None,
