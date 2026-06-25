@@ -95,6 +95,22 @@ pytest tests/ -v
 
 Не нужен: косметика, документация, правки одного файла.
 
+### Запуск codex review
+
+Прямой `codex review` ЗАВИСАЕТ: codex авто-стартует MCP-сервер codegraph и виснет
+на codegraph_status. Рабочий обход — отключить codegraph через `-c`:
+
+```
+codex review --commit <SHA> --title "<краткое описание>" -c 'mcp_servers.codegraph.enabled=false'
+```
+
+- `-c 'mcp_servers={}'` НЕ помогает — codex мёржит конфиг, а не затирает. Нужен
+  именно точечный ключ `mcp_servers.codegraph.enabled=false`.
+- `<SHA>` — хеш коммита (`git log --oneline -1` = последний).
+- Запускать в корне репозитория, ДО `git push`.
+- Альтернатива (разово): отключить codegraph MCP в настройках Codex-приложения —
+  тогда `-c` не нужен, но настройка глобальная для всех проектов.
+
 ## Не делать без согласования
 Битрикс-интеграцию, ORM, сложные валидации ФИО/email (MVP — хватает непустоты), переписывание JSON в data/, правки в knowledge_base/.
 
