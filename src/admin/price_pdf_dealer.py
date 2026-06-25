@@ -112,7 +112,9 @@ def _emit_group(group: list[tuple], items: list[PriceItem]) -> None:
         return
 
     for lbl, ton, length, width, retail, dealer, disc in group:
-        if width == 3:  # из пары 3х/4х берём только 4х
+        # Вариант опор 3х выведен из продаж с 2026 г.; берём только 4х.
+        # Игнор явный — не зависит от порядка строк в PDF (доменное решение).
+        if width == 3:
             continue
         items.append(_item(
             "model", f"vesta-{letter}-{ton}-{length}", f"{label} {ton}т-{length}м",

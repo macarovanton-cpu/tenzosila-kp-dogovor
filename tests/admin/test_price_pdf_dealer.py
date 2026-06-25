@@ -92,6 +92,22 @@ def test_options_match_prices_json(items, prices):
         assert item.price_class == po[key]["price_class"], key
 
 
+def test_no_3x_variants(items):
+    """3х выведен из продаж с 2026; парсер должен явно пропускать эти строки.
+
+    Проверяем через список items (до dict-свёртки):
+    - нет дублирующихся ключей моделей (значит 3х-строки не попали в items);
+    - vesta-сл-60-20 имеет цены 4х, а не 3х.
+    """
+    model_items = [i for i in items if i.item_type == "model"]
+    keys = [i.key for i in model_items]
+    assert len(keys) == len(set(keys)), "дублирующиеся ключи — 3х-строки попали в результат"
+
+    models = _models(items)
+    assert models["vesta-сл-60-20"].price_retail == 2_078_323
+    assert models["vesta-сл-60-20"].price_dealer_ru == 1_912_057
+
+
 def test_sb_line_excluded(items):
     assert not any("-сб-" in i.key for i in items)
 
