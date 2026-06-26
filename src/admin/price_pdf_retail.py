@@ -118,7 +118,7 @@ def _match_p3(label: str) -> tuple | None:
     if "резин" in low:
         return ("single", "rubber_t_6m", "A_retail_and_dealer", False)
     if "калибровк" in low:
-        return ("single", "factory_calibration", "A_retail_and_dealer", False)
+        return ("single", "factory_calibration", "B_retail_only", False)
     if "бетонн" in low and "основан" in low:
         return ("single", "concrete_base_on_frame", "B_retail_only", False)
     if "курирован" in low:

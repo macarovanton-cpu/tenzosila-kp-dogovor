@@ -88,6 +88,13 @@ def test_no_dealer_prices(items):
     assert all(i.price_dealer_ru is None for i in items)
 
 
+def test_service_price_classes(items):
+    """Услуги без дилерской цены в PDF → B_retail_only, не A."""
+    d = _by_key(items)
+    assert d["factory_calibration"].price_class == "B_retail_only"
+    assert d["factory_calibration"].price_dealer_ru is None
+
+
 # ── тесты неполноты (мок-страницы) ──────────────────────────────────────────
 
 def test_orion_partial_no_shef_is_on_request():
