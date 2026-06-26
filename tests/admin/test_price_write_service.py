@@ -122,35 +122,56 @@ def test_three_way_merge_overwrites_pdf_keeps_json_only(tmp_path: Path) -> None:
     assert "source" not in written["options"]["ramp_set_f_s"]
 
 
-def test_pdf_covered_entry_keeps_current_metadata(tmp_path: Path) -> None:
-    """PDF-снимок обновляет цену covered-ключа, но не теряет его метаданные.
-
-    Парсеры не выдают notes/dealer_note/components — они должны сохраниться из
-    текущего прайса (raw_payload PDF-позиции их не содержит).
-    """
+def _orion_current() -> dict[str, Any]:
+    """Текущий прайс с агрегатной covered-опцией ОРИОН (components = разбивка)."""
     current = _fake_current()
     current["options"]["orion_standard"] = {
         "label": "ПАК ОРИОН Стандарт", "applies_to_lines": ["Ф"], "applies_to_lengths": [18],
-        "price_retail": 299900, "price_dealer_ru": 275908, "discount_pct": 8,
+        "price_retail": 464900, "price_dealer_ru": 427708, "discount_pct": 8,
         "price_class": "A_retail_and_dealer",
         "notes": "цена справочная", "dealer_note": "individual_calc",
-        "components": [{"name": "оборудование"}, {"name": "шеф-монтаж"}],
+        "components": {"equipment": 299900, "shef_montazh": 165000},
     }
+    return current
+
+
+def test_pdf_covered_entry_keeps_metadata_and_components_if_total_unchanged(
+    tmp_path: Path,
+) -> None:
+    """Итог не изменился → notes/dealer_note/components сохранены вербатим."""
+    current = _orion_current()
     prices_path = _write_current(tmp_path, current)
 
-    # PDF-позиция с новой ценой и БЕЗ метаданных (как реальный парсер).
-    pdf_item = _pdf_option("orion_standard", retail=310000, dealer=285200)
+    # PDF-позиция: тот же розничный итог, без метаданных (как реальный парсер).
+    pdf_item = _pdf_option("orion_standard", retail=464900, dealer=420000)
     write_prices([pdf_item], prices_path=prices_path,
                  backup_path=tmp_path / "prices.backup.json", clear_cache=False)
     written = json.loads(prices_path.read_text(encoding="utf-8"))["options"]["orion_standard"]
 
-    # Цена обновлена из снимка.
-    assert written["price_retail"] == 310000
-    # Метаданные сохранены вербатим.
+    assert written["price_retail"] == 464900
     assert written["notes"] == "цена справочная"
     assert written["dealer_note"] == "individual_calc"
     assert written["components"] == current["options"]["orion_standard"]["components"]
     assert "source" not in written
+
+
+def test_pdf_covered_entry_drops_components_if_total_changed(tmp_path: Path) -> None:
+    """Итог изменился → components ОТСУТСТВУЕТ; статичные метаданные сохранены."""
+    current = _orion_current()
+    prices_path = _write_current(tmp_path, current)
+
+    # PDF-позиция: новый розничный итог.
+    pdf_item = _pdf_option("orion_standard", retail=500000, dealer=460000)
+    write_prices([pdf_item], prices_path=prices_path,
+                 backup_path=tmp_path / "prices.backup.json", clear_cache=False)
+    written = json.loads(prices_path.read_text(encoding="utf-8"))["options"]["orion_standard"]
+
+    assert written["price_retail"] == 500000
+    # Разбивка устарела (итог ≠ сумме) → поле не включено (именно отсутствие).
+    assert "components" not in written
+    # Статичные метаданные не зависят от цены — сохранены.
+    assert written["notes"] == "цена справочная"
+    assert written["dealer_note"] == "individual_calc"
 
 
 # ──────────────────── 2. backup + валидный json ────────────────────

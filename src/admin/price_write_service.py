@@ -148,7 +148,16 @@ def _serialize_item(
     _preserve_extras(entry, item.raw_payload, canonical, skip={"source"})
     # Extra-поля из текущей записи (метаданные, которых нет в выводе парсеров).
     if current_entry:
-        _preserve_extras(entry, current_entry, canonical, skip=set())
+        skip_current: set[str] = set()
+        # components — ценозависимая разбивка (сумма = price_retail). Сохраняем только
+        # при НЕизменном итоге (точное сравнение розничной цены, без допуска ±1).
+        # Если итог изменился — поле не включаем (иначе итог ≠ сумме компонент).
+        if (
+            "components" in current_entry
+            and item.price_retail != current_entry.get("price_retail")
+        ):
+            skip_current.add("components")
+        _preserve_extras(entry, current_entry, canonical, skip=skip_current)
 
     return section, item.key, entry
 
