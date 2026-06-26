@@ -113,7 +113,9 @@ def _match_p3(label: str) -> tuple | None:
     if "шеф-монтаж" in low:
         return ("single", "shef_montazh_s_f", "B_retail_only", True)
     if "монтаж" in low and ("веста" in low or "секц" in low):
-        return ("single", "install_default", "C_manual_range", False)
+        # install_default — C_manual_range, range из prices.json (вручную);
+        # 175К в PDF информативны, merge возьмёт ключ из prices.json
+        return None
     if "горыныч" in low or "подогрев" in low:
         return ("single", "heating_gorynych", "B_retail_only", True)
     return None

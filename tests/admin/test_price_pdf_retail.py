@@ -56,7 +56,8 @@ def test_key_deltas(items, prices):
 
     not_scope = (
         _SUMMARY_ORION
-        | {"bytovka_weigh_room", "delivery_default", "verification_default"}
+        | {"bytovka_weigh_room", "delivery_default", "verification_default",
+           "install_default"}  # C_manual_range — range/price задаются вручную в JSON
         | {k for k in prices["options"] if k.endswith("_22")}
         | {k for k in prices["options"] if k.startswith("road_slabs_")}
         | {k for k in prices["options"] if k.startswith("pag_slabs_")}
