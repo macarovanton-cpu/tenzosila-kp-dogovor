@@ -30,6 +30,21 @@ _P3_LENGTHS = (18, 20, 24)
 
 _CANOPY_LEN_RE = re.compile(r"ВЕСТА[-–](\d+)\s*м", re.IGNORECASE)
 
+# Обязательные компоненты turnkey-навеса. Порядок важен для _canopy_component:
+# «фундамент» проверяется до «навес», т.к. «Фундамент под навес» содержит оба слова.
+_CANOPY_REQUIRED = frozenset({"навес", "фундамент", "монтаж"})
+
+
+def _canopy_component(label: str) -> str | None:
+    low = label.lower()
+    if "фундамент" in low:
+        return "фундамент"
+    if "монтаж" in low:
+        return "монтаж"
+    if "навес" in low:
+        return "навес"
+    return None
+
 
 def parse_retail_pdf(pdf_path: str | Path) -> list[PriceItem]:
     """Розничный PDF → список опций, услуг, навесов и компонентов ОРИОН."""
@@ -174,6 +189,7 @@ def _parse_page19(page) -> list[PriceItem]:
         return []
     totals: dict[int, int] = {}
     on_request_lengths: set[int] = set()
+    seen_priced: dict[int, set[str]] = {}  # компоненты с числовой ценой
     for row in tables[0][1:]:  # пропустить заголовок
         label = _norm(row[0]) if row[0] else ""
         price_cell = _norm(row[2]) if len(row) > 2 and row[2] else ""
@@ -191,6 +207,13 @@ def _parse_page19(page) -> list[PriceItem]:
         price = _to_int(price_cell)
         if price is not None:
             totals[length] = totals.get(length, 0) + price
+            comp = _canopy_component(label)
+            if comp:
+                seen_priced.setdefault(length, set()).add(comp)
+    # Длины без полного набора числовых компонентов → on_request
+    for length in set(totals):
+        if not _CANOPY_REQUIRED.issubset(seen_priced.get(length, set())):
+            on_request_lengths.add(length)
     items: list[PriceItem] = []
     for length in sorted(set(totals) | on_request_lengths):
         if length in on_request_lengths:

@@ -106,6 +106,24 @@ def test_orion_partial_no_shef_is_on_request():
     assert items[0].price_retail is None
 
 
+def test_canopy_missing_row_is_on_request():
+    """Если строка обязательного компонента вообще отсутствует — canopy_turnkey: on_request=True."""
+    page = MagicMock()
+    page.extract_tables.return_value = [
+        [
+            ["Заголовок", "", ""],
+            ["Навес ВЕСТА-22м", "", "3 200 000"],
+            # строки фундамента нет совсем
+            ["Монтаж ВЕСТА-22м", "", "1 700 000"],
+        ]
+    ]
+    items = _parse_page19(page)
+    assert len(items) == 1
+    assert items[0].key == "canopy_turnkey_22"
+    assert items[0].on_request is True
+    assert items[0].price_retail is None
+
+
 def test_canopy_partial_on_request_if_component_missing():
     """Если один обязательный компонент «По запросу» — canopy_turnkey: on_request=True."""
     page = MagicMock()
