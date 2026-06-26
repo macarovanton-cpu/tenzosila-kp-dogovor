@@ -105,10 +105,14 @@ def build_merged_prices(
         "options": {},
     }
 
-    # 1. PDF-снимок: сериализуем и перезаписываем свои ключи.
+    # 1. PDF-снимок: сериализуем и перезаписываем свои ключи. Метаданные текущей
+    #    записи (notes/dealer_note/components), которых нет в выводе парсеров,
+    #    сохраняем — обновляются только ценовые поля.
     covered: dict[str, set[str]] = {"models": set(), "options": set()}
     for item in merge_result:
-        section, key, entry = _serialize_item(item)
+        section = "models" if item.item_type == "model" else "options"
+        current_entry = current.get(section, {}).get(item.key)
+        _, key, entry = _serialize_item(item, current_entry)
         result[section][key] = entry
         covered[section].add(key)
 
@@ -121,8 +125,16 @@ def build_merged_prices(
     return result
 
 
-def _serialize_item(item: PriceItem) -> tuple[str, str, dict[str, Any]]:
-    """PriceItem → (section, key, entry схемы prices.json) для PDF-позиций."""
+def _serialize_item(
+    item: PriceItem,
+    current_entry: dict[str, Any] | None = None,
+) -> tuple[str, str, dict[str, Any]]:
+    """PriceItem → (section, key, entry схемы prices.json) для PDF-позиций.
+
+    Ценовые (канонические) поля берутся из PriceItem. Не-ценовые метаданные схемы
+    (notes/dealer_note/components/data_incomplete) сохраняются: сначала из raw_payload
+    парсера, затем из текущей записи прайса (current_entry) — парсеры их не выдают.
+    """
     if item.item_type == "model":
         entry = _model_entry(item)
         canonical = _MODEL_CANONICAL
@@ -132,13 +144,25 @@ def _serialize_item(item: PriceItem) -> tuple[str, str, dict[str, Any]]:
         canonical = _OPTION_CANONICAL
         section = "options"
 
-    # Сохраняем extra-поля схемы из raw_payload (data_incomplete/notes/dealer_note/
-    # components), не протаскивая merge-маркер `source` и канонические поля.
-    for raw_key, raw_value in item.raw_payload.items():
-        if raw_key not in canonical and raw_key != "source":
-            entry.setdefault(raw_key, raw_value)
+    # Extra-поля из raw_payload парсера (не протаскивая merge-маркер `source`).
+    _preserve_extras(entry, item.raw_payload, canonical, skip={"source"})
+    # Extra-поля из текущей записи (метаданные, которых нет в выводе парсеров).
+    if current_entry:
+        _preserve_extras(entry, current_entry, canonical, skip=set())
 
     return section, item.key, entry
+
+
+def _preserve_extras(
+    entry: dict[str, Any],
+    source: dict[str, Any],
+    canonical: frozenset[str],
+    skip: set[str],
+) -> None:
+    """Перенести в entry не-канонические поля source (setdefault, deepcopy значений)."""
+    for src_key, src_value in source.items():
+        if src_key not in canonical and src_key not in skip:
+            entry.setdefault(src_key, deepcopy(src_value))
 
 
 def _model_entry(item: PriceItem) -> dict[str, Any]:
