@@ -129,7 +129,9 @@ def _orion_current() -> dict[str, Any]:
         "label": "ПАК ОРИОН Стандарт", "applies_to_lines": ["Ф"], "applies_to_lengths": [18],
         "price_retail": 464900, "price_dealer_ru": 427708, "discount_pct": 8,
         "price_class": "A_retail_and_dealer",
-        "notes": "цена справочная", "dealer_note": "individual_calc",
+        # notes цитируют ту же разбивку, что и components.
+        "notes": "Оборудование 299 900 + шеф-монтаж 165 000.",
+        "dealer_note": "individual_calc",
         "components": {"equipment": 299900, "shef_montazh": 165000},
     }
     return current
@@ -149,14 +151,14 @@ def test_pdf_covered_entry_keeps_metadata_and_components_if_total_unchanged(
     written = json.loads(prices_path.read_text(encoding="utf-8"))["options"]["orion_standard"]
 
     assert written["price_retail"] == 464900
-    assert written["notes"] == "цена справочная"
+    assert written["notes"] == current["options"]["orion_standard"]["notes"]
     assert written["dealer_note"] == "individual_calc"
     assert written["components"] == current["options"]["orion_standard"]["components"]
     assert "source" not in written
 
 
-def test_pdf_covered_entry_drops_components_if_total_changed(tmp_path: Path) -> None:
-    """Итог изменился → components ОТСУТСТВУЕТ; статичные метаданные сохранены."""
+def test_pdf_covered_entry_drops_stale_breakdown_if_total_changed(tmp_path: Path) -> None:
+    """Итог изменился → components И ценозависимые notes ОТСУТСТВУЮТ; static сохранён."""
     current = _orion_current()
     prices_path = _write_current(tmp_path, current)
 
@@ -167,10 +169,10 @@ def test_pdf_covered_entry_drops_components_if_total_changed(tmp_path: Path) -> 
     written = json.loads(prices_path.read_text(encoding="utf-8"))["options"]["orion_standard"]
 
     assert written["price_retail"] == 500000
-    # Разбивка устарела (итог ≠ сумме) → поле не включено (именно отсутствие).
+    # Разбивка и цитирующие её notes устарели (итог ≠ сумме) → поля не включены.
     assert "components" not in written
-    # Статичные метаданные не зависят от цены — сохранены.
-    assert written["notes"] == "цена справочная"
+    assert "notes" not in written
+    # Не-ценозависимые метаданные сохранены.
     assert written["dealer_note"] == "individual_calc"
 
 
