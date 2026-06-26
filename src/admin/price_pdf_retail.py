@@ -137,18 +137,17 @@ def _parse_page4(page) -> list[PriceItem]:
         if level is None:
             continue
         equip, shef = _parse_orion_price_cell(price_cell)
-        total: int | None = None
         if equip is not None and shef is not None:
-            total = equip + shef
-        elif equip is not None:
-            total = equip
-        elif shef is not None:
-            total = shef
+            total: int | None = equip + shef
+            on_req = False
+        else:
+            total = None
+            on_req = True
         prefix = name_cell.split(":")[0].strip()
         raw_extra: dict[str, Any] = {"individual_calc": True}
         items.append(_item("option", f"orion_{level}",
                            f"{prefix} (оборудование + шеф-монтаж)", total,
-                           "B_retail_only", raw_extra=raw_extra))
+                           "B_retail_only", on_request=on_req, raw_extra=raw_extra))
     return items
 
 
@@ -193,14 +192,15 @@ def _parse_page19(page) -> list[PriceItem]:
         if price is not None:
             totals[length] = totals.get(length, 0) + price
     items: list[PriceItem] = []
-    for length in sorted(totals):
-        items.append(_item("option", f"canopy_turnkey_{length}",
-                           f"Навес под ключ ВЕСТА-{length}м (навес + фундамент + монтаж)",
-                           totals[length], "B_retail_only"))
-    for length in sorted(on_request_lengths - totals.keys()):
-        items.append(_item("option", f"canopy_turnkey_{length}",
-                           f"Навес под ключ ВЕСТА-{length}м", None, "B_retail_only",
-                           on_request=True))
+    for length in sorted(set(totals) | on_request_lengths):
+        if length in on_request_lengths:
+            items.append(_item("option", f"canopy_turnkey_{length}",
+                               f"Навес под ключ ВЕСТА-{length}м", None, "B_retail_only",
+                               on_request=True))
+        else:
+            items.append(_item("option", f"canopy_turnkey_{length}",
+                               f"Навес под ключ ВЕСТА-{length}м (навес + фундамент + монтаж)",
+                               totals[length], "B_retail_only"))
     return items
 
 

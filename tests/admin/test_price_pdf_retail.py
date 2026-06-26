@@ -1,10 +1,11 @@
 """Задача 3: парсер розничного PDF — сверка ключей и точечных цен."""
 import json
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
-from src.admin.price_pdf_retail import parse_retail_pdf
+from src.admin.price_pdf_retail import _parse_page4, _parse_page19, parse_retail_pdf
 
 FIXTURE_RETAIL = Path(__file__).parent / "fixtures" / "2026_03_01_Прайс_розница_Tenzosila.pdf"
 PRICES_JSON = Path(__file__).resolve().parents[2] / "data" / "prices.json"
@@ -85,3 +86,39 @@ def test_on_request(items):
 
 def test_no_dealer_prices(items):
     assert all(i.price_dealer_ru is None for i in items)
+
+
+# ── тесты неполноты (мок-страницы) ──────────────────────────────────────────
+
+def test_orion_partial_no_shef_is_on_request():
+    """Если шеф-монтаж отсутствует — orion_standard: on_request=True, price=None."""
+    page = MagicMock()
+    page.extract_tables.return_value = [
+        [
+            ["Заголовок", "", ""],   # заголовок — пропускается
+            ["ПАК ОРИОН Стандарт: оборудование", "", "Оборудование =\n299 900"],
+        ]
+    ]
+    items = _parse_page4(page)
+    assert len(items) == 1
+    assert items[0].key == "orion_standard"
+    assert items[0].on_request is True
+    assert items[0].price_retail is None
+
+
+def test_canopy_partial_on_request_if_component_missing():
+    """Если один обязательный компонент «По запросу» — canopy_turnkey: on_request=True."""
+    page = MagicMock()
+    page.extract_tables.return_value = [
+        [
+            ["Заголовок", "", ""],
+            ["Навес ВЕСТА-22м", "", "3 200 000"],
+            ["Фундамент ВЕСТА-22м", "", "По запросу"],
+            ["Монтаж ВЕСТА-22м", "", "1 700 000"],
+        ]
+    ]
+    items = _parse_page19(page)
+    assert len(items) == 1
+    assert items[0].key == "canopy_turnkey_22"
+    assert items[0].on_request is True
+    assert items[0].price_retail is None
