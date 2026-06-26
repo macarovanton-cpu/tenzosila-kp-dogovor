@@ -9,23 +9,13 @@ from src.admin.price_pdf_retail import parse_retail_pdf
 FIXTURE_RETAIL = Path(__file__).parent / "fixtures" / "2026_03_01_Прайс_розница_Tenzosila.pdf"
 PRICES_JSON = Path(__file__).resolve().parents[2] / "data" / "prices.json"
 
-# Суммарные ОРИОН-позиции в prices.json — парсер их НЕ генерирует (это агрегаты).
-_SUMMARY_ORION = {
+_ORION_LEVEL_KEYS = {
     "orion_lite", "orion_standard", "orion_standard_plus",
     "orion_auto", "orion_auto_plus",
 }
 
 # Новые ключи, которых нет в prices.json, но которые парсер обязан создать.
 EXPECTED_NEW = {
-    "canopy_18", "canopy_20", "canopy_22",
-    "canopy_foundation_18", "canopy_foundation_20", "canopy_foundation_22",
-    "canopy_install_18", "canopy_install_20", "canopy_install_22",
-    "canopy_lighting",
-    "orion_lite_equipment", "orion_lite_shef_montazh",
-    "orion_standard_equipment", "orion_standard_shef_montazh",
-    "orion_standard_plus_equipment", "orion_standard_plus_shef_montazh",
-    "orion_auto_equipment", "orion_auto_shef_montazh",
-    "orion_auto_plus_equipment", "orion_auto_plus_shef_montazh",
     "shef_montazh_s_f",
     "heating_gorynych",
 }
@@ -46,7 +36,7 @@ def _by_key(items):
 
 
 def test_counts(items):
-    assert 50 <= len(items) <= 65
+    assert 38 <= len(items) <= 52
 
 
 def test_key_deltas(items, prices):
@@ -55,13 +45,12 @@ def test_key_deltas(items, prices):
     parser_keys = {i.key for i in items}
 
     not_scope = (
-        _SUMMARY_ORION
-        | {"bytovka_weigh_room", "delivery_default", "verification_default",
-           "install_default"}  # C_manual_range — range/price задаются вручную в JSON
+        {"bytovka_weigh_room", "delivery_default", "verification_default",
+         "install_default"}  # C_manual_range — range/price задаются вручную в JSON
         | {k for k in prices["options"] if k.endswith("_22")}
         | {k for k in prices["options"] if k.startswith("road_slabs_")}
         | {k for k in prices["options"] if k.startswith("pag_slabs_")}
-        | {k for k in prices["options"] if k.startswith("canopy_turnkey_")}
+        | {"canopy_turnkey_24"}  # 24м отсутствует в PDF (по запросу, строчки нет)
     )
     expected_from_json = set(prices["options"]) - not_scope
 
@@ -75,18 +64,15 @@ def test_key_deltas(items, prices):
 def test_spot_prices(items):
     d = _by_key(items)
     assert d["foundation_s_f_18"].price_retail == 1_500_000
-    assert d["canopy_install_22"].price_retail == 1_700_000
-    assert d["orion_standard_equipment"].price_retail == 299_900
+    assert d["orion_standard"].price_retail == 464_900        # 299 900 + 165 000
+    assert d["canopy_turnkey_22"].price_retail == 6_380_000   # 3 200 000 + 1 480 000 + 1 700 000
     assert d["factory_calibration"].price_retail == 120_000
 
 
 def test_orion_individual_calc(items):
-    orion_comp = [
-        i for i in items
-        if i.key.endswith("_equipment") or i.key.endswith("_shef_montazh")
-    ]
-    assert len(orion_comp) == 10, f"ожидаем 10 ОРИОН компонентов, получили {len(orion_comp)}"
-    assert all(i.raw_payload.get("individual_calc") is True for i in orion_comp)
+    orion_items = [i for i in items if i.key in _ORION_LEVEL_KEYS]
+    assert len(orion_items) == 5, f"ожидаем 5 ОРИОН позиций, получили {len(orion_items)}"
+    assert all(i.raw_payload.get("individual_calc") is True for i in orion_items)
 
 
 def test_on_request(items):

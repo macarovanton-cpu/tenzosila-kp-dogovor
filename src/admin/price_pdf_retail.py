@@ -1,5 +1,5 @@
 """Парсер розничного PDF: стр.3 (опции/услуги/фундаменты),
-стр.4 (ПАК ОРИОН — 10 компонентов), стр.19 (навесы — 10 компонентов).
+стр.4 (ПАК ОРИОН — 5 суммарных позиций), стр.19 (навесы — turnkey по длинам).
 Чистый backend без Streamlit. Дилерская цена не парсится (только retail).
 """
 from __future__ import annotations
@@ -137,16 +137,18 @@ def _parse_page4(page) -> list[PriceItem]:
         if level is None:
             continue
         equip, shef = _parse_orion_price_cell(price_cell)
+        total: int | None = None
+        if equip is not None and shef is not None:
+            total = equip + shef
+        elif equip is not None:
+            total = equip
+        elif shef is not None:
+            total = shef
         prefix = name_cell.split(":")[0].strip()
         raw_extra: dict[str, Any] = {"individual_calc": True}
-        if equip is not None:
-            items.append(_item("option", f"orion_{level}_equipment",
-                               f"{prefix} — Оборудование", equip,
-                               "B_retail_only", raw_extra=raw_extra))
-        if shef is not None:
-            items.append(_item("option", f"orion_{level}_shef_montazh",
-                               f"{prefix} — Шеф-Монтаж", shef,
-                               "B_retail_only", raw_extra=raw_extra))
+        items.append(_item("option", f"orion_{level}",
+                           f"{prefix} (оборудование + шеф-монтаж)", total,
+                           "B_retail_only", raw_extra=raw_extra))
     return items
 
 
@@ -171,31 +173,34 @@ def _parse_page19(page) -> list[PriceItem]:
     tables = page.extract_tables()
     if not tables:
         return []
-    items: list[PriceItem] = []
+    totals: dict[int, int] = {}
+    on_request_lengths: set[int] = set()
     for row in tables[0][1:]:  # пропустить заголовок
         label = _norm(row[0]) if row[0] else ""
         price_cell = _norm(row[2]) if len(row) > 2 and row[2] else ""
         if not label:
             continue
-        low = label.lower()
-        on_request = _is_on_request(price_cell)
-        price = None if on_request else _to_int(price_cell)
-
+        if "освещ" in label.lower():
+            continue  # освещение не входит в turnkey
         m = _CANOPY_LEN_RE.search(label)
         length = int(m.group(1)) if m else None
-
-        if "освещ" in low:
-            items.append(_item("option", "canopy_lighting",
-                               label, price, "B_retail_only", on_request))
-        elif "монтаж" in low and "навес" in low and length:
-            items.append(_item("option", f"canopy_install_{length}",
-                               label, price, "B_retail_only", on_request))
-        elif "фундамент" in low and "навес" in low and length:
-            items.append(_item("option", f"canopy_foundation_{length}",
-                               label, price, "B_retail_only", on_request))
-        elif "навес" in low and length:
-            items.append(_item("option", f"canopy_{length}",
-                               label, price, "B_retail_only", on_request))
+        if length is None:
+            continue
+        if _is_on_request(price_cell):
+            on_request_lengths.add(length)
+            continue
+        price = _to_int(price_cell)
+        if price is not None:
+            totals[length] = totals.get(length, 0) + price
+    items: list[PriceItem] = []
+    for length in sorted(totals):
+        items.append(_item("option", f"canopy_turnkey_{length}",
+                           f"Навес под ключ ВЕСТА-{length}м (навес + фундамент + монтаж)",
+                           totals[length], "B_retail_only"))
+    for length in sorted(on_request_lengths - totals.keys()):
+        items.append(_item("option", f"canopy_turnkey_{length}",
+                           f"Навес под ключ ВЕСТА-{length}м", None, "B_retail_only",
+                           on_request=True))
     return items
 
 
