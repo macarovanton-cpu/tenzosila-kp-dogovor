@@ -147,6 +147,26 @@ def test_update_view_renders_without_exception() -> None:
     assert "Обновление прайса" in headers
 
 
+def test_review_summary_has_no_false_removed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """P2: сводка строится на итоге three-way merge → позиции вне снимка НЕ «удалены»."""
+    monkeypatch.setattr(
+        price_update_view.price_write_service, "write_prices", lambda *a, **k: None
+    )
+
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    # Снимок из одной позиции: текущий прайс содержит десятки других, которые three-way
+    # merge перенесёт. Ложного «Удалено» быть не должно.
+    at.session_state["price_update_stage"] = "table"
+    at.session_state["price_update_working_items"] = [_option()]
+    at.run()
+    at.switch_page("pages/3_Админка.py").run()
+    at.button(key="price_update_check").click().run()
+
+    assert not at.exception, f"Review raised: {at.exception}"
+    error_text = "\n".join(str(e.value) for e in at.error)
+    assert "Удалено позиций" not in error_text
+
+
 def test_flow_to_apply(monkeypatch: pytest.MonkeyPatch) -> None:
     """Поток table → проверить → применить, без записи боевого prices.json."""
     calls: list[list[PriceItem]] = []

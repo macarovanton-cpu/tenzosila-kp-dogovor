@@ -296,7 +296,9 @@ def _render_table() -> None:
     )
     st.caption(f"Колонка «Ключ»: {_KEY_HELP}.")
 
-    items = apply_editor_delta(working_items, st.session_state.get(_EDITOR_KEY, {}))
+    editor_state = st.session_state.get(_EDITOR_KEY, {})
+    items = apply_editor_delta(working_items, editor_state)
+    deleted_count = len(editor_state.get("deleted_rows", []) or [])
 
     col_check, col_cancel = st.columns(2)
     with col_check:
@@ -308,13 +310,31 @@ def _render_table() -> None:
             st.rerun()
 
     if st.session_state.get("price_update_checked"):
-        _render_review(items, old_items)
+        _render_review(items, old_items, deleted_count)
 
 
-def _render_review(items: list[PriceItem], old_items: list[PriceItem]) -> None:
+def _render_review(
+    items: list[PriceItem],
+    old_items: list[PriceItem],
+    deleted_count: int,
+) -> None:
+    # Блокеры/предупреждения — на результате редактора (сохраняет детект дублей и пустых
+    # ключей до three-way merge, где dict-ключи схлопнулись бы).
     split = split_validation(items, old_items=old_items)
     _render_issues(split)
-    _render_summary(build_business_summary(old_items, items))
+
+    # Сводка — на ИТОГОВОМ датасете three-way merge (ровно то, что запишет write_prices):
+    # позиции вне PDF-снимка переносятся из текущего прайса, ложного «Удалено» нет.
+    final_items = normalize_prices(
+        price_write_service.build_merged_prices(items, load_prices())
+    )
+    if deleted_count:
+        st.warning(
+            f"Удаление строк ({deleted_count}) не применяется: позиции, отсутствующие в "
+            "снимке, переносятся из текущего прайса. Чтобы убрать позицию из прайса — "
+            "правьте JSON вручную (в этой версии не поддерживается)."
+        )
+    _render_summary(build_business_summary(old_items, final_items))
 
     col_apply, col_back = st.columns(2)
     with col_apply:
