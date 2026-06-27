@@ -10,6 +10,7 @@ from src.admin.price_write_service import rollback_prices
 from src.config import PRICES_JSON
 from src.data_loader import load_prices
 
+_BACKUP_PATH = PRICES_JSON.with_name("prices.backup.json")
 
 st.title("Админка")
 st.info(
@@ -22,12 +23,19 @@ try:
     prices = load_prices()
 except Exception as exc:  # pragma: no cover - защита UI от битого локального файла.
     st.error(f"Не удалось прочитать или проверить текущий прайс: {exc}")
+    # P2: Откат доступен даже при битом prices.json — именно этот сценарий требует восстановления.
+    if _BACKUP_PATH.exists():
+        if st.button("Откатить на предыдущую версию (восстановить из бэкапа)"):
+            if rollback_prices():
+                st.success("Прайс восстановлен из предыдущей версии")
+                st.rerun()
+            else:
+                st.error("Откат не удался.")
     st.stop()
 
 render_price_overview(prices)
 
 # Кнопка отката на главном экране
-_BACKUP_PATH = PRICES_JSON.with_name("prices.backup.json")
 backup_exists = _BACKUP_PATH.exists()
 
 if st.button("Откатить на предыдущую версию", disabled=not backup_exists):
@@ -40,6 +48,13 @@ if st.session_state.get("_rollback_confirm"):
         ok = rollback_prices()
         st.session_state.pop("_rollback_confirm", None)
         if ok:
+            # P2: сбросить черновик update-потока, чтобы старые данные не перезаписали откат.
+            for _key in (
+                "price_update_stage", "price_update_source",
+                "price_update_working_items", "price_update_checked",
+                "price_update_backup_path",
+            ):
+                st.session_state.pop(_key, None)
             st.success("Прайс восстановлен из предыдущей версии")
             st.rerun()
         else:
