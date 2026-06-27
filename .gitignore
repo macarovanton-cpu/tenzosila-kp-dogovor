@@ -78,3 +78,5 @@ temp/
 data/fundament/pdf_source/
 data/fundament/build_task/
 data/fundament/control_sheet/
+
+data/prices.backup.json
