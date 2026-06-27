@@ -192,3 +192,22 @@ def test_flow_to_apply(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(calls) == 1
     success = [str(s.value) for s in at.success]
     assert any("Прайс обновлён" in text for text in success)
+
+
+def test_edit_current_enters_table_from_prices_json() -> None:
+    """Smoke: «Редактировать текущий» → stage='table', working_items из normalize_prices(load_prices())."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.session_state["price_update_stage"] = "source"
+    at.run()
+    at.switch_page("pages/3_Админка.py").run()
+
+    at.button(key="price_update_pick_current").click().run()
+
+    assert not at.exception, f"Edit current raised: {at.exception}"
+    assert "price_update_working_items" in at.session_state, "working_items должны быть заполнены"
+    working_items = at.session_state["price_update_working_items"]
+    assert len(working_items) >= 50, (
+        f"Ожидалось 50+ позиций из prices.json, получено {len(working_items)}"
+    )
+    keys = {item.key for item in working_items}
+    assert any("vesta-" in k for k in keys), "В таблице должны быть модели ВЕСТА"
