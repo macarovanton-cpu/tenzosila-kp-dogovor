@@ -66,7 +66,7 @@ def build_price_overview_view_model(
 
 
 def render_price_overview(prices: dict[str, Any]) -> None:
-    """Показать диагностику текущего прайса и справку по правилам."""
+    """Показать бизнес-карточку текущего прайса и технические детали (свёрнуты)."""
 
     view_model = build_price_overview_view_model(prices)
     diagnostics = view_model.diagnostics
@@ -77,30 +77,42 @@ def render_price_overview(prices: dict[str, Any]) -> None:
         issue for issue in diagnostics.validation_issues if issue.level == "warning"
     ]
 
-    st.header("Диагностика текущего прайса")
-    st.info(view_model.readonly_note)
+    # Бизнес-карточка
+    st.header("Состояние прайса")
 
+    meta = prices.get("_meta", {}) or {}
+    valid_from = diagnostics.valid_from or "не указана"
+    sources = [s for s in (meta.get("source_dealer"), meta.get("source_retail")) if s]
+    source_str = ", ".join(sources) if sources else "не указан"
+    st.caption(f"Дата: {valid_from}  ·  Источник: {source_str}")
+
+    orion_count = sum(
+        1 for v in prices.get("options", {}).values() if v.get("individual_calc")
+    )
     metric_cols = st.columns(4)
     metric_cols[0].metric("Модели", diagnostics.model_count)
-    metric_cols[1].metric("Опции", diagnostics.option_count)
-    metric_cols[2].metric("Errors", diagnostics.error_count)
-    metric_cols[3].metric("Warnings", diagnostics.warning_count)
+    metric_cols[1].metric("Опции", diagnostics.option_count - orion_count)
+    metric_cols[2].metric("ОРИОН", orion_count)
+    metric_cols[3].metric("Предупреждений", diagnostics.warning_count)
 
     if diagnostics.is_expired:
         st.error("Прайс просрочен: дата valid_until уже прошла.")
     elif errors:
-        st.error("В прайсе есть ошибки. Перед использованием нужен разбор.")
+        st.error(f"Ошибки в прайсе: {len(errors)}. Перед использованием нужен разбор.")
     elif warnings:
-        st.warning("Критических ошибок нет, но есть warnings по качеству данных.")
+        st.warning("Есть предупреждения, критических ошибок нет.")
     else:
-        st.success("Критических проблем в текущем прайсе не найдено.")
+        st.success("Прайс актуален.")
 
-    _render_metadata(prices, diagnostics)
-    _render_structure(diagnostics)
-    _render_issues("Errors", errors, "Errors не найдены.")
-    _render_issues("Warnings", warnings, "Warnings не найдены.")
-    _render_price_problems(diagnostics)
-    _render_price_rules(view_model)
+    # Технические детали (свёрнуты по умолчанию)
+    with st.expander("Технические детали", expanded=False):
+        st.info(view_model.readonly_note)
+        _render_metadata(prices, diagnostics)
+        _render_structure(diagnostics)
+        _render_issues("Errors", errors, "Errors не найдены.")
+        _render_issues("Warnings", warnings, "Warnings не найдены.")
+        _render_price_problems(diagnostics)
+        _render_price_rules(view_model)
 
 
 def _price_rule_rows() -> list[PriceRuleRow]:
