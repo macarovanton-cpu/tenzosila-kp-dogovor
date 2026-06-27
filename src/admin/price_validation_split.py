@@ -57,6 +57,18 @@ def split_validation(
                 )
             )
 
+    # Блокер: пустой ключ позиции (UI требует уникальный непустой ключ для новых строк)
+    for item in items:
+        if item.key.strip() == "":
+            blockers.append(
+                ValidationIssue(
+                    level="error",
+                    item_key=item.key,
+                    field="key",
+                    message="Пустой ключ позиции.",
+                )
+            )
+
     # Блокер: дублирующиеся ключи
     seen: set[str] = set()
     reported: set[str] = set()

@@ -74,6 +74,24 @@ def test_retail_less_than_dealer_is_blocker() -> None:
     assert ("swapped", "price_retail") in blocker_fields
 
 
+def test_empty_key_is_blocker() -> None:
+    items = [_item(key="")]
+
+    result = split_validation(items)
+
+    assert result.has_blockers
+    assert any(i.field == "key" and i.message == "Пустой ключ позиции." for i in result.blockers)
+
+
+def test_whitespace_key_is_blocker() -> None:
+    items = [_item(key="   ")]
+
+    result = split_validation(items)
+
+    assert result.has_blockers
+    assert any(i.field == "key" and i.message == "Пустой ключ позиции." for i in result.blockers)
+
+
 def test_duplicate_key_is_blocker() -> None:
     items = [
         _item(key="dup"),
