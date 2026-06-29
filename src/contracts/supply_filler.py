@@ -54,6 +54,18 @@ _TTH_SUPPLY_CONST: dict[str, str] = {
 # _buyer_context: ЗАКАЗЧИК_* → ПОКУПАТЕЛЬ_* + ПОСТАВЩИК_*
 # ---------------------------------------------------------------------------
 
+def _normalize_quotes(s: str) -> str:
+    """Прямые " " → ёлочки « »: первая → «, вторая → », поочерёдно."""
+    result, open_q = [], True
+    for ch in s:
+        if ch == '"':
+            result.append('«' if open_q else '»')
+            open_q = not open_q
+        else:
+            result.append(ch)
+    return ''.join(result)
+
+
 def _buyer_context(ctx: dict[str, str]) -> dict[str, str]:
     """Собрать ПОКУПАТЕЛЬ_* и ПОСТАВЩИК_* из плоского ctx (ЗАКАЗЧИК_*).
 
@@ -64,7 +76,7 @@ def _buyer_context(ctx: dict[str, str]) -> dict[str, str]:
     g = ctx.get
     result: dict[str, str] = {
         # Покупатель — КРАТКОЕ наименование (симметрия с кратким поставщиком).
-        "ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ":  (
+        "ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ":  _normalize_quotes(
             g("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") or g("ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ", "")
         ),
         "ПОКУПАТЕЛЬ_ИНН":            g("ЗАКАЗЧИК_ИНН", ""),

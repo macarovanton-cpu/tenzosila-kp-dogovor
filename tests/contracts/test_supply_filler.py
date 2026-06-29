@@ -148,7 +148,7 @@ def test_buyer_context_naimenovanie_fallback():
 
 def test_supplier_non_empty():
     assert SUPPLIER["ПОСТАВЩИК_ИНН"] == "3662257349"
-    assert SUPPLIER["ПОСТАВЩИК_ДИРЕКТОР_ФИО"] == "О. А. Сенаторов"
+    assert SUPPLIER["ПОСТАВЩИК_ДИРЕКТОР_ФИО"] == "О.А. Сенаторов"
     assert SUPPLIER["ПОСТАВЩИК_ДИРЕКТОР_ФИО_РП"] == "Сенаторова Олега Александровича"
     assert SUPPLIER["ПОСТАВЩИК_ДИРЕКТОР_ДОЛЖНОСТЬ"] == "Директор"
     assert SUPPLIER["ПОСТАВЩИК_БАНК"]

@@ -53,7 +53,7 @@ def format_payment_line(
     Spec-флоу вызывает без этого аргумента → поведение не меняется.
     """
     amount_fmt  = "{:,}".format(line.amount).replace(",", chr(32))
-    words       = number_to_words(line.amount).strip()
+    words       = number_to_words(line.amount).strip().capitalize()
     due_words   = days_genitive(line.due)
     trigger_txt = (trigger_texts or TRIGGER_TEXTS)[line.trigger]
     kind_cap    = line.kind.capitalize()
