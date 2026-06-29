@@ -819,7 +819,6 @@ with manual_col2:
     st.date_input(
         "Срок действия договора до",
         key="w_valid_until",
-        value=_manual.get("valid_until"),
         on_change=sync_manual_field, args=("valid_until",),
     )
 
