@@ -16,7 +16,7 @@ EXPECTED = {
         "{{ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ}}", "{{ПОСТАВЩИК_ДИРЕКТОР_ФИО_РП}}",
         "{{ТОВАР_НАИМЕНОВАНИЕ}}", "{{СРОК_ПРОИЗВОДСТВА_ДН}}", "{{СРОК_ДОСТАВКИ_ДН}}",
         "{{АДРЕС_ПОСТАВКИ}}", "{{СУММА_ЦИФРАМИ}}", "{{СУММА_ПРОПИСЬЮ}}",
-        "payment_lines",
+        "{{PAYMENT_SECTION}}",
         "{{СРОК_ДЕЙСТВИЯ_ДО}}",
         "{{ПОСТАВЩИК_ИНН}}", "{{ПОСТАВЩИК_КПП}}", "{{ПОСТАВЩИК_ОГРН}}",
         "{{ПОСТАВЩИК_БАНК}}", "{{ПОСТАВЩИК_РС}}", "{{ПОСТАВЩИК_КС}}", "{{ПОСТАВЩИК_БИК}}",
@@ -27,7 +27,8 @@ EXPECTED = {
     ],
     "supply_appendix_1": [
         "{{ДОГОВОР_НОМЕР}}", "{{ДОГОВОР_ДАТА}}",
-        "{{ТОВАР_НАИМЕНОВАНИЕ}}", "{{СУММА_ЦИФРАМИ}}",
+        # Спецификация — row-цикл по spec_rows (весы + доставка)
+        "{{row.name}}", "{{row.sum}}", "{{СУММА_ЦИФРАМИ}}",
         "{{ПОСТАВЩИК_ДИРЕКТОР_ФИО}}", "{{ПОКУПАТЕЛЬ_ДИРЕКТОР_ДОЛЖНОСТЬ}}",
         "{{ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО}}", "{{ТЕКУЩИЙ_ГОД}}",
     ],
@@ -43,7 +44,7 @@ EXPECTED = {
     ],
 }
 
-BANNED = ["86/2026", "26 апреля 2026 года", "Молчанов Владимир Григорьевич",
+BANNED = ["86/2026", "26 апреля 2026 года", "26.04.2026", "Молчанов Владимир Григорьевич",
           "3662257349", "40702810513000031419", "481501477253", "40802810535000009577"]
 
 OUT = Path("docs/source/verify_templates.txt")
@@ -51,7 +52,7 @@ lines = []
 
 for name, path in TEMPLATES.items():
     doc = Document(str(path))
-    # Собрать весь текст документа
+    # Собрать весь текст документа (body + таблицы + колонтитулы)
     all_text_parts = []
     for p in doc.paragraphs:
         all_text_parts.append(p.text)
@@ -60,6 +61,14 @@ for name, path in TEMPLATES.items():
             for cell in row.cells:
                 for p in cell.paragraphs:
                     all_text_parts.append(p.text)
+    for section in doc.sections:
+        for hf in (section.header, section.footer):
+            for p in hf.paragraphs:
+                all_text_parts.append(p.text)
+            for t in hf.tables:
+                for row in t.rows:
+                    for cell in row.cells:
+                        all_text_parts.append(cell.text)
     full_text = "\n".join(all_text_parts)
 
     lines.append(f"\n{'='*60}")
