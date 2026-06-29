@@ -12,6 +12,7 @@ from src.contracts.supplier import SUPPLIER
 from src.contracts.supply_filler import (
     SUPPLY_TRIGGER_TEXTS,
     _buyer_context,
+    _supply_spec_rows,
     build_supply_tth,
     decide_contract_type,
 )
@@ -93,7 +94,7 @@ def test_buyer_context_ooo_maps_all_keys():
     ctx = _buyer_context(_ooo_ctx())
 
     # ПОКУПАТЕЛЬ_* — ключи присутствуют и не None
-    assert ctx["ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ"] == "Общество с ограниченной ответственностью «Тест»"
+    assert ctx["ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ"] == "ООО «Тест»"  # КРАТКОЕ, не полное
     assert ctx["ПОКУПАТЕЛЬ_ИНН"] == "7701234567"
     assert ctx["ПОКУПАТЕЛЬ_КПП"] == "770101001"
     assert ctx["ПОКУПАТЕЛЬ_ОГРН"] == "1027700000000"
@@ -103,7 +104,7 @@ def test_buyer_context_ooo_maps_all_keys():
     assert ctx["ПОКУПАТЕЛЬ_БИК"] == "044525225"
     assert ctx["ПОКУПАТЕЛЬ_БАНК"] == "ПАО «Сбербанк России»"
     assert ctx["ПОКУПАТЕЛЬ_EMAIL"] == "test@test.ru"
-    assert ctx["ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО"] == "Иванов Иван Иванович"
+    assert ctx["ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО"] == "И.И. Иванов"  # инициалы, не полное ФИО
     assert ctx["ПОКУПАТЕЛЬ_ДИРЕКТОР_ДОЛЖНОСТЬ"] == "Генеральный директор"
 
     # ПОСТАВЩИК_* подтянулись из SUPPLIER
@@ -115,15 +116,30 @@ def test_buyer_context_ip_no_kpp():
     """ИП без КПП — ПОКУПАТЕЛЬ_КПП пусто, без исключений."""
     ctx = _buyer_context(_ip_ctx())
     assert ctx["ПОКУПАТЕЛЬ_КПП"] == ""
-    assert ctx["ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ"] == "ИП Петров А. В."  # fallback к краткому
+    assert ctx["ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ"] == "ИП Петров А. В."  # краткое
+
+
+def test_buyer_context_director_initials():
+    """ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО приводится к формату «инициалы + фамилия»."""
+    # ООО: производим инициалы из полного ФИО (в ctx нет готовых ИНИЦИАЛЫ)
+    assert _buyer_context(_ooo_ctx())["ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО"] == "И.И. Иванов"
+    # ИП: ФИО уже в кратком виде «Петров А. В.» → «А.В. Петров»
+    assert _buyer_context(_ip_ctx())["ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО"] == "А.В. Петров"
+
+
+def test_buyer_context_director_initials_prefers_ready():
+    """Если в ctx есть готовые ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ — берём их."""
+    data = _ooo_ctx()
+    data["ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ"] = "И. И. Иванов"
+    assert _buyer_context(data)["ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО"] == "И. И. Иванов"
 
 
 def test_buyer_context_naimenovanie_fallback():
-    """Если ПОЛНОЕ_НАИМЕНОВАНИЕ пусто — берём КРАТКОЕ_НАИМЕНОВАНИЕ."""
+    """Если КРАТКОЕ_НАИМЕНОВАНИЕ пусто — fallback к ПОЛНОМУ."""
     data = _ooo_ctx()
-    data["ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ"] = ""
+    data["ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ"] = ""
     ctx = _buyer_context(data)
-    assert ctx["ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ"] == "ООО «Тест»"
+    assert ctx["ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ"] == "Общество с ограниченной ответственностью «Тест»"
 
 
 # ---------------------------------------------------------------------------
@@ -237,3 +253,55 @@ def test_spec_flow_trigger_texts_unchanged():
     lines = build_lines_from_snapshot(_prepay100_payment(), items)
     text = _fmt(lines[0], "2.1")  # без trigger_texts — дефолт TRIGGER_TEXTS
     assert "Спецификации" in text
+
+
+# ---------------------------------------------------------------------------
+# Тест 6 — _supply_spec_rows: фильтр по payment_group, разбивка весы/доставка
+# ---------------------------------------------------------------------------
+
+def _mixed_items() -> list[dict]:
+    """Весы + доставка + монтаж (custom) + фундамент."""
+    return [
+        {"name": "Весы ВЕСТА", "total": 2_200_000, "payment_group": "scales"},
+        {"name": "Доставка",   "total":    70_000, "payment_group": "delivery"},
+        {"name": "Монтаж",     "total":   190_000, "payment_group": "installation_and_verification"},
+        {"name": "Фундамент",  "total":   300_000, "payment_group": "foundation"},
+    ]
+
+
+def test_supply_spec_rows_excludes_works_and_foundation():
+    """Сумма = весы + доставка; монтаж и фундамент исключены."""
+    total, rows = _supply_spec_rows(_mixed_items(), "ВЕСТА-С-60")
+    assert total == 2_270_000  # 2 200 000 + 70 000
+    assert [r["name"] for r in rows] == ["ВЕСТА-С-60", "Доставка"]
+    assert rows[0]["sum"] == "2 200 000"
+    assert rows[1]["sum"] == "70 000"
+
+
+def test_supply_spec_rows_custom_montazh_excluded_by_payment_group():
+    """Кастом-монтаж (id='custom_N') исключается по payment_group, не по id."""
+    items = [
+        {"name": "Весы", "total": 1_000_000, "payment_group": "scales"},
+        {"name": "Шеф-монтаж доп.", "id": "custom_3", "total": 50_000,
+         "payment_group": "installation_and_verification"},
+    ]
+    total, rows = _supply_spec_rows(items, "ВЕСТА")
+    assert total == 1_000_000
+    assert [r["name"] for r in rows] == ["ВЕСТА"]
+
+
+def test_supply_spec_rows_scales_only_no_delivery_row():
+    """Только весы → одна строка, без строки доставки."""
+    items = [{"name": "Весы", "total": 1_500_000, "payment_group": "scales"}]
+    total, rows = _supply_spec_rows(items, "ВЕСТА")
+    assert total == 1_500_000
+    assert len(rows) == 1
+    assert rows[0] == {"name": "ВЕСТА", "sum": "1 500 000"}
+
+
+def test_supply_spec_rows_none_payment_group_kept_as_scales():
+    """payment_group=None трактуется как весы (не исключается)."""
+    items = [{"name": "Весы", "total": 800_000, "payment_group": None}]
+    total, rows = _supply_spec_rows(items, "ВЕСТА")
+    assert total == 800_000
+    assert rows == [{"name": "ВЕСТА", "sum": "800 000"}]

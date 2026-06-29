@@ -16,6 +16,7 @@ from src.contracts.payment_line import (
     PaymentTrigger,
     format_payment_line,
 )
+from src.contracts.requisites_transforms import director_initials
 from src.contracts.supplier import SUPPLIER
 from src.contracts.tth_context import build_tth_data
 from src.contracts.utils import MONTHS_RU, days_genitive, number_to_words
@@ -62,8 +63,9 @@ def _buyer_context(ctx: dict[str, str]) -> dict[str, str]:
     """
     g = ctx.get
     result: dict[str, str] = {
+        # Покупатель — КРАТКОЕ наименование (симметрия с кратким поставщиком).
         "ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ":  (
-            g("ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ") or g("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ", "")
+            g("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") or g("ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ", "")
         ),
         "ПОКУПАТЕЛЬ_ИНН":            g("ЗАКАЗЧИК_ИНН", ""),
         "ПОКУПАТЕЛЬ_КПП":            g("ЗАКАЗЧИК_КПП", ""),
@@ -74,7 +76,10 @@ def _buyer_context(ctx: dict[str, str]) -> dict[str, str]:
         "ПОКУПАТЕЛЬ_БИК":            g("ЗАКАЗЧИК_БИК", ""),
         "ПОКУПАТЕЛЬ_БАНК":           g("ЗАКАЗЧИК_БАНК", ""),
         "ПОКУПАТЕЛЬ_EMAIL":          g("ЗАКАЗЧИК_EMAIL", ""),
-        "ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО":   g("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", ""),
+        # Подписант — формат «инициалы + фамилия» (симметрия с О.А. Сенаторов).
+        "ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО":   (
+            g("ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ") or director_initials(g("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", ""))
+        ),
         "ПОКУПАТЕЛЬ_ДИРЕКТОР_ДОЛЖНОСТЬ": g("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ", ""),
     }
     result.update(SUPPLIER)
@@ -168,6 +173,39 @@ def _short_product_name(full_name: str) -> str:
     return re.sub(r"^Весы автомобильные\s+", "", full_name, flags=re.IGNORECASE)
 
 
+def _fmt_money(x: int) -> str:
+    """Сумма с разделителем тысяч пробелом: 2242000 → '2 242 000'."""
+    return "{:,}".format(x).replace(",", " ")
+
+
+def _supply_spec_rows(items: list[dict], product_name: str) -> tuple[int, list[dict]]:
+    """Сумма поставки и строки спецификации (весы + доставка).
+
+    Фильтр по payment_group: исключаются работы (installation_and_verification)
+    и фундамент (foundation); остаются scales (+None/unknown) и delivery.
+    Весы — одной агрегированной строкой, доставка — отдельной.
+    Фильтр по payment_group, а не по id — обходит баг маппинга custom_N.
+    """
+    kept = [
+        it for it in items
+        if it.get("payment_group") not in {"installation_and_verification", "foundation"}
+    ]
+    delivery_total = sum(
+        int(it.get("total") or 0) for it in kept
+        if it.get("payment_group") == "delivery"
+    )
+    scales_total = sum(
+        int(it.get("total") or 0) for it in kept
+        if it.get("payment_group") != "delivery"
+    )
+    rows: list[dict] = []
+    if scales_total:
+        rows.append({"name": product_name, "sum": _fmt_money(scales_total)})
+    if delivery_total:
+        rows.append({"name": "Доставка", "sum": _fmt_money(delivery_total)})
+    return scales_total + delivery_total, rows
+
+
 # ---------------------------------------------------------------------------
 # build_supply_context
 # ---------------------------------------------------------------------------
@@ -200,9 +238,9 @@ def build_supply_context(
         qty_i = qty
     товар = f"{short_name}, в количестве {qty_i}шт." if short_name else ""
 
-    # --- Суммы ---
-    total = sum(int(it.get("total") or 0) for it in items)
-    сумма_цифрами = "{:,}".format(total).replace(",", " ")
+    # --- Суммы и строки спецификации (фильтр по payment_group) ---
+    total, spec_rows = _supply_spec_rows(items, товар)
+    сумма_цифрами = _fmt_money(total)
     сумма_прописью = number_to_words(total).capitalize() if total else ""
 
     # --- Сроки ---
@@ -249,11 +287,13 @@ def build_supply_context(
         "СУММА_ПРОПИСЬЮ":       сумма_прописью,
         "СРОК_ПРОИЗВОДСТВА_ДН": _fmt_days(prod_days),
         "СРОК_ДОСТАВКИ_ДН":    _fmt_days(deliv_days),
-        "АДРЕС_ПОСТАВКИ":       manual.get("object_address", ""),
+        "АДРЕС_ПОСТАВКИ":       manual.get("object_address", "").rstrip(" ."),
         "СРОК_ДЕЙСТВИЯ_ДО":     срок_действия_до,
         "ТЕКУЩИЙ_ГОД":          str(contract_date.year),
         # ТТХ
         **tth,
+        # Спецификация прил.№1 (для docxtpl {%tr for row in spec_rows %}): весы + доставка
+        "spec_rows": spec_rows,
         # Комплект (для docxtpl {%tr for item in kit_rows %} в appendix_2)
         "kit_rows": kit_rows,
         # Sentinel для двупрохода оплаты в compose_supply
