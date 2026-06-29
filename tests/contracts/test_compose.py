@@ -4,7 +4,7 @@ from pathlib import Path
 from docx import Document
 from docx.oxml.ns import qn
 
-from src.contracts.compose import compose_spec_with_attachments
+from src.contracts.compose import compose_spec_with_attachments, compose_supply
 from src.contracts.filler import get_unfilled_placeholders
 
 
@@ -181,6 +181,57 @@ def test_numbering_is_fixed_by_attachment_type(tmp_path: Path) -> None:
     text = _all_text(Document(spec))
     assert "Приложение №1. Строительное задание" in text
     assert "Приложение №2. Контрольный лист" in text
+
+
+# ---------------------------------------------------------------------------
+# compose_supply — guard пустого блока оплаты (task #1)
+# ---------------------------------------------------------------------------
+
+def _supply_ctx(payment_lines: list[str]) -> dict:
+    """Минимальный контекст для compose_supply (рендерит реальные шаблоны)."""
+    ctx: dict = {
+        "ДОГОВОР_НОМЕР": "Д-1",
+        "ДОГОВОР_ДАТА": "1 июня 2026 года",
+        "ДОГОВОР_ГОРОД": "г. Воронеж",
+        "ТОВАР_НАИМЕНОВАНИЕ": "ВЕСТА-С-60, в количестве 1шт.",
+        "СУММА_ЦИФРАМИ": "1 000 000",
+        "СУММА_ПРОПИСЬЮ": "Один миллион",
+        "СРОК_ПРОИЗВОДСТВА_ДН": "20 (двадцати)",
+        "СРОК_ДОСТАВКИ_ДН": "4 (четырёх)",
+        "АДРЕС_ПОСТАВКИ": "г. Воронеж",
+        "СРОК_ДЕЙСТВИЯ_ДО": "31.12.2026 г.",
+        "ТЕКУЩИЙ_ГОД": "2026",
+        "spec_rows": [{"name": "ВЕСТА-С-60", "sum": "1 000 000"}],
+        "kit_rows": [],
+        "PAYMENT_SECTION": "{{PAYMENT_SECTION}}",
+        "_payment_lines": payment_lines,
+    }
+    for key in (
+        "ТТХ_MAX", "ТТХ_ОСЬ", "ТТХ_РАССТОЯНИЕ_ТЕРМИНАЛ", "ТТХ_ДИСКРЕТНОСТЬ",
+        "ТТХ_ГАБАРИТЫ", "ТТХ_ТЕМПЕРАТУРА", "ТТХ_СВЯЗЬ", "ТТХ_ПИТАНИЕ",
+        "ТТХ_МОЩНОСТЬ", "ТТХ_ГОСТ_СТРОКА",
+    ):
+        ctx[key] = ""
+    return ctx
+
+
+def test_compose_supply_empty_payment_removes_marker(tmp_path: Path) -> None:
+    """Пустой _payment_lines → маркер {{PAYMENT_SECTION}} удалён, не остаётся в документе."""
+    out = tmp_path / "supply.docx"
+    compose_supply(_supply_ctx([]), out)
+
+    text = _all_text(Document(out))
+    assert "PAYMENT_SECTION" not in text
+
+
+def test_compose_supply_with_payment_inserts_lines(tmp_path: Path) -> None:
+    """Непустой _payment_lines → строки оплаты вставлены, маркера нет."""
+    out = tmp_path / "supply.docx"
+    compose_supply(_supply_ctx(["4.2.1. Тестовая строка оплаты."]), out)
+
+    text = _all_text(Document(out))
+    assert "Тестовая строка оплаты" in text
+    assert "PAYMENT_SECTION" not in text
 
 
 def test_each_appendix_starts_with_single_page_break(tmp_path: Path) -> None:

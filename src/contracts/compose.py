@@ -7,7 +7,7 @@ from docxcompose.composer import Composer
 from docxtpl import DocxTemplate
 
 from src.contracts.filler import fill_template
-from src.contracts.spec_v2_filler import _replace_marker_with_paragraphs
+from src.contracts.spec_v2_filler import _remove_marker, _replace_marker_with_paragraphs
 
 _SUPPLY_TEMPLATES = Path("templates/contracts")
 
@@ -35,11 +35,15 @@ def compose_supply(context: dict, output_path: Path) -> None:
         tpl.render(tpl_context)
         tpl.save(str(contract_tmp1))
 
-        # Второй проход: заменить {{PAYMENT_SECTION}} реальными параграфами
+        # Второй проход: заменить {{PAYMENT_SECTION}} реальными параграфами.
+        # Пустой список оплаты → удалить маркер, иначе в п.4.2 остаётся пустой блок.
         contract_doc = Document(str(contract_tmp1))
-        _replace_marker_with_paragraphs(
-            contract_doc, "{{PAYMENT_SECTION}}", payment_lines
-        )
+        if payment_lines:
+            _replace_marker_with_paragraphs(
+                contract_doc, "{{PAYMENT_SECTION}}", payment_lines
+            )
+        else:
+            _remove_marker(contract_doc, "{{PAYMENT_SECTION}}")
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as f:
             contract_tmp2 = Path(f.name)
         tmp_files.append(contract_tmp2)
