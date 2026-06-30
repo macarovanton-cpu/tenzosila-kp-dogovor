@@ -235,8 +235,8 @@ def test_compose_supply_with_payment_inserts_lines(tmp_path: Path) -> None:
     assert "PAYMENT_SECTION" not in text
 
 
-def test_compose_supply_payment_lines_inherit_marker_font(tmp_path: Path) -> None:
-    """Строки оплаты наследуют формат маркера (Arial 11), а не docDefaults (TNR 12)."""
+def test_compose_supply_payment_lines_inherit_marker_format(tmp_path: Path) -> None:
+    """Строки оплаты наследуют формат маркера: шрифт (Arial 11) и pPr (интервал 1.5, по ширине)."""
     out = tmp_path / "supply.docx"
     compose_supply(_supply_ctx(["4.2.1. Тестовая строка оплаты."]), out)
 
@@ -251,6 +251,17 @@ def test_compose_supply_payment_lines_inherit_marker_font(tmp_path: Path) -> Non
     sz = rpr.find(qn("w:sz"))
     assert sz is not None
     assert sz.get(qn("w:val")) == "22"
+
+    p_el = target._element
+    p_pr = p_el.find(qn("w:pPr"))
+    assert p_pr is not None
+    spacing = p_pr.find(qn("w:spacing"))
+    assert spacing is not None
+    assert spacing.get(qn("w:line")) == "360"
+    assert spacing.get(qn("w:lineRule")) == "auto"
+    jc = p_pr.find(qn("w:jc"))
+    assert jc is not None
+    assert jc.get(qn("w:val")) == "both"
 
 
 def test_make_clause_para_rpr_and_bold_schema_order() -> None:
@@ -279,6 +290,40 @@ def test_make_clause_para_rpr_and_bold_schema_order() -> None:
 
     br_run = runs[1]
     assert br_run.find(qn("w:br")) is not None
+
+
+def test_make_clause_para_ppr_is_source_of_truth_over_justify() -> None:
+    """ppr копируется целиком на параграф; justify игнорируется, если ppr передан."""
+    from docx.oxml import OxmlElement
+
+    marker_ppr = OxmlElement("w:pPr")
+    spacing = OxmlElement("w:spacing")
+    spacing.set(qn("w:line"), "360")
+    spacing.set(qn("w:lineRule"), "auto")
+    marker_ppr.append(spacing)
+    jc = OxmlElement("w:jc")
+    jc.set(qn("w:val"), "both")
+    marker_ppr.append(jc)
+
+    p_el = _make_clause_para("Строка оплаты", justify=False, ppr=marker_ppr)
+    p_pr = p_el.find(qn("w:pPr"))
+    assert p_pr is not None
+    assert p_pr is not marker_ppr  # копия, не та же ссылка
+    assert p_pr.find(qn("w:spacing")).get(qn("w:line")) == "360"
+    assert p_pr.find(qn("w:jc")).get(qn("w:val")) == "both"
+
+    # justify=True не должен задваивать/переопределять, ppr остаётся источником истины
+    p_el2 = _make_clause_para("Строка оплаты", justify=True, ppr=marker_ppr)
+    p_pr2 = p_el2.find(qn("w:pPr"))
+    assert len(p_pr2.findall(qn("w:jc"))) == 1
+    assert p_pr2.find(qn("w:jc")).get(qn("w:val")) == "both"
+
+    # без ppr старая логика justify не меняется
+    p_el3 = _make_clause_para("Строка оплаты", justify=True)
+    p_pr3 = p_el3.find(qn("w:pPr"))
+    assert p_pr3 is not None
+    assert p_pr3.find(qn("w:jc")).get(qn("w:val")) == "both"
+    assert p_pr3.find(qn("w:spacing")) is None
 
 
 def test_each_appendix_starts_with_single_page_break(tmp_path: Path) -> None:

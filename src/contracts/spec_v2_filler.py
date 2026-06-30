@@ -71,15 +71,21 @@ def _build_run_rpr(rpr, bold: bool):
 
 
 def _make_clause_para(
-    text: str, bold: bool = False, justify: bool = False, rpr=None,
+    text: str, bold: bool = False, justify: bool = False, rpr=None, ppr=None,
 ):
     """Создать XML-элемент параграфа для clause секции.
 
     rpr — rPr-элемент (например, рана с маркером), который копируется в каждый
     создаваемый ран, чтобы унаследовать форматирование маркера (шрифт, размер).
+    ppr — pPr-элемент параграфа с маркером: если передан, копируется целиком
+    и является источником истины для форматирования параграфа (интервал,
+    выравнивание и т.п.) — параметр justify в этом случае игнорируется,
+    т.к. сам ppr уже несёт нужное выравнивание маркера.
     """
     p = OxmlElement('w:p')
-    if justify:
+    if ppr is not None:
+        p.append(copy.deepcopy(ppr))
+    elif justify:
         pPr = OxmlElement('w:pPr')
         jc = OxmlElement('w:jc')
         jc.set(qn('w:val'), 'both')
@@ -118,6 +124,11 @@ def _get_marker_rpr(para, marker: str):
     return None
 
 
+def _get_marker_ppr(para):
+    """Найти pPr параграфа с маркером — для наследования интервала/выравнивания."""
+    return para._element.find(qn('w:pPr'))
+
+
 def _replace_marker_with_paragraphs(
     doc, marker: str, lines: list[str],
 ) -> bool:
@@ -126,8 +137,9 @@ def _replace_marker_with_paragraphs(
         if marker in para.text:
             p_el = para._element
             marker_rpr = _get_marker_rpr(para, marker)
+            marker_ppr = _get_marker_ppr(para)
             for line in reversed(lines):
-                p_el.addnext(_make_clause_para(line, rpr=marker_rpr))
+                p_el.addnext(_make_clause_para(line, rpr=marker_rpr, ppr=marker_ppr))
             p_el.getparent().remove(p_el)
             return True
     return False
