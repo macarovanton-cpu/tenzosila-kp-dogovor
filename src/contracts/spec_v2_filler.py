@@ -27,10 +27,57 @@ _TTH_KEYS = (
 )
 
 
+# Порядок дочерних элементов CT_RPr по схеме OOXML (wml.xsd, EG_RPrBase) —
+# нужен, чтобы вставлять <w:b/> в скопированный rPr на корректную позицию.
+_RPR_CHILD_ORDER = [
+    "rStyle", "rFonts", "b", "bCs", "i", "iCs", "caps", "smallCaps", "strike",
+    "dstrike", "outline", "shadow", "emboss", "imprint", "noProof", "snapToGrid",
+    "vanish", "webHidden", "color", "spacing", "w", "kern", "position", "sz",
+    "szCs", "highlight", "u", "effect", "bdr", "shd", "fitText", "vertAlign",
+    "rtl", "cs", "em", "lang", "eastAsianLayout", "specVanish", "oMath",
+]
+
+
+def _insert_bold(rpr) -> None:
+    """Добавить <w:b/> в rPr на позицию по схеме OOXML, если его там ещё нет."""
+    if rpr.find(qn('w:b')) is not None:
+        return
+    b_pos = _RPR_CHILD_ORDER.index('b')
+    insert_before = None
+    for child in rpr:
+        local = child.tag.split('}')[-1]
+        if local in _RPR_CHILD_ORDER and _RPR_CHILD_ORDER.index(local) > b_pos:
+            insert_before = child
+            break
+    b_el = OxmlElement('w:b')
+    if insert_before is not None:
+        insert_before.addprevious(b_el)
+    else:
+        rpr.append(b_el)
+
+
+def _build_run_rpr(rpr, bold: bool):
+    """Собрать rPr для нового рана: deepcopy формата маркера + (опционально) bold."""
+    if rpr is not None:
+        new_rpr = copy.deepcopy(rpr)
+        if bold:
+            _insert_bold(new_rpr)
+        return new_rpr
+    if bold:
+        new_rpr = OxmlElement('w:rPr')
+        new_rpr.append(OxmlElement('w:b'))
+        return new_rpr
+    return None
+
+
 def _make_clause_para(
-    text: str, bold: bool = False, justify: bool = False,
+    text: str, bold: bool = False, justify: bool = False, rpr=None,
 ):
-    """Создать XML-элемент параграфа для clause секции."""
+    """Создать XML-элемент параграфа для clause секции.
+
+    rpr — rPr-элемент (например, рана с маркером), который копируется в каждый
+    создаваемый ран, чтобы унаследовать форматирование маркера (шрифт, размер).
+    """
     p = OxmlElement('w:p')
     if justify:
         pPr = OxmlElement('w:pPr')
@@ -43,10 +90,9 @@ def _make_clause_para(
     lines = text.split('\n')
     for i, line in enumerate(lines):
         r = OxmlElement('w:r')
-        if bold:
-            rPr = OxmlElement('w:rPr')
-            rPr.append(OxmlElement('w:b'))
-            r.append(rPr)
+        run_rpr = _build_run_rpr(rpr, bold)
+        if run_rpr is not None:
+            r.append(run_rpr)
         t_el = OxmlElement('w:t')
         t_el.text = line
         t_el.set(qn('xml:space'), 'preserve')
@@ -54,13 +100,22 @@ def _make_clause_para(
         p.append(r)
         if i < len(lines) - 1:
             br_r = OxmlElement('w:r')
-            if bold:
-                br_rPr = OxmlElement('w:rPr')
-                br_rPr.append(OxmlElement('w:b'))
-                br_r.append(br_rPr)
+            br_rpr = _build_run_rpr(rpr, bold)
+            if br_rpr is not None:
+                br_r.append(br_rpr)
             br_r.append(OxmlElement('w:br'))
             p.append(br_r)
     return p
+
+
+def _get_marker_rpr(para, marker: str):
+    """Найти rPr рана с маркером — для наследования форматирования новыми ранами."""
+    for run in para.runs:
+        if marker in run.text:
+            return run._element.find(qn('w:rPr'))
+    if para.runs:
+        return para.runs[0]._element.find(qn('w:rPr'))
+    return None
 
 
 def _replace_marker_with_paragraphs(
@@ -70,8 +125,9 @@ def _replace_marker_with_paragraphs(
     for para in doc.paragraphs:
         if marker in para.text:
             p_el = para._element
+            marker_rpr = _get_marker_rpr(para, marker)
             for line in reversed(lines):
-                p_el.addnext(_make_clause_para(line))
+                p_el.addnext(_make_clause_para(line, rpr=marker_rpr))
             p_el.getparent().remove(p_el)
             return True
     return False

@@ -6,6 +6,7 @@ from docx.oxml.ns import qn
 
 from src.contracts.compose import compose_spec_with_attachments, compose_supply
 from src.contracts.filler import get_unfilled_placeholders
+from src.contracts.spec_v2_filler import _make_clause_para
 
 
 def _make_spec(path: Path) -> None:
@@ -232,6 +233,52 @@ def test_compose_supply_with_payment_inserts_lines(tmp_path: Path) -> None:
     text = _all_text(Document(out))
     assert "Тестовая строка оплаты" in text
     assert "PAYMENT_SECTION" not in text
+
+
+def test_compose_supply_payment_lines_inherit_marker_font(tmp_path: Path) -> None:
+    """Строки оплаты наследуют формат маркера (Arial 11), а не docDefaults (TNR 12)."""
+    out = tmp_path / "supply.docx"
+    compose_supply(_supply_ctx(["4.2.1. Тестовая строка оплаты."]), out)
+
+    doc = Document(out)
+    target = next(p for p in doc.paragraphs if "Тестовая строка оплаты" in p.text)
+    assert target.runs, "у параграфа оплаты должен быть хотя бы один ран"
+    rpr = target.runs[0]._element.find(qn("w:rPr"))
+    assert rpr is not None
+    r_fonts = rpr.find(qn("w:rFonts"))
+    assert r_fonts is not None
+    assert r_fonts.get(qn("w:ascii")) == "Arial"
+    sz = rpr.find(qn("w:sz"))
+    assert sz is not None
+    assert sz.get(qn("w:val")) == "22"
+
+
+def test_make_clause_para_rpr_and_bold_schema_order() -> None:
+    """rPr копируется на каждый ран (включая br), <w:b/> вставляется по схеме OOXML."""
+    from docx.oxml import OxmlElement
+
+    marker_rpr = OxmlElement("w:rPr")
+    r_fonts = OxmlElement("w:rFonts")
+    r_fonts.set(qn("w:ascii"), "Arial")
+    marker_rpr.append(r_fonts)
+    sz = OxmlElement("w:sz")
+    sz.set(qn("w:val"), "22")
+    marker_rpr.append(sz)
+
+    p_el = _make_clause_para("Строка 1\nСтрока 2", bold=True, rpr=marker_rpr)
+    runs = p_el.findall(qn("w:r"))
+    assert len(runs) == 3  # line1, br, line2
+
+    for run in runs:
+        run_rpr = run.find(qn("w:rPr"))
+        assert run_rpr is not None
+        tags = [child.tag.split("}")[-1] for child in run_rpr]
+        assert tags == ["rFonts", "b", "sz"], tags
+        assert run_rpr.findall(qn("w:b")) and len(run_rpr.findall(qn("w:b"))) == 1
+        assert run_rpr.find(qn("w:rFonts")).get(qn("w:ascii")) == "Arial"
+
+    br_run = runs[1]
+    assert br_run.find(qn("w:br")) is not None
 
 
 def test_each_appendix_starts_with_single_page_break(tmp_path: Path) -> None:
