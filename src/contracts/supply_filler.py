@@ -16,10 +16,21 @@ from src.contracts.payment_line import (
     PaymentTrigger,
     format_payment_line,
 )
-from src.contracts.requisites_transforms import director_initials
+from src.contracts.requisites_transforms import (
+    decline_fio,
+    director_initials,
+    position_genitive,
+)
 from src.contracts.supplier import SUPPLIER
 from src.contracts.tth_context import build_tth_data
-from src.contracts.utils import MONTHS_RU, days_genitive, number_to_words
+from src.contracts.utils import (
+    MONTHS_RU,
+    acts_participle,
+    days_genitive,
+    infer_director_gender,
+    named_form,
+    number_to_words,
+)
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item, resolve_term_role
 
 
@@ -66,19 +77,50 @@ def _normalize_quotes(s: str) -> str:
     return ''.join(result)
 
 
+_OSNOV_PREFIX_RE = re.compile(r"^на\s+основании\s+", re.IGNORECASE)
+
+
 def _buyer_context(ctx: dict[str, str]) -> dict[str, str]:
     """Собрать ПОКУПАТЕЛЬ_* и ПОСТАВЩИК_* из плоского ctx (ЗАКАЗЧИК_*).
 
     Внутренние ЗАКАЗЧИК_* ключи НЕ переименовываются.
     ИП не имеет КПП: если ЗАКАЗЧИК_КПП отсутствует/пусто → пусто (не падать).
     Шаблон прячет строку КПП через {% if ПОКУПАТЕЛЬ_КПП %}.
+
+    Преамбула в род. падеже (Путь A — авто-склонение). 6 ключей преамбулы/контактов
+    ВСЕГДА присутствуют (пустая строка по умолчанию), иначе docxtpl {% if %} упадёт.
+    Нет директора → ФИО_РП / ДОЛЖНОСТЬ_РП / ДЕЙСТВУЕТ / ОСНОВАНИЕ пустые, и клауза
+    «в лице …» в шаблоне скрывается своим {% if %}.
     """
     g = ctx.get
+
+    name = _normalize_quotes(
+        g("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") or g("ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ", "")
+    )
+    fio = (g("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", "") or "").strip()
+    position = (g("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ", "") or "").strip()
+    gender = (g("ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", "") or "").strip() or (
+        infer_director_gender(fio) if fio else ""
+    )
+
+    # ФИО/должность в родительном падеже: берём готовое (ручная правка менеджера),
+    # иначе склоняем; неизвестная должность → fallback на именительный (не падаем).
+    fio_rp = (
+        (g("ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП") or decline_fio(fio, gender or "male")[0])
+        if fio else ""
+    )
+    position_rp = (
+        (g("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ_РП") or position_genitive(position) or position)
+        if position else ""
+    )
+    # Основание: парсер отдаёт без предлога; срезаем «на основании » для ручного ввода.
+    osnovanie = _OSNOV_PREFIX_RE.sub("", (g("ЗАКАЗЧИК_ОСНОВАНИЕ", "") or "").strip())
+    if fio and not osnovanie:
+        osnovanie = "Устава"
+
     result: dict[str, str] = {
         # Покупатель — КРАТКОЕ наименование (симметрия с кратким поставщиком).
-        "ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ":  _normalize_quotes(
-            g("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") or g("ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ", "")
-        ),
+        "ПОКУПАТЕЛЬ_НАИМЕНОВАНИЕ":  name,
         "ПОКУПАТЕЛЬ_ИНН":            g("ЗАКАЗЧИК_ИНН", ""),
         "ПОКУПАТЕЛЬ_КПП":            g("ЗАКАЗЧИК_КПП", ""),
         "ПОКУПАТЕЛЬ_ОГРН":           g("ЗАКАЗЧИК_ОГРН", ""),
@@ -88,11 +130,18 @@ def _buyer_context(ctx: dict[str, str]) -> dict[str, str]:
         "ПОКУПАТЕЛЬ_БИК":            g("ЗАКАЗЧИК_БИК", ""),
         "ПОКУПАТЕЛЬ_БАНК":           g("ЗАКАЗЧИК_БАНК", ""),
         "ПОКУПАТЕЛЬ_EMAIL":          g("ЗАКАЗЧИК_EMAIL", ""),
+        "ПОКУПАТЕЛЬ_ТЕЛЕФОН":        g("ЗАКАЗЧИК_ТЕЛЕФОН", ""),
         # Подписант — формат «инициалы + фамилия» (симметрия с О.А. Сенаторов).
         "ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО":   (
-            g("ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ") or director_initials(g("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", ""))
+            g("ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ") or director_initials(fio)
         ),
-        "ПОКУПАТЕЛЬ_ДИРЕКТОР_ДОЛЖНОСТЬ": g("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ", ""),
+        "ПОКУПАТЕЛЬ_ДИРЕКТОР_ДОЛЖНОСТЬ": position,
+        # Преамбула в родительном падеже + орг-форма.
+        "ПОКУПАТЕЛЬ_ДИРЕКТОР_ФИО_РП":       fio_rp,
+        "ПОКУПАТЕЛЬ_ДИРЕКТОР_ДОЛЖНОСТЬ_РП": position_rp,
+        "ПОКУПАТЕЛЬ_ДЕЙСТВУЕТ":              acts_participle(gender) if fio else "",
+        "ПОКУПАТЕЛЬ_ОСНОВАНИЕ":              osnovanie,
+        "ПОКУПАТЕЛЬ_ИМЕНУЕМ":                named_form(name),
     }
     result.update(SUPPLIER)
     return result

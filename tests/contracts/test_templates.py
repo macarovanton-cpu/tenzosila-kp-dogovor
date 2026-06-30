@@ -286,3 +286,81 @@ def test_spec_v2_preamble_and_signatures_use_short_name():
     text = _filled_text("spec_v2.docx")
     assert "МЕРИДИАН" in text, "Краткое наименование отсутствует в спецификации"
     assert 'ООО «МЕРИДИАН»' not in text, "Полное наименование не должно использоваться в спецификации"
+
+
+# --- рендер-смоук договора поставки (docxtpl: преамбула в род. падеже) ---
+
+def _supply_context():
+    """Собрать полный docxtpl-контекст supply_contract.docx через реальный билдер."""
+    from datetime import date
+
+    from src.contracts.supply_filler import build_supply_context
+
+    ctx = {
+        "ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ": "ООО «Меридиан»",
+        "ЗАКАЗЧИК_ИНН": "7701234567",
+        "ЗАКАЗЧИК_КПП": "770101001",
+        "ЗАКАЗЧИК_ОГРН": "1027700000000",
+        "ЗАКАЗЧИК_АДРЕС_ЮР": "г. Москва, ул. Тестовая, 1",
+        "ЗАКАЗЧИК_РС": "40702810000000000001",
+        "ЗАКАЗЧИК_КС": "30101810400000000225",
+        "ЗАКАЗЧИК_БИК": "044525225",
+        "ЗАКАЗЧИК_БАНК": "ПАО «Сбербанк России»",
+        "ЗАКАЗЧИК_EMAIL": "test@test.ru",
+        "ЗАКАЗЧИК_ТЕЛЕФОН": "+7 (473) 000-00-00",
+        "ЗАКАЗЧИК_ДИРЕКТОР_ФИО": "Иванов Иван Иванович",
+        "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ": "Генеральный директор",
+        "ЗАКАЗЧИК_ОСНОВАНИЕ": "Устава",
+    }
+    items = [{
+        "name": "Весы автомобильные ВЕСТА-С-60-20",
+        "quantity": 1, "total": 2_000_000, "payment_group": "scales",
+    }]
+    return build_supply_context(
+        ctx, items, deal={}, payment_rows=[],
+        manual={"contract_number": "1", "object_address": "г. Воронеж"},
+        contract_date=date(2026, 1, 1),
+    )
+
+
+def test_supply_contract_context_covers_all_placeholders():
+    """Контекст build_supply_context покрывает ВСЕ плейсхолдеры шаблона.
+
+    Прямая защита от UndefinedError: каждая переменная, на которую ссылается
+    supply_contract.docx (вкл. новые ключи преамбулы в {% if %}), есть в контексте.
+    """
+    from docxtpl import DocxTemplate
+
+    context = _supply_context()
+    tpl = DocxTemplate(str(CONTRACTS / "supply_contract.docx"))
+    declared = tpl.get_undeclared_template_variables()
+    missing = declared - set(context)
+    assert not missing, f"Шаблону не хватает ключей контекста: {sorted(missing)}"
+
+
+def test_supply_contract_renders_preamble_no_raw_tags():
+    """Полный compose_supply рендерит без сырых {{ }} / {% %} и со значениями преамбулы."""
+    import os
+    import tempfile
+    from pathlib import Path
+
+    from src.contracts.compose import compose_supply
+
+    context = _supply_context()
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+        out = tmp.name
+    try:
+        compose_supply(context, Path(out))
+        text = _all_text(Path(out))
+    finally:
+        if os.path.exists(out):
+            os.unlink(out)
+
+    assert "{%" not in text, "В выводе остались сырые jinja-теги {% %}"
+    assert "{{" not in text, "В выводе остались сырые плейсхолдеры {{ }}"
+    # Преамбула в родительном падеже + орг-форма собрались.
+    assert "Иванова Ивана Ивановича" in text, "ФИО_РП не просклонилось"
+    assert "генерального директора" in text, "ДОЛЖНОСТЬ_РП не просклонилась"
+    assert "действующего" in text
+    assert "именуемое" in text
+    assert "Устава" in text

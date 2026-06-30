@@ -158,6 +158,26 @@ def infer_director_gender(full_name: str) -> str:
     return 'male'
 
 
+def acts_participle(gender: str) -> str:
+    """Причастие «действующий» по полу для преамбулы договора.
+
+    'female' → «действующей», иначе (вкл. пустой/неизвестный) → «действующего».
+    """
+    return 'действующей' if gender == 'female' else 'действующего'
+
+
+def named_form(name: str) -> str:
+    """«именуемое»/«именуемый» по орг-форме покупателя в преамбуле.
+
+    ИП → «именуемый» (мужской род); прочее (ООО/АО/ПАО/ЗАО/НАО и пустое) →
+    «именуемое» (средний род, он же fallback).
+    """
+    s = name.strip().lower()
+    if s.startswith('ип ') or s.startswith('индивидуальный предприниматель'):
+        return 'именуемый'
+    return 'именуемое'
+
+
 def format_date_parts(date_str: str) -> dict:
     """
     Разбирает дату из строки и возвращает словарь с частями.
