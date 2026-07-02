@@ -6,7 +6,9 @@ from docx.oxml.ns import qn
 
 from src.contracts.compose import compose_spec_with_attachments, compose_supply
 from src.contracts.filler import get_unfilled_placeholders
+from src.contracts.requisites_parser import parse_requisites
 from src.contracts.spec_v2_filler import _make_clause_para
+from src.contracts.supply_filler import _buyer_context
 
 
 def _make_spec(path: Path) -> None:
@@ -262,6 +264,49 @@ def test_compose_supply_payment_lines_inherit_marker_format(tmp_path: Path) -> N
     jc = p_pr.find(qn("w:jc"))
     assert jc is not None
     assert jc.get(qn("w:val")) == "both"
+
+
+def test_compose_supply_buyer_phone_from_pasted_requisites_shown(tmp_path: Path) -> None:
+    """Реквизиты с «Телефон: +7 (NNN) ...» → строка Тел./факс покупателя видна в договоре.
+
+    Полный путь бага: paste → parse_requisites → _buyer_context → рендер.
+    """
+    requisites = (
+        'ООО "Завод деталей"\n'
+        "ИНН 3665123456 КПП 366501001\n"
+        "ОГРН 1163668123456\n"
+        "Юр.адрес: 394000, г. Воронеж, ул. Ленина, 1\n"
+        "Телефон: +7 (473) 214-58-62\n"
+    )
+    ctx = _supply_ctx([])
+    ctx.update(_buyer_context(parse_requisites(requisites)))
+
+    out = tmp_path / "supply.docx"
+    compose_supply(ctx, out)
+
+    text = _all_text(Document(out))
+    assert "Тел./факс: +7 (473) 214-58-62" in text
+    assert "{{" not in text
+    assert "{%" not in text
+
+
+def test_compose_supply_buyer_phone_absent_line_hidden(tmp_path: Path) -> None:
+    """Реквизиты без телефона → строка Тел./факс покупателя скрыта (только строка поставщика)."""
+    requisites = (
+        'ООО "Завод деталей"\n'
+        "ИНН 3665123456 КПП 366501001\n"
+        "ОГРН 1163668123456\n"
+        "Юр.адрес: 394000, г. Воронеж, ул. Ленина, 1\n"
+    )
+    ctx = _supply_ctx([])
+    ctx.update(_buyer_context(parse_requisites(requisites)))
+
+    out = tmp_path / "supply.docx"
+    compose_supply(ctx, out)
+
+    text = _all_text(Document(out))
+    # Только захардкоженный телефон поставщика (Тензосилы), строки покупателя нет.
+    assert text.count("Тел./факс:") == 1
 
 
 def test_make_clause_para_rpr_and_bold_schema_order() -> None:
