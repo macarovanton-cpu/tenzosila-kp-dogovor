@@ -74,6 +74,11 @@ class TestParseBasicFields:
         result = parse_requisites(text)
         assert "ЗАКАЗЧИК_ТЕЛЕФОН" in result
 
+    def test_phone_with_area_code_in_parens(self):
+        text = "Телефон: +7 (473) 214-58-62"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ТЕЛЕФОН") == "+7 (473) 214-58-62"
+
     def test_name_in_quotes(self):
         text = 'ООО "Тензосила"'
         result = parse_requisites(text)
