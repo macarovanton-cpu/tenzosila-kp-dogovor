@@ -119,8 +119,60 @@ _OTHER_ROLE_RE = re.compile(
 # ФИО: три слова с заглавной буквы (фамилия имя отчество)
 _FIO_RE = re.compile(r"[А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+")
 
-# Основание: текст после «на основании»
-_OSNOV_RE = re.compile(r"на\s+основании\s+(.+?)(?:\.|,|$|\n)", re.IGNORECASE)
+
+# ---------------------------------------------------------------------------
+# Label-anchored слой: словарь якорей-меток и резка текста по ним
+# ---------------------------------------------------------------------------
+
+# Канонический ключ поля -> синонимы метки. Полный словарь участвует в
+# СКАНИРОВАНИИ (даже поля, которые берём не из сегмента — ИНН/КПП/ОГРН/БИК/
+# директор/тел/email), чтобы текстовые сегменты (банк, адреса, основание)
+# корректно обрывались на СЛЕДУЮЩЕЙ метке.
+_ANCHORS: dict[str, list[str]] = {
+    "NAME_FULL": ["Полное фирменное наименование", "Полное наименование"],
+    "NAME_SHORT": ["Сокращенное наименование", "Краткое наименование", "Сокр. наименование"],
+    "INN": ["ИНН"],
+    "KPP": ["КПП"],
+    "OGRN": ["ОГРНИП", "ОГРН"],
+    "OKPO": ["ОКПО"],
+    "OKVED": ["ОКВЭД2", "ОКВЭД"],
+    "ADDR_YUR": ["Юридический адрес", "Юр. адрес", "Юр.адрес", "Адрес регистрации"],
+    "ADDR_POCT": ["Почтовый адрес", "Почт. адрес", "Факт. адрес", "Фактический адрес"],
+    "RS": ["Расчетный счет", "Расчётный счёт", "Р/сч", "расч. счет", "Р/с", "р/с"],
+    "BANK": ["Банк получателя", "Наименование банка", "Банк"],
+    "BIK": ["БИК"],
+    "KS": ["Корреспондентский счет", "Корр. счет", "Кор. счёт", "К/с"],
+    "DIRECTOR": ["Генеральный директор", "Ген. директор", "Глава КФХ", "Директор", "Руководитель", "ИП"],
+    "OSNOVANIE": ["Действует на основании", "на основании", "Основание"],
+    "PHONE": ["Контактный телефон", "Телефон", "Тел.", "Т."],
+    "EMAIL": ["E-mail", "Email", "Эл. почта", "Почта"],
+}
+
+
+def _build_anchor_scan_re() -> re.Pattern[str]:
+    """Единая альтернация всех синонимов меток, длинные раньше коротких.
+
+    Границы слов (`\\b`) с обеих сторон, регистронезависимо. Пробел внутри
+    синонима трактуем как `\\s+` (после нормализации _NBSP это один пробел).
+    Длинные раньше коротких — иначе короткий синоним обрубает длинный
+    («Банк» до «Банк получателя»).
+    """
+    all_syn: list[str] = []
+    for syns in _ANCHORS.values():
+        all_syn.extend(syns)
+    all_syn.sort(key=len, reverse=True)
+    escaped = [re.escape(s).replace(r"\ ", r"\s+") for s in all_syn]
+    pattern = r"\b(?:" + "|".join(escaped) + r")\b"
+    return re.compile(pattern, re.IGNORECASE)
+
+
+_ANCHOR_SCAN_RE = _build_anchor_scan_re()
+
+# Обратная карта: нормализованный (lower, один пробел) синоним -> ключ.
+_SYN_TO_KEY: dict[str, str] = {}
+for _key, _syns in _ANCHORS.items():
+    for _syn in _syns:
+        _SYN_TO_KEY[re.sub(r"\s+", " ", _syn.lower())] = _key
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +193,18 @@ def parse_requisites(text: str) -> dict[str, str]:
     result: dict[str, str] = {}
 
     # ------------------------------------------------------------------
-    # 1. Email и телефон (однозначные паттерны)
+    # 0. Label-anchored слой: резка текста по меткам-якорям.
+    #    Действуем из сегментов на банк, адреса, основание, Р/с, К/с
+    #    (приоритет метки). Остальное — существующими путями ниже.
+    # ------------------------------------------------------------------
+    segments = _segment_by_labels(text)
+    _extract_bank(segments, result)
+    _extract_addresses_from_segments(segments, result)
+    _extract_osnovanie_from_segments(segments, result)
+    _extract_rs_ks_from_segments(segments, result)
+
+    # ------------------------------------------------------------------
+    # 1. Email и телефон (однозначные паттерны, полный текст)
     # ------------------------------------------------------------------
     m = _EMAIL_RE.search(text)
     if m:
@@ -161,24 +224,128 @@ def parse_requisites(text: str) -> dict[str, str]:
         result["ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ"] = f'{opf} "{name}"'
 
     # ------------------------------------------------------------------
-    # 3. Числовые токены: ИНН, ОГРН, БИК, КПП, р/с, к/с
+    # 3. Числовые токены: ИНН, ОГРН, БИК, КПП, р/с, к/с (полный текст).
+    #    Слитный «ИНН/КПП …/…» разбираем ДО общей логики. Guard'ы
+    #    not-in/setdefault не перетирают уже заполненное из сегментов.
     # ------------------------------------------------------------------
-    # Слитный «ИНН/КПП …/…» разбираем ДО общей логики (она не перетрёт —
-    # использует not-in/setdefault).
     _extract_inn_kpp_slash(text, result)
     _extract_numeric_fields(text, result)
 
     # ------------------------------------------------------------------
-    # 4. Адреса
+    # 4. Адреса (fallback для безметочных). Запуск по «остаточному»
+    #    тексту: сегменты банка/основания/наименования забелены, чтобы
+    #    город из строки банка («…, г. Екб») не утёк в адрес.
     # ------------------------------------------------------------------
-    _extract_addresses(text, result)
+    residual = _blank_ranges(
+        text,
+        [(s, e) for key, _, s, e in segments
+         if key in ("BANK", "OSNOVANIE", "NAME_FULL", "NAME_SHORT")],
+    )
+    _extract_addresses(residual, result)
 
     # ------------------------------------------------------------------
-    # 5. ФИО директора, должность, основание (best-effort, консервативно)
+    # 5. ФИО директора, должность (best-effort, консервативно; полный текст)
     # ------------------------------------------------------------------
     _extract_director_fields(text, result)
 
     return result
+
+
+def _segment_by_labels(text: str) -> list[tuple[str, str, int, int]]:
+    """Разрезать текст по меткам-якорям.
+
+    Для каждой найденной метки значение = текст от конца метки до начала
+    СЛЕДУЮЩЕЙ метки (любой) или до конца текста. Возвращает список
+    (канонический_ключ, значение, start, end), где start/end — позиции
+    очищенного значения в исходном тексте (для «забеливания»).
+    """
+    matches = list(_ANCHOR_SCAN_RE.finditer(text))
+    segments: list[tuple[str, str, int, int]] = []
+    for i, m in enumerate(matches):
+        syn_norm = re.sub(r"\s+", " ", m.group(0).lower())
+        key = _SYN_TO_KEY.get(syn_norm)
+        if key is None:
+            continue
+        value_start = m.end()
+        value_end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        raw = text[value_start:value_end]
+        # Срезать ведущие «:», пробелы, переносы
+        lstripped = raw.lstrip(" :\n\t")
+        lead = len(raw) - len(lstripped)
+        cleaned = lstripped.rstrip()
+        if not cleaned:
+            continue
+        real_start = value_start + lead
+        real_end = real_start + len(cleaned)
+        segments.append((key, cleaned, real_start, real_end))
+    return segments
+
+
+def _extract_bank(
+    segments: list[tuple[str, str, int, int]], result: dict[str, str]
+) -> None:
+    """Название банка из первого сегмента BANK: чистка пунктуации, отсев чисел."""
+    for key, value, _, _ in segments:
+        if key != "BANK":
+            continue
+        cleaned = value.strip().rstrip(",.; ")
+        if not cleaned or re.fullmatch(r"[\d\s\-]+", cleaned):
+            continue  # пусто или похоже на число — не банк
+        result.setdefault("ЗАКАЗЧИК_БАНК", cleaned)
+        break
+
+
+def _extract_osnovanie_from_segments(
+    segments: list[tuple[str, str, int, int]], result: dict[str, str]
+) -> None:
+    """Основание из сегмента OSNOVANIE — БЕЗ предлога (контракт _buyer_context)."""
+    for key, value, _, _ in segments:
+        if key != "OSNOVANIE":
+            continue
+        cleaned = value.strip().rstrip(".,;")
+        if cleaned:
+            result.setdefault("ЗАКАЗЧИК_ОСНОВАНИЕ", cleaned)
+        break
+
+
+def _extract_addresses_from_segments(
+    segments: list[tuple[str, str, int, int]], result: dict[str, str]
+) -> None:
+    """Юр./почт. адреса из сегментов меток (приоритет метки над fallback)."""
+    for key, value, _, _ in segments:
+        cleaned = value.strip().rstrip(".,;")
+        if not cleaned:
+            continue
+        if key == "ADDR_YUR":
+            result.setdefault("ЗАКАЗЧИК_АДРЕС_ЮР", cleaned)
+        elif key == "ADDR_POCT":
+            result.setdefault("ЗАКАЗЧИК_АДРЕС_ПОЧТ", cleaned)
+
+
+def _extract_rs_ks_from_segments(
+    segments: list[tuple[str, str, int, int]], result: dict[str, str]
+) -> None:
+    """Р/с и К/с по 20-значному числу внутри сегмента своей метки (приоритет метки)."""
+    for key, value, _, _ in segments:
+        if key not in ("RS", "KS"):
+            continue
+        m = re.search(r"(?<!\d)\d{20}(?!\d)", value)
+        if not m:
+            continue
+        target = "ЗАКАЗЧИК_РС" if key == "RS" else "ЗАКАЗЧИК_КС"
+        result.setdefault(target, m.group(0))
+
+
+def _blank_ranges(text: str, ranges: list[tuple[int, int]]) -> str:
+    """Заменить символы в диапазонах [start,end) на пробелы (перенос строки — сохранить)."""
+    if not ranges:
+        return text
+    chars = list(text)
+    for start, end in ranges:
+        for i in range(start, min(end, len(chars))):
+            if chars[i] != "\n":
+                chars[i] = " "
+    return "".join(chars)
 
 
 def _extract_inn_kpp_slash(text: str, result: dict[str, str]) -> None:
@@ -337,14 +504,10 @@ def _extract_director_fields(text: str, result: dict[str, str]) -> None:
 
     ФИО директора: ТОЛЬКО при явном якоре «в лице» / «директор» / «руководитель»
     вплотную к ФИО. При нескольких кандидатах → пусто (правка №2).
-    """
-    # Основание: текст после «на основании»
-    m = _OSNOV_RE.search(text)
-    if m:
-        osnov = m.group(1).strip().rstrip(".,;")
-        if osnov:
-            result["ЗАКАЗЧИК_ОСНОВАНИЕ"] = osnov
 
+    Основание извлекается в label-anchored слое (_extract_osnovanie_from_segments),
+    здесь только ФИО/должность.
+    """
     # Ищем все вхождения якорей директора
     director_fios: list[str] = []
     director_positions: list[str] = []
