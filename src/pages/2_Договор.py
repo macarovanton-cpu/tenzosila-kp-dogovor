@@ -546,9 +546,13 @@ with st.expander("Вставить реквизиты текстом", expanded=
         if st.button("Распознать", key="btn_parse_requisites"):
             _paste = st.session_state.get("w_requisites_paste", "")
             _parsed = parse_requisites(_paste)
-            _cur = st.session_state["contract"]["requisites"]
-            _derived, _warns = derive_requisites({**_cur, **_parsed})
-            merge_requisites({**_parsed, **_derived})
+            _derived, _warns = derive_requisites(_parsed)
+            _full = {key: "" for key, _label in REQUISITE_FIELDS}
+            _full.update(_parsed)
+            _full.update(_derived)
+            set_requisites(_full)
+            st.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = ""
+            st.session_state.pop("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", None)
             for _w in _warns:
                 st.warning(_w)
             if _parsed:
