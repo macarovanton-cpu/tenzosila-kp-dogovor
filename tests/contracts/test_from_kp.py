@@ -185,6 +185,33 @@ class TestBuildSpecFromKpSnapshot:
         zakazchik_keys = [k for k in spec if k.startswith("ЗАКАЗЧИК_")]
         assert zakazchik_keys == []
 
+    def test_empty_length_does_not_crash(self):
+        """Битый снапшот с length='' не роняет страницу (регресс)."""
+        from src.contracts.from_kp import build_specification_from_kp_snapshot
+        kp_row = _make_kp_row()
+        kp_row["data"]["model"]["length"] = ""
+        spec = build_specification_from_kp_snapshot(kp_row, PRICES, MODELS, PAYMENT_TERMS)
+        assert spec["СПЕЦ_НДС"] == "22"
+
+    def test_empty_option_qty_price_does_not_crash(self):
+        """Опция с qty='' и price='' (customer_side=False) не роняет страницу."""
+        from src.contracts.from_kp import build_specification_from_kp_snapshot
+        kp_row = _make_kp_row(options={
+            "delivery_default": {
+                "qty": "", "price": "", "customer_side": False,
+                "retail": 0, "dealer_is_synthetic": False,
+            },
+        })
+        spec = build_specification_from_kp_snapshot(kp_row, PRICES, MODELS, PAYMENT_TERMS)
+        assert spec["СПЕЦ_НДС"] == "22"
+
+    def test_empty_model_price_does_not_crash(self):
+        """Снапшот с model.price='' не роняет страницу (падает на retail модели)."""
+        from src.contracts.from_kp import build_specification_from_kp_snapshot
+        kp_row = _make_kp_row(model_price="")
+        spec = build_specification_from_kp_snapshot(kp_row, PRICES, MODELS, PAYMENT_TERMS)
+        assert spec["СПЕЦ_НДС"] == "22"
+
 
 class TestBuildSpecRowsFromSnapshot:
     """Тесты build_spec_rows_from_snapshot."""

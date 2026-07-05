@@ -38,7 +38,10 @@ def _format_model_name(model: dict | None, model_id: str) -> str:
 
 
 def _format_dimension_value(value: Any) -> str:
-    num = float(value)
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        return "?"
     if num.is_integer():
         return str(int(num))
     return f"{num:.1f}".rstrip("0").rstrip(".")
@@ -276,7 +279,7 @@ def build_spec_items(
             "term_role": resolve_term_role(model_id),
         })
 
-    length = int(state.get("model_length", 18))
+    length = int(state.get("model_length") or 18)
     prices_options = prices.get("options", {})
     options_state = state.get("options", {})
 

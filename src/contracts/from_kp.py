@@ -121,8 +121,8 @@ def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
     options = {
         key: {
             "enabled": True,
-            "price": v.get("price", 0),
-            "qty": v.get("qty", 1),
+            "price": v.get("price") or 0,
+            "qty": v.get("qty") if v.get("qty") not in (None, "") else 1,
             "customer_side": v.get("customer_side", False),
             "dimensions": v.get("dimensions", ""),
         }
@@ -136,7 +136,7 @@ def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
         "model_max": model.get("max"),
         "model_length": model.get("length"),
         "platform_width_m": model.get("width", 3.0),
-        "model_price": model.get("price"),
+        "model_price": model.get("price") or None,
         "sensor_id": (data.get("equipment") or {}).get("sensor_id", ""),
         "indicator_id": (data.get("equipment") or {}).get("indicator_id", ""),
         "options": options,
@@ -288,11 +288,12 @@ def build_spec_rows_from_snapshot(
     options = data.get("options") or {}
     installation_scope = data.get("installation_scope")
     for key, opt in options.items():
-        qty = int(opt.get("qty", 1))
+        qty_raw = opt.get("qty")
+        qty = int(qty_raw) if qty_raw not in (None, "") else 1
         if qty == 0:
             continue
         customer_side = bool(opt.get("customer_side", False))
-        price = 0 if customer_side else int(opt.get("price", 0))
+        price = 0 if customer_side else int(opt.get("price") or 0)
         price_display = "ЗАКАЗЧИК" if customer_side else _fmt(price)
 
         name = _resolve_option_name(key, line, opt, installation_scope, prices)
