@@ -112,12 +112,30 @@ def test_excludes_computed_values():
     state = _base_state()
     # Вычисляемые ключи — не должны попасть в снапшот
     state["spec_items"] = [{"label": "Базовый блок", "price": 2450000}]
-    state["total_term_days_user_set"] = True
     state["payment_percents"] = {"p1": 50}
     snap = build_kp_snapshot(state)
     assert "spec_items" not in snap
-    assert "total_term_days_user_set" not in snap
     assert "payment_percents" not in snap
+
+
+def test_metadata_includes_total_term_days():
+    """Срок исполнения + флаг ручной правки уходят в metadata."""
+    state = _base_state()
+    state["total_term_days"] = 42
+    state["total_term_days_user_set"] = True
+
+    snap = build_kp_snapshot(state)
+
+    assert snap["metadata"]["total_term_days"] == 42
+    assert snap["metadata"]["total_term_days_user_set"] is True
+
+
+def test_metadata_term_defaults_when_absent():
+    """Нет ручного срока → total_term_days=None, флаг=False (не падаем)."""
+    snap = build_kp_snapshot(_base_state())
+
+    assert snap["metadata"]["total_term_days"] is None
+    assert snap["metadata"]["total_term_days_user_set"] is False
 
 
 def test_handles_missing_optional_keys():

@@ -135,6 +135,10 @@ def build_kp_snapshot(state: dict[str, Any]) -> dict[str, Any]:
         "metadata": {
             "kp_valid_days": state.get("kp_valid_days"),
             "warranty_months": state.get("warranty_months"),
+            # Срок исполнения проекта: сохраняем факт. значение + флаг ручной
+            # правки, чтобы при переоткрытии КП срок не пересчитался дефолтом.
+            "total_term_days": state.get("total_term_days"),
+            "total_term_days_user_set": bool(state.get("total_term_days_user_set")),
         },
         "model": {
             "line": line,
