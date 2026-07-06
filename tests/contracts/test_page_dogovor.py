@@ -124,6 +124,12 @@ class _FakeStreamlitModule:
     def date_input(self, *args, **kwargs):
         return None
 
+    def cache_data(self, *args, **kwargs):
+        # @st.cache_data и @st.cache_data(...) → декоратор-проходка (без кэша).
+        if args and callable(args[0]):
+            return args[0]
+        return lambda func: func
+
 
 def _load_dogovor_page(monkeypatch):
     fake_st = _FakeStreamlitModule()

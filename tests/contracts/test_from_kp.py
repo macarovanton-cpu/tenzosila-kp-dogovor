@@ -212,6 +212,25 @@ class TestBuildSpecFromKpSnapshot:
         spec = build_specification_from_kp_snapshot(kp_row, PRICES, MODELS, PAYMENT_TERMS)
         assert spec["СПЕЦ_НДС"] == "22"
 
+    def test_row_without_data_yields_empty_spec(self):
+        """Строка без ключа `data` (как из list_recent_kps) → тихо пустая спец.
+
+        Документирует ловушку: дропдаун «Последние КП» отдаёт строку без снапшота
+        (колонка `data` не входит в _KP_LIST_COLS). Функция не роняется, но
+        спецификация пуста — суммы и ИТОГО пустые, генерить нечего. Дозагрузка
+        полного снапшота (get_kp_by_number) на странице — обход этой ловушки.
+        """
+        from src.contracts.from_kp import build_specification_from_kp_snapshot
+        kp_row = {  # ровно то, что возвращает list_recent_kps: без `data`
+            "kp_number": "КП-2026-001",
+            "model_id": "vesta-с-60-18",
+            "total_price": 2835000,
+        }
+        spec = build_specification_from_kp_snapshot(kp_row, PRICES, MODELS, PAYMENT_TERMS)
+        assert spec["СПЕЦ_ИТОГО"] == ""
+        assert spec["СПЕЦ_П1_СУММА"] == ""
+        assert all(spec[f"СПЕЦ_П{i}_НАИМЕНОВАНИЕ"] == "" for i in range(2, 6))
+
 
 class TestBuildSpecRowsFromSnapshot:
     """Тесты build_spec_rows_from_snapshot."""

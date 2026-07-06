@@ -269,6 +269,17 @@ def _save_uploaded(uploaded_file) -> str:
     return tmp.name
 
 
+@st.cache_data(show_spinner=False)
+def _load_kp_full(kp_number: str) -> dict | None:
+    """Полный снапшот КП по номеру, кэшированный по kp_number.
+
+    Дропдаун «Последние КП» отдаёт строку без `data` (list_recent_kps не тянет
+    JSONB), поэтому снапшот дозагружаем отдельно. Кэш убирает повтор сетевого
+    запроса на каждый rerun, пока КП выбран.
+    """
+    return get_kp_by_number(kp_number)
+
+
 def _render_field_group(
     title: str, fields: list[tuple[str, str]], section: str,
 ) -> None:
@@ -440,10 +451,16 @@ if mode == "Из базы (по номеру)":
 
     kp_row = None
     if selected_label != "— выбрать —":
-        kp_row = kp_options_map.get(selected_label)
+        # list_recent_kps не возвращает `data` — дозагружаем полный снапшот.
+        _summary = kp_options_map.get(selected_label)
+        if _summary:
+            try:
+                kp_row = _load_kp_full(_summary["kp_number"])
+            except StorageError as e:
+                st.error(f"Ошибка загрузки КП: {e}")
     elif search_clicked and manual_kp_num:
         try:
-            kp_row = get_kp_by_number(manual_kp_num.strip())
+            kp_row = _load_kp_full(manual_kp_num.strip())
             if kp_row is None:
                 st.warning(f"КП «{manual_kp_num}» не найден в базе.")
         except StorageError as e:
