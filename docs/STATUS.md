@@ -145,6 +145,26 @@ custom_N — отложен без изменений.
 
 ---
 
+## 🟢 P0-01: дамп-скрипт DOCX — ЗАКРЫТ (07-06)
+
+Первая задача фазы 0 миграции (docs/MIGRATION_PLAN.md §4). Новый пакет
+`tests/golden/`: `dump_docx.py` (оркестратор + CLI) + `dump_props.py`
+(whitelist-сводки) + `dump_walker.py` (рекурсивный lxml-обход, склейка ранов)
++ `dump_styles.py` (шапка [DEFAULTS]/[STYLE]/[NUM]/[MEDIA]) + 28 тестов.
+
+- Канонический plain-text дамп: явные rPr/pPr (ловит регресс наследования —
+  сигнатура багов 8c52ede/4341a91), vMerge/gridSpan/trHeight, textbox
+  (mc:Choice, не Fallback), колонтитулы по секциям, порядок склейки
+  docxcompose (pgbrk/PAGEBREAK), поля (PAGE), sha1 медиа. Игнорирует rsid,
+  docProps, rId; стили по именам, numId по алиасам. Спецификация формата
+  v1 — в докстринге `dump_docx.py`.
+- Приёмка: двойной прогон на 3 реальных DOCX (КП, спецификация v2, договор
+  поставки) — sha1 дампов попарно идентичны; мутация bold одного рана в
+  копии → дифф ровно 1 содержательная строка (`R{}` → `R{b}`).
+- `pytest tests/ --ignore=tests/contracts/synthetic`: 956 passed, 1 skipped.
+- Следующие задачи фазы 0: P0-02 (фикстуры G-01…G-09; в т.ч. кейс с vMerge —
+  в текущих смоук-КП слияния сроков нет), P0-03 (заморозка эталонов, freezegun).
+
 ## 🟢 Фича «открыть прошлый КП» — ЗАКРЫТА (07-06)
 
 Менеджер переоткрывает ранее сгенерированный КП, правит, сохраняет как версию.
@@ -232,29 +252,7 @@ vs «custom_N ломает основной флоу».
 
 ## Активная задача
 
-**P0-01 (migration_plan §4): дамп-скрипт DOCX** — `tests/golden/dump_docx.py`,
-канонический plain-text дамп DOCX для golden-master верификации порта бэкенда.
-Захватывает значимое форматирование (run-level rPr, pPr, vMerge, trHeight, textbox,
-колонтитулы, порядок склейки), игнорирует недетерминизм (rsid, docProps, rId).
-Полный дизайн — план-файл сессии; спецификация формата будет в докстринге модуля.
-
-- [x] Шаг 0. STATUS.md: активная задача записана
-- [x] Шаг 1. `dump_props.py` — whitelist-сводки rPr/pPr/tcPr/trPr/sectPr/tbl + юниты
-- [x] Шаг 2. `dump_walker.py` ч.1 — параграфы/раны/склейка ранов + юниты
-- [x] Шаг 3. `dump_walker.py` ч.2 — таблицы/textbox/SECT/рекурсия
-- [x] Шаг 4. `dump_styles.py` — шапка дампа ([DEFAULTS]/[STYLE]/[NUM]/[MEDIA])
-- [x] Шаг 5. `dump_docx.py` — оркестратор + CLI (body → SECT → HEADER/FOOTER)
-- [ ] Шаг 6. `test_dump_docx.py` — стабильность ×3 смоук-файла + юниты + смоук содержимого ← ТЕКУЩИЙ
-- [ ] Шаг 7. Приёмка: двойной прогон на 3 DOCX байт-в-байт, докстринг-спецификация, лог
-
-**Лог:**
-- Шаг 1: dump_props.py, 12 юнитов зелёные (c87af37).
-- Шаги 2–3: dump_walker.py одним блоком (файл единый), 22 юнита зелёные, смоук на
-  3 реальных DOCX: TBL/TXBX/SECT/PAGEBREAK находятся, walker не падает (ec8c310).
-  Попутный фикс дизайна: drawing/pict в реальных файлах обёрнуты в
-  mc:AlternateContent — дампим только mc:Choice (Fallback = дубль textbox).
-- Шаги 4–5: dump_styles + dump_docx (337dbc0). CLI работает, дамп КП: шапка
-  [DEFAULTS]/[STYLE] по именам, HEADER/FOOTER обеих секций, textbox с ИНН в header.
+(нет активной задачи)
 
 **Готово к тегу `v2.4`** — после коммита этого фикса + STATUS.
 
