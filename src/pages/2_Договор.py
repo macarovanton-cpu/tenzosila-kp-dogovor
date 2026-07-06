@@ -40,6 +40,7 @@ from src.contracts.supply_filler import build_supply_context, decide_contract_ty
 from src.contracts.state import (  # noqa: E402
     clear_generated,
     collect_for_template,
+    get_model_qty,
     get_payment_lines,
     get_spec_items,
     init_contract_state,
@@ -918,9 +919,7 @@ if not generated:
                 _i["total"] = _i["quantity"] * _i["price_per_unit"]
         _gen_cs = st.session_state["contract"]
         # Количество весов — из снапшота КП (single source). Legacy/пустой → 1.
-        _model_qty = int(
-            (_gen_cs.get("kp_snapshot") or {}).get("model", {}).get("qty") or 1
-        )
+        _model_qty = get_model_qty()
         _gen_deal = {
             "items": items_for_docx,
             "scope_overrides": _gen_cs.get("scope_overrides", {}),

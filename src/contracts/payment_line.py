@@ -141,19 +141,20 @@ def _non_split_phases(
 
 
 def _build_non_split_lines(
-    payment: dict, spec_items: list[dict]
+    payment: dict, spec_items: list[dict], model_qty: int = 1
 ) -> list[PaymentLine]:
     """PaymentLine-строки для не-split пресетов (base = общая сумма спецификации).
 
     Последняя строка добирает остаток, чтобы Σamount == ИТОГО точно.
     Фазы с pct == 0 и строки с amount == 0 пропускаются.
+    base = подытог_за_1 × model_qty (spec_items per-unit).
     """
     phases, due = _non_split_phases(payment)
     phases = [(k, p, t) for k, p, t in phases if p > 0]
     if not phases:
         return []
 
-    total = _spec_total(spec_items)
+    total = _spec_total(spec_items) * int(model_qty or 1)
     lines: list[PaymentLine] = []
     assigned = 0
 
@@ -237,16 +238,20 @@ def _amount(total: int, pct: int) -> int:
 
 
 def build_lines_from_snapshot(
-    payment: dict, spec_items: list[dict]
+    payment: dict, spec_items: list[dict], model_qty: int = 1
 ) -> list[PaymentLine]:
     """Черновые строки платёжного раздела из снапшота оплаты.
 
     split_by_items — строки по бакетам; прочие пресеты — строки от общей суммы;
     custom → []. Строка пропускается, если управляющий процент == 0 или сумма == 0.
+
+    spec_items остаются per-unit; суммы бакетов домножаются на model_qty
+    (график покрывает подытог_за_1 × qty).
     """
     payment = payment or {}
+    qty = int(model_qty or 1)
     if payment.get("preset_id") != "split_by_items":
-        return _build_non_split_lines(payment, spec_items)
+        return _build_non_split_lines(payment, spec_items, qty)
 
     split_state = payment.get("split_state") or {}
     days = int(payment.get("days") or 5)
@@ -255,10 +260,10 @@ def build_lines_from_snapshot(
     g = active["groups"]
     has_orion = active["has_orion"]
 
-    scales_total     = _bucket_total(spec_items, "scales")
-    foundation_total = _bucket_total(spec_items, "foundation")
-    delivery_total   = _bucket_total(spec_items, "delivery")
-    iv_total         = _bucket_total(spec_items, "installation_and_verification")
+    scales_total     = _bucket_total(spec_items, "scales") * qty
+    foundation_total = _bucket_total(spec_items, "foundation") * qty
+    delivery_total   = _bucket_total(spec_items, "delivery") * qty
+    iv_total         = _bucket_total(spec_items, "installation_and_verification") * qty
 
     pct = lambda gid, k: _split_pct(split_state, gid, k)  # noqa: E731
     lines: list[PaymentLine] = []

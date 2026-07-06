@@ -18,7 +18,12 @@ from src.contracts.payment_line import (
     build_lines_from_snapshot,
     format_payment_line,
 )
-from src.contracts.state import get_payment_lines, get_spec_items, set_payment_lines
+from src.contracts.state import (
+    get_model_qty,
+    get_payment_lines,
+    get_spec_items,
+    set_payment_lines,
+)
 
 _TRIGGER_LABELS: dict[str, PaymentTrigger] = {
     "Подписание спецификации": PaymentTrigger.SPEC_SIGNED,
@@ -237,11 +242,13 @@ def render_payment_lines_editor() -> None:
     st.subheader("Условия оплаты")
 
     spec_items = get_spec_items()
-    spec_total = sum(int(item.get("total") or 0) for item in spec_items)
+    # spec_items per-unit; график покрывает подытог_за_1 × model_qty.
+    model_qty = get_model_qty()
+    spec_total = sum(int(item.get("total") or 0) for item in spec_items) * model_qty
 
     if st.button("Заполнить по умолчанию"):
         payment = st.session_state["contract"].get("kp_payment_snapshot") or {}
-        lines = build_lines_from_snapshot(payment, spec_items)
+        lines = build_lines_from_snapshot(payment, spec_items, model_qty)
         if not lines:
             st.warning(
                 "Пресет оплаты из КП не поддерживает автозаполнение. "

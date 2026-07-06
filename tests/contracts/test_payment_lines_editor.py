@@ -127,6 +127,7 @@ def test_render_empty_editor_shows_info_instead_of_delta(monkeypatch):
         "src.ui.payment_lines_editor.get_spec_items",
         lambda: [{"total": 4_649_000}],
     )
+    monkeypatch.setattr("src.ui.payment_lines_editor.get_model_qty", lambda: 1)
     monkeypatch.setattr("src.ui.payment_lines_editor.set_payment_lines", lambda rows: None)
 
     render_payment_lines_editor()
@@ -148,6 +149,7 @@ def test_render_undershoot_warns_not_errors(monkeypatch):
         "src.ui.payment_lines_editor.get_spec_items",
         lambda: [{"total": 4_649_000}],
     )
+    monkeypatch.setattr("src.ui.payment_lines_editor.get_model_qty", lambda: 1)
     monkeypatch.setattr("src.ui.payment_lines_editor.set_payment_lines", lambda rows: None)
 
     render_payment_lines_editor()
@@ -162,10 +164,11 @@ def test_default_fill_warns_when_snapshot_preset_is_not_supported(monkeypatch):
     monkeypatch.setattr("src.ui.payment_lines_editor.st", fake_st)
     monkeypatch.setattr("src.ui.payment_lines_editor.get_payment_lines", lambda: [])
     monkeypatch.setattr("src.ui.payment_lines_editor.get_spec_items", lambda: [])
+    monkeypatch.setattr("src.ui.payment_lines_editor.get_model_qty", lambda: 1)
     monkeypatch.setattr("src.ui.payment_lines_editor.set_payment_lines", lambda rows: None)
     monkeypatch.setattr(
         "src.ui.payment_lines_editor.build_lines_from_snapshot",
-        lambda payment, items: [],
+        lambda payment, items, model_qty=1: [],
     )
 
     render_payment_lines_editor()

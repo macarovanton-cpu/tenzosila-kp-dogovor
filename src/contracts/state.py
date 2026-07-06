@@ -126,6 +126,13 @@ def get_payment_lines() -> list[dict]:
     return cs.get("payment_lines", [])
 
 
+def get_model_qty() -> int:
+    """Количество весов из снапшота КП (single source). Legacy/пусто → 1."""
+    cs = st.session_state.get("contract", {})
+    snap = cs.get("kp_snapshot") or {}
+    return int((snap.get("model") or {}).get("qty") or 1)
+
+
 def set_requisites(requisites: dict[str, str]) -> None:
     """Записать реквизиты из карточки контрагента (режим A)."""
     cs = st.session_state["contract"]
