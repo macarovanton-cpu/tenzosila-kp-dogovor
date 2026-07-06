@@ -242,9 +242,9 @@ vs «custom_N ломает основной флоу».
 - [x] Шаг 1. `dump_props.py` — whitelist-сводки rPr/pPr/tcPr/trPr/sectPr/tbl + юниты
 - [x] Шаг 2. `dump_walker.py` ч.1 — параграфы/раны/склейка ранов + юниты
 - [x] Шаг 3. `dump_walker.py` ч.2 — таблицы/textbox/SECT/рекурсия
-- [ ] Шаг 4. `dump_styles.py` — шапка дампа ([DEFAULTS]/[STYLE]/[NUM]/[MEDIA]) ← ТЕКУЩИЙ
-- [ ] Шаг 5. `dump_docx.py` — оркестратор + CLI (body → SECT → HEADER/FOOTER)
-- [ ] Шаг 6. `test_dump_docx.py` — стабильность ×3 смоук-файла + юниты + смоук содержимого
+- [x] Шаг 4. `dump_styles.py` — шапка дампа ([DEFAULTS]/[STYLE]/[NUM]/[MEDIA])
+- [x] Шаг 5. `dump_docx.py` — оркестратор + CLI (body → SECT → HEADER/FOOTER)
+- [ ] Шаг 6. `test_dump_docx.py` — стабильность ×3 смоук-файла + юниты + смоук содержимого ← ТЕКУЩИЙ
 - [ ] Шаг 7. Приёмка: двойной прогон на 3 DOCX байт-в-байт, докстринг-спецификация, лог
 
 **Лог:**
@@ -253,6 +253,8 @@ vs «custom_N ломает основной флоу».
   3 реальных DOCX: TBL/TXBX/SECT/PAGEBREAK находятся, walker не падает (ec8c310).
   Попутный фикс дизайна: drawing/pict в реальных файлах обёрнуты в
   mc:AlternateContent — дампим только mc:Choice (Fallback = дубль textbox).
+- Шаги 4–5: dump_styles + dump_docx (337dbc0). CLI работает, дамп КП: шапка
+  [DEFAULTS]/[STYLE] по именам, HEADER/FOOTER обеих секций, textbox с ИНН в header.
 
 **Готово к тегу `v2.4`** — после коммита этого фикса + STATUS.
 
