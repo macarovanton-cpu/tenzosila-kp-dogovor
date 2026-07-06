@@ -159,7 +159,11 @@ def build_template_context(state: dict[str, Any], prices: dict) -> dict[str, Any
             "term_days": marker,
         })
 
-    total_price = sum(item["total"] for item in spec_items)
+    # Подытог за 1 весы (per-unit строки). Итог за всё количество — × model_qty.
+    qty_scales = int(state.get("model_qty", 1) or 1)
+    subtotal_per_1 = sum(item["total"] for item in spec_items)
+    subtotal_n = subtotal_per_1 * qty_scales
+    total_price = subtotal_per_1
 
     # Платформа
     platform_size = format_platform_size(
@@ -217,6 +221,9 @@ def build_template_context(state: dict[str, Any], prices: dict) -> dict[str, Any
         "spec_items": spec_items_fmt,
         # Итоги
         "total_price": fmt_int_spaces(total_price),
+        "qty_scales": qty_scales,
+        "subtotal_per_1": fmt_int_spaces(subtotal_per_1),
+        "subtotal_n": fmt_int_spaces(subtotal_n),
         "total_term_days": str(total_term),
         "vat_percent": str(int(VAT_RATE * 100)),
         # Оплата
