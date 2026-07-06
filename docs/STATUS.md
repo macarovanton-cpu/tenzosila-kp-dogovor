@@ -161,7 +161,14 @@ custom_N — отложен без изменений.
 - Приёмка: двойной прогон на 3 реальных DOCX (КП, спецификация v2, договор
   поставки) — sha1 дампов попарно идентичны; мутация bold одного рана в
   копии → дифф ровно 1 содержательная строка (`R{}` → `R{b}`).
-- `pytest tests/ --ignore=tests/contracts/synthetic`: 956 passed, 1 skipped.
+- `pytest tests/ --ignore=tests/contracts/synthetic`: 966 passed, 1 skipped.
+- **Ревью-фиксы (0388316):** codex недоступен (лимит до 27.07) → мульти-агентное
+  ревью (8 углов). Закрыто: потеря instr незакрытого поля (TOC), утечка tab/br
+  из кэша поля, тихая потеря текста в w:sdt/w:ins/w:smartTag и noBreakHyphen/sym,
+  KeyError на висячем headerReference (→ BROKEN-REF), basedOn-родители в [STYLE],
+  1 ZipFile вместо 3 чтений, файлы приведены к ≤200 (RunWalker → dump_runs.py,
+  тесты → 4 файла). Отклонено осознанно: doc.sections API (чтение линкованного
+  колонтитула МУТИРУЕТ документ), удаление fldSimple/w:cr (текстонесущие).
 - Следующие задачи фазы 0: P0-02 (фикстуры G-01…G-09; в т.ч. кейс с vMerge —
   в текущих смоук-КП слияния сроков нет), P0-03 (заморозка эталонов, freezegun).
 
