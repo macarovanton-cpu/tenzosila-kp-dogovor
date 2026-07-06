@@ -278,6 +278,7 @@ def build_supply_context(
     payment_rows: list[dict],
     manual: dict[str, Any],
     contract_date: date,
+    model_qty: int = 1,
 ) -> dict:
     """Полный контекст docxtpl для трёх шаблонов договора поставки.
 
@@ -290,17 +291,18 @@ def build_supply_context(
     result = _buyer_context(ctx)
 
     # --- Наименование товара (без 'Весы автомобильные' для корректной вставки) ---
+    qty_scales = int(model_qty or 1)
     base_name = items[0]["name"] if items else ""
     short_name = _short_product_name(base_name)
-    qty = items[0].get("quantity", 1) if items else 1
-    try:
-        qty_i = int(qty) if int(float(qty)) == float(qty) else qty
-    except (TypeError, ValueError):
-        qty_i = qty
-    товар = f"{short_name}, в количестве {qty_i}шт." if short_name else ""
+    товар = (
+        f"{short_name}, в количестве {qty_scales}шт." if short_name else ""
+    )
 
     # --- Суммы и строки спецификации (фильтр по payment_group) ---
-    total, spec_rows = _supply_spec_rows(items, товар)
+    # Строки спецификации — per-unit (за 1 весы). Цена договора (п.4.1) и
+    # ИТОГО-за-N — от подытог_за_1 × model_qty.
+    total_per_1, spec_rows = _supply_spec_rows(items, товар)
+    total = total_per_1 * qty_scales
     сумма_цифрами = _fmt_money(total)
     сумма_прописью = number_to_words(total).capitalize() if total else ""
 
@@ -361,6 +363,11 @@ def build_supply_context(
         "PAYMENT_SECTION": "{{PAYMENT_SECTION}}",
         # Служебный ключ — строки оплаты для python-docx шага
         "_payment_lines": payment_text_lines,
+        # Служебные ключи — вторая строка ИТОГО в appendix_1 (только при qty>1).
+        # Строки спецификации per-unit → в ИТОГО «за 1 весы» = total_per_1.
+        "_qty_scales": qty_scales,
+        "_itogo_per_1": _fmt_money(total_per_1),
+        "_itogo_n": сумма_цифрами,
     })
 
     return result

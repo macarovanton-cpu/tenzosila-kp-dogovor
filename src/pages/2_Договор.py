@@ -917,6 +917,10 @@ if not generated:
             for _i in items_for_docx:
                 _i["total"] = _i["quantity"] * _i["price_per_unit"]
         _gen_cs = st.session_state["contract"]
+        # Количество весов — из снапшота КП (single source). Legacy/пустой → 1.
+        _model_qty = int(
+            (_gen_cs.get("kp_snapshot") or {}).get("model", {}).get("qty") or 1
+        )
         _gen_deal = {
             "items": items_for_docx,
             "scope_overrides": _gen_cs.get("scope_overrides", {}),
@@ -935,6 +939,7 @@ if not generated:
                 supply_ctx = build_supply_context(
                     data, items_for_docx, _gen_deal, _prows,
                     _gen_cs.get("manual", {}), contract_date,
+                    model_qty=_model_qty,
                 )
                 compose_supply(supply_ctx, supply_path)
                 cs["generated"] = {

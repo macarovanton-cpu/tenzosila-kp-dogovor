@@ -3,10 +3,14 @@ import tempfile
 from pathlib import Path
 
 from docx import Document
+from docx.oxml.ns import qn
 from docxcompose.composer import Composer
 from docxtpl import DocxTemplate
 
-from src.contracts.filler import fill_template
+from src.contracts.filler import (
+    fill_template,
+    split_total_row_by_qty,
+)
 from src.contracts.spec_v2_filler import _remove_marker, _replace_marker_with_paragraphs
 
 _SUPPLY_TEMPLATES = Path("templates/contracts")
@@ -58,6 +62,17 @@ def compose_supply(context: dict, output_path: Path) -> None:
         tpl1.render(tpl_context)
         tpl1.save(str(app1_tmp))
 
+        # При model_qty > 1 — вторая строка ИТОГО в спецификации appendix_1:
+        # «ИТОГО за 1 весы» (per-unit) + «ИТОГО за N весов» (× qty).
+        qty_scales = int(context.get("_qty_scales", 1) or 1)
+        if qty_scales > 1:
+            _add_scale_qty_total_row(
+                app1_tmp,
+                qty_scales,
+                context.get("_itogo_per_1", ""),
+                context.get("_itogo_n", ""),
+            )
+
         # --- 3. supply_appendix_2 ---
         appendix2_tpl = _SUPPLY_TEMPLATES / "supply_appendix_2.docx"
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as f:
@@ -79,6 +94,30 @@ def compose_supply(context: dict, output_path: Path) -> None:
     finally:
         for tmp_file in tmp_files:
             tmp_file.unlink(missing_ok=True)
+
+
+def _add_scale_qty_total_row(
+    app1_path: Path, qty_scales: int, itogo_per_1: str, itogo_n: str
+) -> None:
+    """Вставить вторую строку ИТОГО в спецификацию appendix_1 (Table[0]).
+
+    После docxtpl-рендера последняя строка Table[0] — ИТОГО (2 колонки:
+    наименование | сумма). Переписываем её в «за 1 весы» и добавляем «за N весов».
+    """
+    doc = Document(str(app1_path))
+    if not doc.tables:
+        return
+    tbl = doc.tables[0]._tbl
+    rows = [c for c in tbl if c.tag == qn('w:tr')]
+    if len(rows) < 2:
+        return
+    itogo_tr = rows[-1]
+    split_total_row_by_qty(
+        itogo_tr,
+        per1_cells={0: "ИТОГО за 1 весы", 1: itogo_per_1},
+        n_cells={0: f"ИТОГО за {qty_scales} весов", 1: itogo_n},
+    )
+    doc.save(str(app1_path))
 
 
 def _collect_appendices(attachments: dict) -> list[tuple[Path, int]]:

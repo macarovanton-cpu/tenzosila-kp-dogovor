@@ -214,6 +214,34 @@ def _set_cell_text(tc_el, text: str) -> None:
             p_els[0].append(r)
 
 
+def _fill_total_row(tr_el, cells: dict[int, str]) -> None:
+    """Обнулить строку и записать текст по колонкам {col_idx: text}."""
+    _clear_row_text(tr_el)
+    tcs = [c for c in tr_el if c.tag == qn('w:tc')]
+    for col, text in cells.items():
+        if col < len(tcs):
+            _set_cell_text(tcs[col], text)
+
+
+def split_total_row_by_qty(
+    itogo_tr,
+    *,
+    per1_cells: dict[int, str],
+    n_cells: dict[int, str],
+) -> None:
+    """Превратить одну строку ИТОГО в две (при model_qty > 1).
+
+    Существующую строку переписываем в «за 1 весы» (per1_cells), клон с
+    «за N весов» (n_cells) вставляем сразу после. Форматирование строки-образца
+    (rPr/pPr, жирный ИТОГО) сохраняется — правим только текст w:t.
+    Вызывать ТОЛЬКО при qty > 1; при qty == 1 строка не трогается.
+    """
+    new_tr = copy.deepcopy(itogo_tr)
+    _fill_total_row(itogo_tr, per1_cells)
+    _fill_total_row(new_tr, n_cells)
+    itogo_tr.addnext(new_tr)
+
+
 def fill_spec_with_items(
     template_path: str,
     data: dict,
