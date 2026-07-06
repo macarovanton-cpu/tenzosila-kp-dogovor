@@ -5,16 +5,16 @@
 то, ВО ЧТО он проваливается, — здесь ([DEFAULTS] и rPr/pPr стилей).
 
 Стили дампятся по ИМЕНИ (w:name), не по styleId: docxcompose при склейке
-переименовывает конфликтующие styleId, имена стабильны. Дампятся только
-стили, реально использованные в документе (собирает walker). numId
-нормализованы в алиасы num1, num2... по порядку первого использования.
+переименовывает конфликтующие styleId, имена стабильны. Дампятся
+использованные стили ПЛЮС их родители по basedOn-цепочке (иначе регресс
+в родительском стиле менял бы рендер, не меняя дамп). numId нормализованы
+в алиасы num1, num2... по порядку первого использования.
 """
 
 from __future__ import annotations
 
 import hashlib
 import zipfile
-from pathlib import Path
 
 from lxml import etree
 
@@ -51,20 +51,36 @@ def defaults_line(styles_el: etree._Element | None) -> str:
     return f"[DEFAULTS] rPr{rpr_summary(rpr, {})} pPr{ppr_summary(ppr, {}, {})}"
 
 
+def _based_on_closure(
+    by_id: dict[str, etree._Element], used_ids: set[str],
+) -> set[str]:
+    """Замыкание used_ids по basedOn: родитель влияет на рендер потомка."""
+    closure: set[str] = set()
+    stack = list(used_ids)
+    while stack:
+        sid = stack.pop()
+        if sid in closure or sid not in by_id:
+            continue
+        closure.add(sid)
+        based = by_id[sid].find(qn("w:basedOn"))
+        if based is not None and based.get(qn("w:val")):
+            stack.append(based.get(qn("w:val")))
+    return closure
+
+
 def used_style_lines(
     styles_el: etree._Element | None,
     used_ids: set[str],
     style_names: dict[str, str],
     num_aliases: dict[str, str],
 ) -> list[str]:
-    """[STYLE] — только использованные стили, отсортированы по имени."""
-    lines: list[str] = []
+    """[STYLE] — использованные стили + basedOn-родители, сортировка по имени."""
     if styles_el is None or not used_ids:
-        return lines
-    for style in styles_el.findall(qn("w:style")):
-        sid = style.get(qn("w:styleId"))
-        if sid not in used_ids:
-            continue
+        return []
+    by_id = {s.get(qn("w:styleId")): s for s in styles_el.findall(qn("w:style"))}
+    lines: list[str] = []
+    for sid in _based_on_closure(by_id, used_ids):
+        style = by_id[sid]
         name = style_names.get(sid, sid)
         based_el = style.find(qn("w:basedOn"))
         based = ""
@@ -81,18 +97,16 @@ def used_style_lines(
     return sorted(lines)
 
 
-def num_lines_from_zip(docx_path: Path, num_aliases: dict[str, str]) -> list[str]:
+def num_lines(zf: zipfile.ZipFile, num_aliases: dict[str, str]) -> list[str]:
     """[NUM] — семантика использованных нумераций (numFmt + lvlText по уровням).
 
-    Читается из word/numbering.xml напрямую (zip): сырые numId в дамп не
-    попадают — только алиасы и семантика, стабильные к переименованию
-    docxcompose'ом.
+    Сырые numId в дамп не попадают — только алиасы и семантика, стабильные
+    к переименованию docxcompose'ом.
     """
     if not num_aliases:
         return []
     try:
-        with zipfile.ZipFile(docx_path) as zf:
-            numbering = etree.fromstring(zf.read("word/numbering.xml"))
+        numbering = etree.fromstring(zf.read("word/numbering.xml"))
     except KeyError:
         return [f"[NUM] {alias} = ?" for alias in num_aliases.values()]
     abstract_by_id: dict[str, etree._Element] = {
@@ -120,11 +134,10 @@ def num_lines_from_zip(docx_path: Path, num_aliases: dict[str, str]) -> list[str
     return lines
 
 
-def media_lines(docx_path: Path) -> list[str]:
+def media_lines(zf: zipfile.ZipFile) -> list[str]:
     """[MEDIA] — sha1-хэши word/media/* (ловит подмену логотипа/картинок)."""
     lines: list[str] = []
-    with zipfile.ZipFile(docx_path) as zf:
-        for name in sorted(n for n in zf.namelist() if n.startswith("word/media/")):
-            digest = hashlib.sha1(zf.read(name)).hexdigest()[:12]
-            lines.append(f"[MEDIA] {name} sha1={digest}")
+    for name in sorted(n for n in zf.namelist() if n.startswith("word/media/")):
+        digest = hashlib.sha1(zf.read(name)).hexdigest()[:12]
+        lines.append(f"[MEDIA] {name} sha1={digest}")
     return lines

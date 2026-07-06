@@ -30,7 +30,12 @@
   - соседние раны с одинаковой значимой rPr-сводкой склеены (Word дробит
     раны произвольно по rsid/proofErr-границам); w:tab/w:br -> \\t/\\n
   - текст в Python repr() — видны \\xa0, хвостовые пробелы, ёлочки
-  - стили по имени, numId по алиасам (docxcompose переименовывает id)
+  - стили по имени, numId по алиасам (docxcompose переименовывает id);
+    [STYLE] включает basedOn-родителей использованных стилей
+  - обёртки w:sdt/w:ins/w:smartTag/w:hyperlink прозрачны (текст не
+    теряется); w:del (удалённое рецензией) не дампится
+  - поле, не закрытое в своём параграфе (TOC), доэмитивается на конце
+    параграфа — instr не теряется, кэш дальше идёт обычным текстом
   - никаких абсолютных индексов — позиция = порядок строк + отступ
 
 Игнорируется (недетерминизм/шум): rsid*, w14:paraId/textId, w:proofErr,
@@ -43,17 +48,20 @@ from __future__ import annotations
 
 import argparse
 import sys
+import zipfile
 from pathlib import Path
 
 from docx import Document
+from docx.document import Document as DocumentObject
 
 from docx.oxml.ns import qn
 
+from tests.golden.dump_props import HF_TYPES
 from tests.golden.dump_styles import (
     build_style_names,
     defaults_line,
     media_lines,
-    num_lines_from_zip,
+    num_lines,
     used_style_lines,
 )
 from tests.golden.dump_walker import DumpContext, walk_block
@@ -61,12 +69,16 @@ from tests.golden.dump_walker import DumpContext, walk_block
 DUMP_VERSION = "v1"
 
 
-def _header_footer_lines(doc, ctx: DumpContext) -> list[str]:
+def _header_footer_lines(doc: DocumentObject, ctx: DumpContext) -> list[str]:
     """Колонтитулы по секциям в document order (sectPr из pPr и хвоста body).
 
-    Часть резолвится через relationships (rId в дамп не попадает).
-    Секция без собственного default-колонтитула наследует предыдущий —
-    маркер linked-to-previous (для первой секции отсутствие = нет колонтитула).
+    Часть резолвится через relationships вручную, БЕЗ doc.sections[i].header:
+    у python-docx чтение линкованного колонтитула мутирует документ
+    (_get_or_add_definition создаёт часть) — недопустимо для чистой функции.
+    rId в дамп не попадает. Секция без собственного default-колонтитула
+    наследует предыдущий — маркер linked-to-previous (для первой секции
+    отсутствие = нет колонтитула). Висячая ссылка (артефакт docxcompose) —
+    детерминированный маркер BROKEN-REF, не исключение.
     """
     lines: list[str] = []
     sect_prs = list(doc.element.body.iter(qn("w:sectPr")))
@@ -76,15 +88,18 @@ def _header_footer_lines(doc, ctx: DumpContext) -> list[str]:
                 ref.get(qn("w:type")): ref.get(qn("r:id"))
                 for ref in sect_pr.findall(qn(ref_tag))
             }
-            for hf_type in ("default", "first", "even"):
+            for hf_type in HF_TYPES:
                 r_id = refs.get(hf_type)
                 if r_id is None:
                     if hf_type == "default" and i > 1:
                         lines += ["", f"=== {label} default (sect {i}) === linked-to-previous"]
                     continue
-                part = doc.part.rels[r_id].target_part
+                rel = doc.part.rels.get(r_id)
+                if rel is None:
+                    lines += ["", f"=== {label} {hf_type} (sect {i}) === BROKEN-REF"]
+                    continue
                 lines += ["", f"=== {label} {hf_type} (sect {i}) ==="]
-                lines += walk_block(part.element, ctx)
+                lines += walk_block(rel.target_part.element, ctx)
     return lines
 
 
@@ -98,8 +113,9 @@ def dump_docx(path: Path) -> str:
     hf_lines = _header_footer_lines(doc, ctx)
     lines = [f"=== DOCX-DUMP {DUMP_VERSION} ===", "", defaults_line(styles_el)]
     lines += used_style_lines(styles_el, ctx.used_style_ids, ctx.style_names, ctx.num_aliases)
-    lines += num_lines_from_zip(path, ctx.num_aliases)
-    lines += media_lines(path)
+    with zipfile.ZipFile(path) as zf:
+        lines += num_lines(zf, ctx.num_aliases)
+        lines += media_lines(zf)
     lines += ["", "=== BODY ==="]
     lines += body_lines
     lines += hf_lines

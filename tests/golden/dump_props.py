@@ -1,14 +1,14 @@
 """Whitelist-сводки свойств OOXML для канонического дампа DOCX (P0-01).
 
-Чистые функции lxml-Element -> str вида "{key=val;key2}". Дампятся только
-ЯВНЫЕ (direct) свойства из фиксированного whitelist в каноническом порядке
-ключей. Шум (rsid*, w:lang, w:proofErr, szCs/bCs/iCs и т.д.) не попадает
-в сводку по построению: собираем по белому списку, а не фильтруем чёрный.
-
-Полная спецификация формата дампа — в докстринге tests/golden/dump_docx.py.
+Чистые функции lxml-Element -> str вида "{key=val;key2}". Только ЯВНЫЕ
+(direct) свойства из whitelist в каноническом порядке ключей; шум (rsid*,
+w:lang, w:proofErr и т.д.) не попадает в сводку по построению.
+Спецификация формата — в докстринге tests/golden/dump_docx.py.
 """
 
 from __future__ import annotations
+
+from typing import Callable
 
 from lxml import etree
 
@@ -16,30 +16,35 @@ from docx.oxml.ns import qn
 
 _FALSY = {"0", "false", "off", "none"}
 
+# канонический порядок типов ссылок колонтитулов (общий с dump_docx)
+HF_TYPES = ("default", "first", "even")
+
 
 def _fmt(parts: list[str]) -> str:
     """Собрать сводку: пустой список -> "{}" (значимо: нет явных свойств)."""
     return "{" + ";".join(parts) + "}"
 
 
-def _bool_prop(el: etree._Element | None, tag: str) -> bool | None:
-    """Тогл-свойство OOXML: None — отсутствует, True — вкл, False — явно выкл."""
-    if el is None:
-        return None
+def _append_val(parts: list[str], el: etree._Element, tag: str, name: str,
+                fmt: Callable[[str], str] | None = None) -> None:
+    """Добавить "name=val" по w:val прямого ребёнка tag (нет/пусто — пропуск)."""
     child = el.find(qn(tag))
     if child is None:
-        return None
+        return
     val = child.get(qn("w:val"))
-    return not (val is not None and val.lower() in _FALSY)
+    if not val:
+        return
+    parts.append(f"{name}={fmt(val) if fmt else val}")
 
 
-def _add_toggle(parts: list[str], el: etree._Element | None, tag: str, name: str) -> None:
-    """Явное вкл -> "name", явное выкл -> "name=off" (значимо: гасит стиль)."""
-    state = _bool_prop(el, tag)
-    if state is True:
-        parts.append(name)
-    elif state is False:
-        parts.append(f"{name}=off")
+def _add_toggle(parts: list[str], el: etree._Element, tag: str, name: str) -> None:
+    """Тогл OOXML: явное вкл -> "name", явное выкл -> "name=off" (гасит стиль)."""
+    child = el.find(qn(tag))
+    if child is None:
+        return
+    val = child.get(qn("w:val"))
+    off = val is not None and val.lower() in _FALSY
+    parts.append(f"{name}=off" if off else name)
 
 
 def _sz_pt(half_points: str) -> str:
@@ -53,10 +58,7 @@ def rpr_summary(rpr: etree._Element | None, style_names: dict[str, str]) -> str:
     parts: list[str] = []
     if rpr is None:
         return _fmt(parts)
-    r_style = rpr.find(qn("w:rStyle"))
-    if r_style is not None:
-        sid = r_style.get(qn("w:val")) or ""
-        parts.append(f"style={style_names.get(sid, sid)!r}")
+    _append_val(parts, rpr, "w:rStyle", "style", fmt=lambda v: repr(style_names.get(v, v)))
     r_fonts = rpr.find(qn("w:rFonts"))
     if r_fonts is not None:
         ascii_f = r_fonts.get(qn("w:ascii"))
@@ -65,24 +67,16 @@ def rpr_summary(rpr: etree._Element | None, style_names: dict[str, str]) -> str:
             parts.append(f"font={ascii_f}/{hansi_f}")
         elif ascii_f or hansi_f:
             parts.append(f"font={ascii_f or hansi_f}")
-    sz = rpr.find(qn("w:sz"))
-    if sz is not None and sz.get(qn("w:val")):
-        parts.append(f"sz={_sz_pt(sz.get(qn('w:val')))}")
+    _append_val(parts, rpr, "w:sz", "sz", fmt=_sz_pt)
     _add_toggle(parts, rpr, "w:b", "b")
     _add_toggle(parts, rpr, "w:i", "i")
     u = rpr.find(qn("w:u"))
     if u is not None:
         parts.append(f"u={u.get(qn('w:val')) or 'single'}")
     _add_toggle(parts, rpr, "w:strike", "strike")
-    color = rpr.find(qn("w:color"))
-    if color is not None and color.get(qn("w:val")):
-        parts.append(f"color={color.get(qn('w:val')).upper()}")
-    vert = rpr.find(qn("w:vertAlign"))
-    if vert is not None and vert.get(qn("w:val")):
-        parts.append(f"vertAlign={vert.get(qn('w:val'))}")
-    hl = rpr.find(qn("w:highlight"))
-    if hl is not None and hl.get(qn("w:val")):
-        parts.append(f"highlight={hl.get(qn('w:val'))}")
+    _append_val(parts, rpr, "w:color", "color", fmt=str.upper)
+    _append_val(parts, rpr, "w:vertAlign", "vertAlign")
+    _append_val(parts, rpr, "w:highlight", "highlight")
     return _fmt(parts)
 
 
@@ -91,6 +85,18 @@ def _num_alias(num_id: str, num_aliases: dict[str, str]) -> str:
     if num_id not in num_aliases:
         num_aliases[num_id] = f"num{len(num_aliases) + 1}"
     return num_aliases[num_id]
+
+
+def _attr_pairs(el: etree._Element, names: tuple[tuple[str, tuple[str, ...]], ...]) -> list[str]:
+    """Пары "name:val" по явным атрибутам (первый существующий из синонимов)."""
+    out: list[str] = []
+    for name, attrs in names:
+        for attr in attrs:
+            val = el.get(qn(f"w:{attr}"))
+            if val is not None:
+                out.append(f"{name}:{val}")
+                break
+    return out
 
 
 def ppr_summary(
@@ -102,37 +108,22 @@ def ppr_summary(
     parts: list[str] = []
     if ppr is None:
         return _fmt(parts)
-    p_style = ppr.find(qn("w:pStyle"))
-    if p_style is not None:
-        sid = p_style.get(qn("w:val")) or ""
-        parts.append(f"style={style_names.get(sid, sid)!r}")
-    jc = ppr.find(qn("w:jc"))
-    if jc is not None and jc.get(qn("w:val")):
-        parts.append(f"jc={jc.get(qn('w:val'))}")
+    _append_val(parts, ppr, "w:pStyle", "style", fmt=lambda v: repr(style_names.get(v, v)))
+    _append_val(parts, ppr, "w:jc", "jc")
     spacing = ppr.find(qn("w:spacing"))
     if spacing is not None:
         sp: list[str] = []
         line = spacing.get(qn("w:line"))
-        if line:
+        if line is not None:
             sp.append(f"line:{line}/{spacing.get(qn('w:lineRule')) or 'auto'}")
-        for attr in ("before", "after"):
-            val = spacing.get(qn(f"w:{attr}"))
-            if val:
-                sp.append(f"{attr}:{val}")
+        sp += _attr_pairs(spacing, (("before", ("before",)), ("after", ("after",))))
         if sp:
             parts.append("spacing=" + ",".join(sp))
     ind = ppr.find(qn("w:ind"))
     if ind is not None:
         # start/end — новые имена left/right в OOXML; нормализуем к left/right
-        pairs = (("left", ("left", "start")), ("right", ("right", "end")),
-                 ("firstLine", ("firstLine",)), ("hanging", ("hanging",)))
-        ip: list[str] = []
-        for name, attrs in pairs:
-            for attr in attrs:
-                val = ind.get(qn(f"w:{attr}"))
-                if val is not None:
-                    ip.append(f"{name}:{val}")
-                    break
+        ip = _attr_pairs(ind, (("left", ("left", "start")), ("right", ("right", "end")),
+                               ("firstLine", ("firstLine",)), ("hanging", ("hanging",))))
         if ip:
             parts.append("ind=" + ",".join(ip))
     num_pr = ppr.find(qn("w:numPr"))
@@ -143,8 +134,11 @@ def ppr_summary(
             alias = _num_alias(num_id_el.get(qn("w:val")), num_aliases)
             ilvl = ilvl_el.get(qn("w:val")) if ilvl_el is not None else "0"
             parts.append(f"num={alias}.{ilvl or '0'}")
-    if _bool_prop(ppr, "w:pageBreakBefore") is True:
-        parts.append("pgbrk")
+    pgbrk = ppr.find(qn("w:pageBreakBefore"))
+    if pgbrk is not None:
+        val = pgbrk.get(qn("w:val"))
+        if val is None or val.lower() not in _FALSY:
+            parts.append("pgbrk")
     return _fmt(parts)
 
 
@@ -195,7 +189,7 @@ def sectpr_summary(sect_pr: etree._Element) -> str:
         parts.append(f"pgMar={mar}")
     for ref_tag, name in (("w:headerReference", "hdr"), ("w:footerReference", "ftr")):
         types = {ref.get(qn("w:type")) for ref in sect_pr.findall(qn(ref_tag))}
-        ordered = [t for t in ("default", "first", "even") if t in types]
+        ordered = [t for t in HF_TYPES if t in types]
         if ordered:
             parts.append(f"{name}={','.join(ordered)}")
     if sect_pr.find(qn("w:titlePg")) is not None:
