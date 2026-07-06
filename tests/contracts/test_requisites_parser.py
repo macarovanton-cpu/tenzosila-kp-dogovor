@@ -79,6 +79,32 @@ class TestParseBasicFields:
         result = parse_requisites(text)
         assert result.get("ЗАКАЗЧИК_ТЕЛЕФОН") == "+7 (473) 214-58-62"
 
+    def test_phone_4digit_area_code(self):
+        text = "Телефон: +7 (4732) 55-44-33"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ТЕЛЕФОН") == "+7 (4732) 55-44-33"
+
+    def test_phone_no_prefix_with_anchor(self):
+        text = "тел.: (473) 214-58-62"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ТЕЛЕФОН") == "(473) 214-58-62"
+
+    def test_phone_prefix_8_with_area_code_in_parens(self):
+        text = "Телефон: 8 (473) 214-58-62"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ТЕЛЕФОН") == "8 (473) 214-58-62"
+
+    def test_phone_plus7_space_separated(self):
+        text = "Телефон: +7 473 214 58 62"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ТЕЛЕФОН") == "+7 473 214 58 62"
+
+    def test_phone_no_prefix_without_anchor_not_recognized(self):
+        """10-значное число без якоря тел/факс рядом — не телефон (не угадываем)."""
+        text = "Некий номер: 4732145862"
+        result = parse_requisites(text)
+        assert "ЗАКАЗЧИК_ТЕЛЕФОН" not in result
+
     def test_name_in_quotes(self):
         text = 'ООО "Тензосила"'
         result = parse_requisites(text)
