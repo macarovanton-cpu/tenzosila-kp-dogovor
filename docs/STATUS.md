@@ -240,15 +240,19 @@ vs «custom_N ломает основной флоу».
 
 - [x] Шаг 0. STATUS.md: активная задача записана
 - [x] Шаг 1. `dump_props.py` — whitelist-сводки rPr/pPr/tcPr/trPr/sectPr/tbl + юниты
-- [ ] Шаг 2. `dump_walker.py` ч.1 — параграфы/раны/склейка ранов + юниты ← ТЕКУЩИЙ
-- [ ] Шаг 3. `dump_walker.py` ч.2 — таблицы/textbox/SECT/рекурсия
-- [ ] Шаг 4. `dump_styles.py` — шапка дампа ([DEFAULTS]/[STYLE]/[NUM]/[MEDIA])
+- [x] Шаг 2. `dump_walker.py` ч.1 — параграфы/раны/склейка ранов + юниты
+- [x] Шаг 3. `dump_walker.py` ч.2 — таблицы/textbox/SECT/рекурсия
+- [ ] Шаг 4. `dump_styles.py` — шапка дампа ([DEFAULTS]/[STYLE]/[NUM]/[MEDIA]) ← ТЕКУЩИЙ
 - [ ] Шаг 5. `dump_docx.py` — оркестратор + CLI (body → SECT → HEADER/FOOTER)
 - [ ] Шаг 6. `test_dump_docx.py` — стабильность ×3 смоук-файла + юниты + смоук содержимого
 - [ ] Шаг 7. Приёмка: двойной прогон на 3 DOCX байт-в-байт, докстринг-спецификация, лог
 
 **Лог:**
 - Шаг 1: dump_props.py, 12 юнитов зелёные (c87af37).
+- Шаги 2–3: dump_walker.py одним блоком (файл единый), 22 юнита зелёные, смоук на
+  3 реальных DOCX: TBL/TXBX/SECT/PAGEBREAK находятся, walker не падает (ec8c310).
+  Попутный фикс дизайна: drawing/pict в реальных файлах обёрнуты в
+  mc:AlternateContent — дампим только mc:Choice (Fallback = дубль textbox).
 
 **Готово к тегу `v2.4`** — после коммита этого фикса + STATUS.
 
