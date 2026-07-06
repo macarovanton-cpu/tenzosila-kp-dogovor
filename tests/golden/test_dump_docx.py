@@ -13,8 +13,14 @@ from tests.golden.dump_props import (
     tcpr_summary,
     trpr_summary,
 )
+from tests.golden.dump_walker import DumpContext, walk_block
 
 _W = nsdecls("w")
+
+
+def _walk(body_xml: str) -> list[str]:
+    """Прогнать walker по синтетическому w:body-фрагменту."""
+    return walk_block(parse_xml(f"<w:body {_W}>{body_xml}</w:body>"), DumpContext())
 
 
 # ── Сводки rPr ───────────────────────────────────────────────────────────
@@ -133,3 +139,152 @@ def test_sectpr_summary():
         'w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>'
     )
     assert sectpr_summary(sect) == "{pgSz=11906x16838;pgMar=794,851,794,1134;hdr=default}"
+
+
+# ── Walker: склейка ранов ────────────────────────────────────────────────
+
+
+def test_runs_split_by_noise_are_merged():
+    """Три рана, разбитые proofErr/rsid, одна значимая сводка -> одна строка R."""
+    lines = _walk(
+        '<w:p w:rsidR="00AA00AA">'
+        '<w:r w:rsidRPr="00BB00BB"><w:t xml:space="preserve">Кавычки </w:t></w:r>'
+        '<w:proofErr w:type="spellStart"/>'
+        '<w:r><w:rPr><w:lang w:val="ru-RU"/><w:noProof/></w:rPr><w:t>«ёлочки»</w:t></w:r>'
+        '<w:proofErr w:type="spellEnd"/>'
+        "<w:r><w:t> и О.А. Фамилия</w:t></w:r>"
+        "</w:p>"
+    )
+    assert lines == ["P{}", "  R{} 'Кавычки «ёлочки» и О.А. Фамилия'"]
+
+
+def test_runs_with_different_summary_not_merged():
+    """Средний ран bold -> три строки R; дифф локален строке с изменением."""
+    lines = _walk(
+        "<w:p>"
+        '<w:r><w:t xml:space="preserve">до </w:t></w:r>'
+        "<w:r><w:rPr><w:b/></w:rPr><w:t>жирный</w:t></w:r>"
+        '<w:r><w:t xml:space="preserve"> после</w:t></w:r>'
+        "</w:p>"
+    )
+    assert lines == ["P{}", "  R{} 'до '", "  R{b} 'жирный'", "  R{} ' после'"]
+
+
+def test_tab_and_br_inside_run_text():
+    """w:tab/w:br -> \\t/\\n в repr-тексте, склейку не рвут."""
+    lines = _walk(
+        "<w:p><w:r><w:t>a</w:t><w:tab/><w:t>b</w:t><w:br/><w:t>c</w:t></w:r></w:p>"
+    )
+    assert lines == ["P{}", "  R{} 'a\\tb\\nc'"]
+
+
+def test_page_break_is_separate_line():
+    lines = _walk(
+        '<w:p><w:r><w:t>a</w:t><w:br w:type="page"/><w:t>b</w:t></w:r></w:p>'
+    )
+    assert lines == ["P{}", "  R{} 'a'", "  [PAGEBREAK]", "  R{} 'b'"]
+
+
+def test_field_page_dumped_with_instr_and_cached():
+    """Поле PAGE: instrText дампится, fldChar-границы — нет."""
+    lines = _walk(
+        "<w:p>"
+        '<w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+        '<w:r><w:instrText xml:space="preserve"> PAGE \\* MERGEFORMAT </w:instrText></w:r>'
+        '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+        "<w:r><w:t>3</w:t></w:r>"
+        '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
+        "</w:p>"
+    )
+    assert lines == ["P{}", "  R{} [FIELD 'PAGE \\\\* MERGEFORMAT'] cached='3'"]
+
+
+# ── Walker: таблицы, textbox, секции ─────────────────────────────────────
+
+
+def test_table_with_vmerge_and_nested_paragraphs():
+    lines = _walk(
+        "<w:tbl><w:tblGrid><w:gridCol w:w='100'/><w:gridCol w:w='200'/></w:tblGrid>"
+        "<w:tr><w:tc><w:tcPr><w:vMerge w:val='restart'/></w:tcPr>"
+        "<w:p><w:r><w:t>17</w:t></w:r></w:p></w:tc>"
+        "<w:tc><w:p><w:r><w:t>x</w:t></w:r></w:p></w:tc></w:tr>"
+        "<w:tr><w:tc><w:tcPr><w:vMerge/></w:tcPr><w:p/></w:tc>"
+        "<w:tc><w:p><w:r><w:t>y</w:t></w:r></w:p></w:tc></w:tr>"
+        "</w:tbl>"
+    )
+    assert lines == [
+        "TBL{cols=2;grid=100,200}",
+        "  TR{}",
+        "    TC{vmerge=restart}",
+        "      P{}",
+        "        R{} '17'",
+        "    TC{}",
+        "      P{}",
+        "        R{} 'x'",
+        "  TR{}",
+        "    TC{vmerge=cont}",
+        "      P{}",
+        "    TC{}",
+        "      P{}",
+        "        R{} 'y'",
+    ]
+
+
+def test_textbox_in_pict_is_walked():
+    """w:txbxContent внутри w:pict (VML) — python-docx API его не видит."""
+    lines = _walk(
+        "<w:p><w:r><w:pict xmlns:v='urn:schemas-microsoft-com:vml'>"
+        "<v:shape><v:textbox><w:txbxContent>"
+        "<w:p><w:r><w:t>Поставщик</w:t></w:r></w:p>"
+        "</w:txbxContent></v:textbox></v:shape>"
+        "</w:pict></w:r></w:p>"
+    )
+    assert lines == [
+        "P{}",
+        "  R{} [PICT]",
+        "    TXBX",
+        "      P{}",
+        "        R{} 'Поставщик'",
+    ]
+
+
+def test_alternate_content_choice_only_no_duplication():
+    """mc:AlternateContent: textbox дампится один раз (Choice), Fallback — дубль."""
+    mc = "http://schemas.openxmlformats.org/markup-compatibility/2006"
+    wps = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+    lines = _walk(
+        f"<w:p><w:r><mc:AlternateContent xmlns:mc='{mc}'>"
+        f"<mc:Choice Requires='wps'><w:drawing><wps:txbx xmlns:wps='{wps}'>"
+        "<w:txbxContent><w:p><w:r><w:t>Поставщик</w:t></w:r></w:p></w:txbxContent>"
+        "</wps:txbx></w:drawing></mc:Choice>"
+        "<mc:Fallback><w:pict xmlns:v='urn:schemas-microsoft-com:vml'>"
+        "<v:shape><v:textbox><w:txbxContent>"
+        "<w:p><w:r><w:t>Поставщик</w:t></w:r></w:p>"
+        "</w:txbxContent></v:textbox></v:shape></w:pict></mc:Fallback>"
+        "</mc:AlternateContent></w:r></w:p>"
+    )
+    assert lines == [
+        "P{}",
+        "  R{} [DRAWING]",
+        "    TXBX",
+        "      P{}",
+        "        R{} 'Поставщик'",
+    ]
+
+
+def test_sectpr_inside_ppr_emits_sect_line():
+    """Разрыв секции посреди документа (sectPr в pPr) виден в дампе."""
+    lines = _walk(
+        "<w:p><w:pPr><w:sectPr><w:pgSz w:w='11906' w:h='16838'/></w:sectPr></w:pPr>"
+        "<w:r><w:t>конец секции</w:t></w:r></w:p>"
+    )
+    assert lines == ["P{}", "  R{} 'конец секции'", "SECT{pgSz=11906x16838}"]
+
+
+def test_hyperlink_runs_transparent():
+    lines = _walk(
+        "<w:p><w:hyperlink r:id='rId5' "
+        "xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships'>"
+        "<w:r><w:t>ссылка</w:t></w:r></w:hyperlink></w:p>"
+    )
+    assert lines == ["P{}", "  R{} 'ссылка'"]
