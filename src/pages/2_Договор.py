@@ -941,6 +941,9 @@ if not generated:
                     model_qty=_model_qty,
                 )
                 compose_supply(supply_ctx, supply_path)
+                unfilled = get_unfilled_placeholders(str(supply_path))
+                if unfilled:
+                    st.warning(f"Договор поставки — не заполнены: {', '.join(unfilled)}")
                 cs["generated"] = {
                     "contract_type": "supply",
                     "supply_bytes": supply_path.read_bytes(),

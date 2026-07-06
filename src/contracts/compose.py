@@ -1,4 +1,5 @@
 """Склейка спецификации с внешними DOCX-приложениями."""
+import logging
 import tempfile
 from pathlib import Path
 
@@ -12,6 +13,8 @@ from src.contracts.filler import (
     split_total_row_by_qty,
 )
 from src.contracts.spec_v2_filler import _remove_marker, _replace_marker_with_paragraphs
+
+_logger = logging.getLogger(__name__)
 
 _SUPPLY_TEMPLATES = Path("templates/contracts")
 
@@ -43,11 +46,15 @@ def compose_supply(context: dict, output_path: Path) -> None:
         # Пустой список оплаты → удалить маркер, иначе в п.4.2 остаётся пустой блок.
         contract_doc = Document(str(contract_tmp1))
         if payment_lines:
-            _replace_marker_with_paragraphs(
+            found = _replace_marker_with_paragraphs(
                 contract_doc, "{{PAYMENT_SECTION}}", payment_lines
             )
         else:
-            _remove_marker(contract_doc, "{{PAYMENT_SECTION}}")
+            found = _remove_marker(contract_doc, "{{PAYMENT_SECTION}}")
+        if not found:
+            _logger.warning(
+                "маркер {{PAYMENT_SECTION}} не найден в supply_contract.docx"
+            )
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as f:
             contract_tmp2 = Path(f.name)
         tmp_files.append(contract_tmp2)

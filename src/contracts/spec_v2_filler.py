@@ -1,5 +1,6 @@
 """spec_v2_filler.py — рендер спецификации v2 с динамическими clauses."""
 import copy
+import logging
 from datetime import datetime
 
 from docx import Document
@@ -7,6 +8,8 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 from src.contracts.filler import _set_cell_text, fill_spec_with_items
+
+_logger = logging.getLogger(__name__)
 
 _CLAUSE_SECTION_ORDER = [
     "obligations_supplier",
@@ -294,9 +297,11 @@ def fill_spec_v2(
     # --- Payment ---
     payment_lines = data.get("_payment_lines") or _payment_lines_from_data(data)
     if payment_lines:
-        _replace_marker_with_paragraphs(doc, "{{PAYMENT_SECTION}}", payment_lines)
+        found = _replace_marker_with_paragraphs(doc, "{{PAYMENT_SECTION}}", payment_lines)
     else:
-        _remove_marker(doc, "{{PAYMENT_SECTION}}")
+        found = _remove_marker(doc, "{{PAYMENT_SECTION}}")
+    if not found:
+        _logger.warning("маркер {{PAYMENT_SECTION}} не найден в шаблоне спецификации v2")
 
     # --- Terms ---
     if "_terms_lines" in data:
@@ -305,9 +310,11 @@ def fill_spec_v2(
         from src.contracts.terms_renderer import render_terms_section
         terms_lines = render_terms_section(deal, deal.get("items", []))
     if terms_lines:
-        _replace_marker_with_paragraphs(doc, "{{TERMS_SECTION}}", terms_lines)
+        found = _replace_marker_with_paragraphs(doc, "{{TERMS_SECTION}}", terms_lines)
     else:
-        _remove_marker(doc, "{{TERMS_SECTION}}")
+        found = _remove_marker(doc, "{{TERMS_SECTION}}")
+    if not found:
+        _logger.warning("маркер {{TERMS_SECTION}} не найден в шаблоне спецификации v2")
 
     # --- Kit ---
     if "_kit_items" in data:
