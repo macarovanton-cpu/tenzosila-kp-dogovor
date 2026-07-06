@@ -21,10 +21,12 @@ from src.data_loader import (  # noqa: E402
 from src.pricing import calc_totals  # noqa: E402
 from src.spec_builder import build_spec_items  # noqa: E402
 from src.state import init_state  # noqa: E402
+from src.storage.kp_restore import apply_kp_snapshot_to_state  # noqa: E402
 from src.term_days import resolve_term_days  # noqa: E402
 from src.ui.construction_section import render_construction_section  # noqa: E402
 from src.ui.equipment_section import render_equipment_section  # noqa: E402
 from src.ui.header import render_header  # noqa: E402
+from src.ui.load_kp_section import render_load_kp_section  # noqa: E402
 from src.ui.mobile import inject_mobile_css  # noqa: E402
 from src.ui.model_section import render_model_section  # noqa: E402
 from src.ui.options_section import render_options_section  # noqa: E402
@@ -54,6 +56,14 @@ def main() -> None:
     payment_terms = load_payment_terms()
     options_meta = load_options_meta()
     managers = load_managers()
+
+    # Применить отложенное восстановление КП ДО инстанцирования виджетов конфигуратора.
+    if st.session_state.pop("_kp_restore_pending", False):
+        _restore_row = st.session_state.pop("_kp_restore_row", None)
+        if _restore_row is not None:
+            apply_kp_snapshot_to_state(_restore_row, prices)
+
+    render_load_kp_section()
 
     spec_items = build_spec_items(st.session_state, prices, models_json)
     render_header(st.session_state, managers, spec_items)
