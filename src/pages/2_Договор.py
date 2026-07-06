@@ -966,7 +966,7 @@ if not generated:
                             for i, row in enumerate(_prows)
                         ]
                     try:
-                        fill_spec_v2(str(SPEC_V2_TEMPLATE), data, items_for_docx, _gen_deal, str(spec_path))
+                        fill_spec_v2(str(SPEC_V2_TEMPLATE), data, items_for_docx, _gen_deal, str(spec_path), model_qty=_model_qty)
                     except Exception as exc_v2:
                         import traceback
                         from datetime import datetime
@@ -982,7 +982,7 @@ if not generated:
                             f.write(json.dumps(_gen_deal, ensure_ascii=False, indent=2, default=str))
                         st.error(f"❌ fill_spec_v2 упал. Traceback: {_tb_path}")
                         st.code(traceback.format_exc(), language="python")
-                        fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path))
+                        fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path), model_qty=_model_qty)
 
                     attachments = _gen_cs.get("attachments", {})
                     compose_spec_with_attachments(spec_path, attachments, data)

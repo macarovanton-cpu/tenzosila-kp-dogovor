@@ -247,6 +247,7 @@ def fill_spec_with_items(
     data: dict,
     items: list[dict],
     output_path: str,
+    model_qty: int = 1,
 ) -> None:
     """Рендер шаблона спецификации с динамическим массивом позиций.
 
@@ -254,19 +255,22 @@ def fill_spec_with_items(
     1. fill_template() для всех плейсхолдеров кроме строк таблицы.
     2. python-docx: заменить строки Table[0] на позиции из items.
 
-    Итого вычисляется из items и передаётся в fill_template.
+    Итого вычисляется из items (per-unit) и передаётся в fill_template.
+    При model_qty > 1 строка ИТОГО делится на «за 1 весы» + «за N весов».
     """
     from src.contracts.utils import number_to_words
 
+    qty_scales = int(model_qty or 1)
     grand_total = sum(
         int(item.get("total", 0))
         for item in items
         if not item.get("metadata", {}).get("customer_side")
     )
+    grand_total_n = grand_total * qty_scales
 
     fill_data = dict(data)
-    fill_data["СПЕЦ_ИТОГО"] = _fmt(grand_total)
-    fill_data["СПЕЦ_ИТОГО_ПРОПИСЬ"] = number_to_words(grand_total)
+    fill_data["СПЕЦ_ИТОГО"] = _fmt(grand_total_n)
+    fill_data["СПЕЦ_ИТОГО_ПРОПИСЬ"] = number_to_words(grand_total_n)
     for i in range(1, 6):
         fill_data.setdefault(f"СПЕЦ_П{i}_НАИМЕНОВАНИЕ", "")
         fill_data.setdefault(f"СПЕЦ_П{i}_СУММА", "")
@@ -305,5 +309,14 @@ def fill_spec_with_items(
             _set_cell_text(tcs[1], total_text)
 
         header_tr.addnext(new_tr)
+
+    # При qty > 1 — вторая строка ИТОГО (последний tr таблицы).
+    if qty_scales > 1:
+        rows_now = [c for c in tbl if c.tag == qn('w:tr')]
+        split_total_row_by_qty(
+            rows_now[-1],
+            per1_cells={0: "ИТОГО за 1 весы", 1: _fmt(grand_total)},
+            n_cells={0: f"ИТОГО за {qty_scales} весов", 1: _fmt(grand_total_n)},
+        )
 
     doc.save(output_path)

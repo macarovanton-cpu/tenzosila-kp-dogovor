@@ -244,6 +244,7 @@ def fill_spec_v2(
     items: list[dict],
     deal: dict,
     output_path: str,
+    model_qty: int = 1,
 ) -> None:
     """Рендер спецификации v2: таблица позиций + динамические секции.
 
@@ -286,7 +287,7 @@ def fill_spec_v2(
             for key, value in build_tth_data(deps[0], deps[2]).items():
                 data.setdefault(key, value)
 
-    fill_spec_with_items(template_path, data, items, output_path)
+    fill_spec_with_items(template_path, data, items, output_path, model_qty=model_qty)
 
     doc = Document(output_path)
 

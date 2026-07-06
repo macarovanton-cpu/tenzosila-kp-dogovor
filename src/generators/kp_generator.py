@@ -235,6 +235,24 @@ def build_template_context(state: dict[str, Any], prices: dict) -> dict[str, Any
     }
 
 
+def _split_kp_total_row(
+    docx, qty_scales: int, per1_value: str, n_value: str, term_days: str
+) -> None:
+    """Найти строку ИТОГО в spec-таблице КП и разбить на «за 1» + «за N»."""
+    from src.contracts.filler import split_total_row_by_qty
+
+    for table in docx.tables:
+        for row in table.rows:
+            cells = row.cells
+            if cells and cells[0].text.strip() == "ИТОГО":
+                split_total_row_by_qty(
+                    row._tr,
+                    per1_cells={0: "ИТОГО за 1 весы", 1: per1_value, 2: term_days},
+                    n_cells={0: f"ИТОГО за {qty_scales} весов", 1: n_value},
+                )
+                return
+
+
 def generate_kp(state: dict[str, Any], prices: dict) -> bytes:
     """Сгенерировать DOCX КП из state. Возвращает bytes для st.download_button."""
     if not TEMPLATE_PATH.exists():
@@ -247,6 +265,17 @@ def generate_kp(state: dict[str, Any], prices: dict) -> bytes:
     # Постобработка: заменить маркеры ⟦MERGE:...⟧ в колонке сроков на
     # реальный текст + <w:vMerge> в tcPr. См. spec_vmerge.py.
     apply_spec_vmerge(doc.docx)
+
+    # При model_qty > 1 — вторая строка ИТОГО («за 1 весы» + «за N весов»).
+    qty_scales = int(context.get("qty_scales", 1) or 1)
+    if qty_scales > 1:
+        _split_kp_total_row(
+            doc.docx,
+            qty_scales,
+            context["total_price"],
+            context["subtotal_n"],
+            context["total_term_days"],
+        )
 
     buf = BytesIO()
     doc.save(buf)
