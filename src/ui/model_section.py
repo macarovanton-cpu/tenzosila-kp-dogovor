@@ -204,6 +204,18 @@ def _render_model_price_slider(state: dict, price: dict) -> None:
     )
     state["model_price"] = int(value)
 
+    qty = st.number_input(
+        "Количество весов",
+        min_value=1,
+        max_value=20,
+        step=1,
+        value=int(state.get("model_qty", 1) or 1),
+        key=f"model_qty__{state['model_id']}",
+        help="Одинаковые весы в заказе. Строки спецификации — за 1 шт., "
+        "итоги и оплата — за всё количество.",
+    )
+    state["model_qty"] = int(qty)
+
     tag = color_code(int(value), params.retail, params.dealer)
     pct = percent_to_retail(int(value), params.retail)
     sign = "+" if pct >= 0 else ""

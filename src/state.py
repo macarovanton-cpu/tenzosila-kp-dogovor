@@ -45,6 +45,9 @@ def initial_state() -> dict[str, Any]:
         "platform_width_m": 3.0,
         "model_id": "vesta-с-60-18",
         "model_price": None,
+        # Количество автовесов в заказе (одинаковые). Строки спецификации —
+        # per-unit; итоги и оплата считаются от подытог_за_1 × model_qty.
+        "model_qty": 1,
         # Оборудование
         "sensor_id": "zemic_dhm9b_30t",
         "indicator_id": "titan_3cs",

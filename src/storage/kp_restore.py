@@ -113,6 +113,10 @@ def reconstruct_kp_state(kp_row: dict[str, Any], prices: dict) -> dict[str, Any]
     out["model_price"] = model_price
     if model_price is not None:
         out[f"model_price_slider{suffix}"] = model_price
+    # Количество весов. Legacy-снапшот без qty → 1.
+    model_qty = int(model.get("qty") or 1)
+    out["model_qty"] = model_qty
+    out[f"model_qty{suffix}"] = model_qty
 
     # --- equipment ---
     out["sensor_id"] = equipment.get("sensor_id", "")
