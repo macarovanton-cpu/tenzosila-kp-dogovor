@@ -174,6 +174,11 @@ _ANCHOR_DIRECTOR = re.compile(
     re.IGNORECASE,
 )
 
+# Лукбэк окна должности влево от якоря директора: вмещает самое длинное
+# прилагательное («исполнительный » = 15 символов) с запасом. Тот же приём,
+# что _PHONE_ANCHOR_WINDOW — не всю строку (слитная карточка = одна строка).
+_POSITION_LOOKBEHIND = 25
+
 # Слова-должности (для извлечения из текста рядом с ФИО)
 _POSITION_WORDS = re.compile(
     r"(генеральный\s+директор|исполнительный\s+директор|финансовый\s+директор"
@@ -582,9 +587,14 @@ def _extract_director_fields(text: str, result: dict[str, str]) -> None:
     for anchor_match in _ANCHOR_DIRECTOR.finditer(text):
         # Окно: строка самого якоря (до ближайшего \n). НЕ перетекаем на
         # следующую строку — иначе ФИО из строки главбуха/контакта попадёт
-        # в директора.
-        window_start = anchor_match.start()
-        newline = text.find("\n", window_start)
+        # в директора. Влево расширяем на _POSITION_LOOKBEHIND (не дальше
+        # начала строки) — иначе прилагательное («Генеральный директор»)
+        # остаётся за окном и должность обедняется до «Директор». Именно
+        # ограниченный lookback, а не вся строка: в слитной карточке строка =
+        # вся карточка, и поиск должности взял бы чужое слово-должность.
+        line_start = text.rfind("\n", 0, anchor_match.start()) + 1
+        window_start = max(line_start, anchor_match.start() - _POSITION_LOOKBEHIND)
+        newline = text.find("\n", anchor_match.start())
         window_end = newline if newline != -1 else len(text)
         window = text[window_start:window_end]
 

@@ -327,6 +327,19 @@ class TestDirectorFio:
         result = parse_requisites(text)
         assert "ЗАКАЗЧИК_ДИРЕКТОР_ФИО" not in result
 
+    def test_position_with_adjective_full(self):
+        """«Генеральный директор» не обедняется до «Директор» (P1-3)."""
+        text = "Генеральный директор Иванов Иван Иванович"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ") == "Генеральный директор"
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") == "Иванов Иван Иванович"
+
+    def test_position_bare_director_unchanged(self):
+        """Без прилагательного должность остаётся «Директор»."""
+        text = "Директор Иванов Иван Иванович"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ") == "Директор"
+
     def test_osnование_extracted(self):
         """Основание извлекается по «на основании»."""
         text = "действующего на основании Устава"
@@ -679,6 +692,7 @@ class TestAuditCards:
         assert result.get("ЗАКАЗЧИК_КС") == "30101810400000000225"
         assert result.get("ЗАКАЗЧИК_БИК") == "044525225"
         assert result.get("ЗАКАЗЧИК_АДРЕС_ЮР", "").startswith("115093")
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ") == "Генеральный директор"  # P1-3
 
     def test_card2_glued_single_line(self):
         """Карточка 2 (слитная строка): телефон ≠ ИНН (P0-1), адрес ограничен (P0-3)."""
