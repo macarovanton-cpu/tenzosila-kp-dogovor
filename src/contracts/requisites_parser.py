@@ -456,8 +456,11 @@ def _extract_addresses(text: str, result: dict[str, str]) -> None:
     # Разбиваем на строки, ищем строки-кандидаты адресов
     lines = text.splitlines()
     addr_candidates: list[tuple[str, str]] = []  # (тип_якоря: yur|poct|none, строка)
+    consumed: set[int] = set()  # строки-продолжения многострочного адреса
 
-    for line in lines:
+    for i, line in enumerate(lines):
+        if i in consumed:
+            continue
         stripped = line.strip()
         if not stripped:
             continue
@@ -475,6 +478,24 @@ def _extract_addresses(text: str, result: dict[str, str]) -> None:
         # в адрес (ИНН, счета, телефон — всё в одном поле договора).
         start = min(m.start() for m in (index_m, street_m) if m)
         value = stripped[start:]
+        # Многострочный адрес (P1-5): для кандидата с индексом присоединяем
+        # следующие строки, пока накопленное кончается запятой (улика
+        # незавершённости). Стоп ДО поглощения на строке-метке другого поля —
+        # так «Почтовый адрес: …» остаётся отдельным кандидатом.
+        # _ADDR_END-сегментация (P0-3) применяется ПОСЛЕ склейки — последним
+        # фильтром режет любой прилипший хвост.
+        if index_m:
+            j = i + 1
+            while value.rstrip().endswith(",") and j < len(lines):
+                nxt = lines[j].strip()
+                if not nxt:
+                    break
+                end_at_start = _ADDR_END.search(nxt)
+                if end_at_start and end_at_start.start() == 0:
+                    break
+                value += " " + nxt
+                consumed.add(j)
+                j += 1
         end_m = _ADDR_END.search(value)
         if end_m:
             value = value[:end_m.start()]
