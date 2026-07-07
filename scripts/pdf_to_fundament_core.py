@@ -21,7 +21,7 @@ SRC_DIR = ROOT / "data" / "fundament" / "pdf_source"
 OUT_DIR = ROOT / "data" / "fundament" / "build_task"
 CS_SRC = SRC_DIR / "control_sheet"
 CS_OUT = ROOT / "data" / "fundament" / "control_sheet"
-REFERENCE = OUT_DIR / "пандусный_С_Ф_3 скц.docx"
+REFERENCE = OUT_DIR / "пандусный_С_Ф_3скц.docx"
 
 DPI = 200
 EMU_PER_MM = 36_000

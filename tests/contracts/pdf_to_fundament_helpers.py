@@ -7,7 +7,7 @@ import fitz
 from lxml import etree
 
 
-REFERENCE = Path("data/fundament/build_task/пандусный_С_Ф_3 скц.docx")
+REFERENCE = Path("data/fundament/build_task/пандусный_С_Ф_3скц.docx")
 WP14_ANCHOR_ID_ATTR = (
     "{http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing}anchorId"
 )
