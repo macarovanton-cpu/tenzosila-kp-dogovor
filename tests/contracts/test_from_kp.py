@@ -462,6 +462,18 @@ class TestResolveOptionName:
         name = _resolve_option_name("ramp_set_fl_sl", "ФЛ", prices=PRICES)
         assert name == "Комплект пандусов под весы ВЕСТА-ФЛ/СЛ (L=2,9м)"
 
+    def test_frame_resolves_from_prices(self):
+        """frame_18 → label из prices.json, не raw-ключ."""
+        from src.contracts.from_kp import _resolve_option_name
+        name = _resolve_option_name("frame_18", "С", prices=PRICES)
+        assert name == "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 18м"
+
+    def test_ramp_set_f_s_resolves_from_prices(self):
+        """ramp_set_f_s → label из prices.json."""
+        from src.contracts.from_kp import _resolve_option_name
+        name = _resolve_option_name("ramp_set_f_s", "Ф", prices=PRICES)
+        assert name == "Комплект пандусов под весы ВЕСТА-Ф/С (L=3,9м)"
+
     def test_foundation_pattern_not_overridden_by_prices(self):
         """foundation_s_f_18 с prices=PRICES всё равно использует паттерн с {line}."""
         from src.contracts.from_kp import _resolve_option_name

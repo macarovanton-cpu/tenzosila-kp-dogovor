@@ -351,6 +351,47 @@ def test_fill_spec_with_items_e2e_from_kp_snapshot(tmp_path):
     assert any("Доставка" in n for n in item_names)
 
 
+def test_fill_spec_with_items_no_raw_ids_leak(tmp_path):
+    """E2E регресс: frame_18/ramp_set_f_s/ramp_set_fl_sl/fence_norma_20 → в .docx
+    попадают человекочитаемые label из prices.json, а не raw-ключи опций."""
+    import json
+    from pathlib import Path
+
+    from docx import Document
+    from src.contracts.from_kp import build_specification_items
+    from src.contracts.filler import fill_spec_with_items
+
+    prices = json.loads(Path("data/prices.json").read_text(encoding="utf-8"))
+    raw_keys = ["frame_18", "ramp_set_f_s", "ramp_set_fl_sl", "fence_norma_20"]
+
+    kp_row = {
+        "kp_number": "КП-2026-RAWID",
+        "model_id": "vesta-s-60-18",
+        "data": {
+            "model": {"line": "С", "max": 60, "length": 18, "price": 2_835_000},
+            "options": {
+                key: {"qty": 1, "price": 1_000, "customer_side": False}
+                for key in raw_keys
+            },
+        },
+    }
+
+    items = build_specification_items(kp_row, prices=prices)
+
+    template = os.path.normpath(SPEC_TEMPLATE_PATH)
+    output = str(tmp_path / "spec_no_raw_ids.docx")
+    fill_spec_with_items(template, SPEC_MOCK_DATA, items, output)
+
+    doc = Document(output)
+    table = doc.tables[0]
+    all_text = " ".join(c.text for row in table.rows for c in row.cells)
+
+    for key in raw_keys:
+        expected_label = prices["options"][key]["label"]
+        assert expected_label in all_text
+        assert key not in all_text
+
+
 # ---------------------------------------------------------------------------
 # Тесты сохранения drawing-объектов (regression: merge_runs не должен их
 # уничтожать через CT_R.clear_content при слиянии рунов без rPr)
