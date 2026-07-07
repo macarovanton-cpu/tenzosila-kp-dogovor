@@ -177,11 +177,30 @@ class TestRsKsConflict:
 
     def test_ambiguous_no_anchor_empty(self):
         """Неоднозначный префикс без якоря → поле пустое (не угадываем)."""
-        # Префикс не 301 и не 407/405/406, и без якоря
+        # Префикс не 301 и не 407/405/406/408, и без якоря
         text = "20098765432109876543"  # нестандартный префикс 200...
         result = parse_requisites(text)
         assert "ЗАКАЗЧИК_РС" not in result
         assert "ЗАКАЗЧИК_КС" not in result
+
+    def test_rs_prefix_408_ip(self):
+        """20 цифр с префиксом 40802 (счёт ИП) → р/с без якоря (P1-1)."""
+        text = "40802810600000004321"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_РС") == "40802810600000004321"
+        assert "ЗАКАЗЧИК_КС" not in result
+
+    def test_rs_sch_anchor_unknown_prefix(self):
+        """Метка «р/сч» с нестандартным префиксом → якорная ветка р/с (P1-1)."""
+        text = "р/сч 20098765432109876543"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_РС") == "20098765432109876543"
+
+    def test_ks_sch_anchor_unknown_prefix(self):
+        """Метка «к/сч» с нестандартным префиксом → якорная ветка к/с (P1-1)."""
+        text = "к/сч 20098765432109876543"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КС") == "20098765432109876543"
 
 
 # ---------------------------------------------------------------------------
@@ -668,7 +687,7 @@ class TestAuditCards:
         assert result.get("ЗАКАЗЧИК_АДРЕС_ЮР") == (
             "623281, Свердловская обл., г. Ревда, ул. Мира, д. 10"
         )
-        # р/сч 408… — известный P1-1 пробел, поле не ассертим.
+        assert result.get("ЗАКАЗЧИК_РС") == "40802810600000004321"  # P1-1
 
     def test_card4_pao_multiline_address(self):
         """Карточка 4 (полная ОПФ, адрес в 3 строки): АДРЕС_ЮР с индекса (P1-5 не ассертим)."""

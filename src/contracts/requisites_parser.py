@@ -119,15 +119,17 @@ _ADDR_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-# Префиксы счетов
-_RS_PREFIXES = ("407", "405", "406")
+# Префиксы счетов (408 — счета ИП/физлиц: 40802, 40817 и т.п.)
+_RS_PREFIXES = ("407", "405", "406", "408")
 _KS_PREFIXES = ("301",)
 
-# Якоря для реквизитов (для разрешения неоднозначных случаев)
+# Якоря для реквизитов (для разрешения неоднозначных случаев).
+# «р/?с(?:ч\w*)?» — покрывает «р/с», «р/сч», «р/счёт»: вариант «р/?сч?\b»
+# не матчит «р/сч» (нет границы слова между «с» и «ч»).
 _ANCHOR_BIK = re.compile(r"бик\b", re.IGNORECASE)
 _ANCHOR_KPP = re.compile(r"кпп\b", re.IGNORECASE)
-_ANCHOR_RS = re.compile(r"р/?с\b|расчётн|расчетн", re.IGNORECASE)
-_ANCHOR_KS = re.compile(r"к/?с\b|корр?есп", re.IGNORECASE)
+_ANCHOR_RS = re.compile(r"р/?с(?:ч\w*)?\b|расчётн|расчетн", re.IGNORECASE)
+_ANCHOR_KS = re.compile(r"к/?с(?:ч\w*)?\b|корр?есп", re.IGNORECASE)
 
 # Якоря для адресов
 _ANCHOR_YUR = re.compile(r"юрид|юр\.", re.IGNORECASE)
