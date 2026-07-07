@@ -7,7 +7,7 @@ import os
 from datetime import UTC, date, datetime
 from typing import Any
 
-from supabase import Client, create_client
+from supabase import Client, ClientOptions, create_client
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,8 @@ def _get_client() -> Client:
         key = os.environ.get("SUPABASE_KEY", "")
     if not url or not key:
         raise StorageError("SUPABASE_URL / SUPABASE_KEY не заданы")
-    return create_client(url, key)
+    options = ClientOptions(postgrest_client_timeout=10)
+    return create_client(url, key, options=options)
 
 
 _KP_LIST_COLS = "id,kp_number,kp_date,client_name,model_id,total_price,manager_id,created_at,updated_at"
