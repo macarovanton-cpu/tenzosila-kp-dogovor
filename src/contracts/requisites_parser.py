@@ -78,12 +78,20 @@ _PHONE_CANDIDATE_RE = re.compile(
 _PHONE_ANCHOR_RE = re.compile(r"\bтел\w*|\bфакс\w*", re.IGNORECASE)
 
 
+# Окно поиска якоря «тел/факс» перед кандидатом без префикса: покрывает
+# «Телефон для связи: …», но не всю строку — в слитной карточке (вся карточка
+# одной строкой) якорь где-то на строке есть всегда, и первый 10-значник (ИНН)
+# уезжал в телефон.
+_PHONE_ANCHOR_WINDOW = 40
+
+
 def _find_phone(text: str) -> str | None:
     """Найти телефон в тексте.
 
     С префиксом (+7/8) — всего 11 цифр, ищем где угодно. Без префикса —
-    ровно 10 цифр, но только если в той же строке есть якорь «тел»/«факс»
-    (иначе не угадываем — см. принцип модуля).
+    ровно 10 цифр, но только если якорь «тел»/«факс» стоит непосредственно
+    ПЕРЕД кандидатом, в пределах окна на той же строке (иначе не угадываем —
+    см. принцип модуля).
     """
     for m in _PHONE_CANDIDATE_RE.finditer(text):
         raw = m.group(0).strip()
@@ -94,9 +102,8 @@ def _find_phone(text: str) -> str | None:
             continue
         if len(digits) == 10:
             line_start = text.rfind("\n", 0, m.start()) + 1
-            line_end = text.find("\n", m.end())
-            line = text[line_start: line_end if line_end != -1 else len(text)]
-            if _PHONE_ANCHOR_RE.search(line):
+            window = text[max(line_start, m.start() - _PHONE_ANCHOR_WINDOW): m.start()]
+            if _PHONE_ANCHOR_RE.search(window):
                 return raw
     return None
 

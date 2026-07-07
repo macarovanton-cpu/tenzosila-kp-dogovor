@@ -311,6 +311,17 @@ class TestBugPhoneFromAccount:
         result = parse_requisites("Тел. +7 495 123-45-67")
         assert "ЗАКАЗЧИК_ТЕЛЕФОН" in result
 
+    def test_inn_not_parsed_as_phone_glued_line(self):
+        """P0-1: в слитной строке ИНН не уезжает в телефон (репро аудита)."""
+        result = parse_requisites("ИНН 7705123452 тел 8 (495) 111-22-33")
+        assert result.get("ЗАКАЗЧИК_ТЕЛЕФОН") == "8 (495) 111-22-33"
+
+    def test_phone_no_prefix_anchor_right_before(self):
+        """P0-1: якорь вплотную перед 10-значником — телефон, ИНН не задет."""
+        result = parse_requisites("ИНН 7707083893 тел. 4952223344")
+        assert result.get("ЗАКАЗЧИК_ТЕЛЕФОН") == "4952223344"
+        assert result.get("ЗАКАЗЧИК_ИНН") == "7707083893"
+
 
 class TestBugDirectorVsBuh:
     """P1 №3: ФИО главбуха со следующей строки не должно уйти в директора."""
