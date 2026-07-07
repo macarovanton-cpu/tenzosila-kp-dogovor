@@ -3,6 +3,7 @@ import copy
 import logging
 from datetime import datetime
 
+import streamlit as st
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -237,7 +238,9 @@ def _load_model_and_deps(deal: dict):
                 break
 
         return model, ld, sensor, indicator
-    except Exception:
+    except Exception as exc:
+        _logger.warning("_load_model_and_deps: не удалось загрузить модель/зависимости: %s", exc)
+        st.warning("ТТХ и комплект поставки не заполнены: не удалось загрузить модель/зависимости (см. лог).")
         return None
 
 
