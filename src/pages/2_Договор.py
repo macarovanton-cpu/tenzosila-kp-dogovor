@@ -919,14 +919,37 @@ w_contract_type = st.radio(
 )
 
 if not generated:
+    # Валидация текущих реквизитов (включая ручные правки) на каждом рендере.
+    # Пустой dict не валидируем — работает старый гейт bool(requisites).
+    _req_now = cs.get("requisites") or {}
+    _req_errors, _req_warnings = (
+        validate_requisites(_req_now) if _req_now else ([], [])
+    )
+    if _req_errors:
+        with st.container(border=True):
+            st.markdown(f"**:material/error: Ошибки реквизитов ({len(_req_errors)})**")
+            for _e in _req_errors:
+                st.markdown(f"- {_e}")
+    if _req_warnings:
+        with st.container(border=True):
+            st.markdown(
+                f"**:material/warning: Предупреждения по реквизитам "
+                f"({len(_req_warnings)})**"
+            )
+            for _w in _req_warnings:
+                st.markdown(f"- {_w}")
+
     generate_disabled = (
         not (bool(cs.get("specification")) and bool(cs.get("requisites")))
         or not contract_number
         or not object_address
+        or bool(_req_errors)
     )
 
     if st.button(
-        "Сгенерировать договор и спецификацию", disabled=generate_disabled
+        "Сгенерировать договор и спецификацию",
+        disabled=generate_disabled,
+        help="Сначала устраните ошибки в реквизитах" if _req_errors else None,
     ):
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 

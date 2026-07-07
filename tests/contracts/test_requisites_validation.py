@@ -1,7 +1,18 @@
 """Тесты validate_requisites()."""
 from __future__ import annotations
 
+from src.contracts.requisites_parser import parse_requisites
+from src.contracts.requisites_transforms import derive_requisites
 from src.contracts.requisites_validation import validate_requisites
+
+
+def _parse_and_validate(text: str) -> tuple[dict, list[str], list[str]]:
+    """Повторить флоу «Распознать»: parse → derive → validate merged dict."""
+    parsed = parse_requisites(text)
+    derived, _ = derive_requisites(parsed)
+    full = {**parsed, **derived}
+    errors, warnings = validate_requisites(full)
+    return full, errors, warnings
 
 
 def _valid_fields() -> dict[str, str]:
@@ -219,3 +230,113 @@ def test_empty_kpp_ogrn_phone_silent():
     errors, warnings = validate_requisites(fields)
     assert errors == []
     assert warnings == []
+
+
+# ---------------------------------------------------------------------------
+# Интеграция parse → derive → validate: синтетические карточки с семантикой
+# примеров 1-4 ТЗ (чистые) и 6-7 (битые). Контрольные суммы валидные,
+# формат — тот, который парсер надёжно берёт (метки, ОПФ+кавычки, полное ФИО).
+# ---------------------------------------------------------------------------
+
+class TestSyntheticCards:
+    def test_clean_card_full_jurlico(self):
+        """Полное юрлицо — все критичные поля распознаны, чисто."""
+        text = (
+            "ООО «Ромашка»\n"
+            "ИНН 7707083893\n"
+            "КПП: 770701001\n"
+            "ОГРН 1027700132195\n"
+            "Юридический адрес: 117312, г. Москва, ул. Вавилова, д. 19\n"
+            "р/с 40702810900000012345 в Банк ПАО «Сбербанк», г. Москва "
+            "к/с 30101810400000000225 БИК 044525225\n"
+            "Директор Иванов Иван Иванович, действует на основании Устава\n"
+        )
+        _, errors, warnings = _parse_and_validate(text)
+        assert errors == []
+        assert warnings == []
+
+    def test_clean_card_unlabeled_accounts(self):
+        """Счета без меток (по префиксу), длинное основание — errors пусты."""
+        text = (
+            "ООО «Гранит»\n"
+            "ИНН 3123456783\n"
+            "Юридический адрес: 308000, г. Белгород, пр. Славы, д. 35\n"
+            "40702810700000098765 Банк: РНКБ Банк (ПАО) БИК 044525607 "
+            "30101810700000000607\n"
+            "Директор Кузнецов Андрей Викторович\n"
+            "Основание: Доверенность № 5 от 12.01.2026\n"
+        )
+        _, errors, _ = _parse_and_validate(text)
+        assert errors == []
+
+    def test_clean_card_labeled_bank(self):
+        """Юрлицо с меткой «Банк:» — errors пусты."""
+        text = (
+            "ПАО «Вектор»\n"
+            "ИНН 7801234564\n"
+            "Юридический адрес: 190000, г. Санкт-Петербург, Невский пр., д. 1\n"
+            "р/с 40702810500000011111\n"
+            "Банк: ПАО «Банк «Санкт-Петербург»\n"
+            "к/с 30101810500000000207 БИК 046015207\n"
+            "Директор Смирнова Ольга Петровна, действует на основании Устава\n"
+        )
+        _, errors, _ = _parse_and_validate(text)
+        assert errors == []
+
+    def test_ip_card_name_gap_is_loud_then_fixable(self):
+        """ИП без кавычек: парсер не берёт наименование (P1-4) — валидатор
+        делает пропуск громким; после ручного ввода имени errors уходят."""
+        text = (
+            "ИП Сидорова Анна Андреевна\n"
+            "ИНН 500100732259\n"
+            "ОГРНИП 304500116000157\n"
+            "Юридический адрес: 141002, г. Мытищи, ул. Мира, д. 7\n"
+            "р/с 40802810900000054321\n"
+            "Банк: АО «Альфа-Банк» к/с 30101810200000000593 БИК 044525593\n"
+            "действует на основании Свидетельства\n"
+        )
+        full, errors, _ = _parse_and_validate(text)
+        assert any("наименование" in e for e in errors)
+        # Менеджер дозаполнил руками — блок снят
+        full["ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ"] = "ИП Сидорова Анна Андреевна"
+        errors2, _ = validate_requisites(full)
+        assert errors2 == []
+
+    def test_broken_inn_card_is_loud(self):
+        """Аналог примера 6: битый ИНН парсер отбрасывает → поле пусто →
+        error «не заполнен» — тихий отказ стал громким."""
+        text = (
+            "ООО «Ромашка»\n"
+            "ИНН 7707083894\n"  # контрольная сумма бита
+            "р/с 40702810900000012345 Банк: ПАО Сбербанк "
+            "к/с 30101810400000000225 БИК 044525225\n"
+        )
+        full, errors, _ = _parse_and_validate(text)
+        assert not full.get("ЗАКАЗЧИК_ИНН")
+        assert any("ИНН" in e for e in errors)
+
+    def test_bik_ks_mismatch_card_is_loud(self):
+        """Аналог примера 7: БИК и к/с из разных банков → error (P0-5)."""
+        text = (
+            "ООО «Ромашка»\n"
+            "ИНН 7707083893\n"
+            "р/с 40702810900000012345 Банк: ПАО Сбербанк "
+            "к/с 30101810800000000653 БИК 044525225\n"  # …653 при БИК …225
+        )
+        full, errors, _ = _parse_and_validate(text)
+        assert full.get("ЗАКАЗЧИК_КС") == "30101810800000000653"
+        assert full.get("ЗАКАЗЧИК_БИК") == "044525225"
+        assert any("согласован" in e for e in errors)
+
+    def test_broken_ogrn_card_is_loud(self):
+        """Битый ОГРН парсер принимает (длина совпала) → валидатор ловит."""
+        text = (
+            "ООО «Ромашка»\n"
+            "ИНН 7707083893\n"
+            "ОГРН 1027700132196\n"  # контрольная цифра бита
+            "р/с 40702810900000012345 Банк: ПАО Сбербанк "
+            "к/с 30101810400000000225 БИК 044525225\n"
+        )
+        full, errors, _ = _parse_and_validate(text)
+        assert full.get("ЗАКАЗЧИК_ОГРН") == "1027700132196"
+        assert any("ОГРН" in e for e in errors)

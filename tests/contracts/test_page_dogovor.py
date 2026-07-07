@@ -101,6 +101,12 @@ class _FakeStreamlitModule:
     def expander(self, *args, **kwargs):
         return _FakeContextManager()
 
+    def container(self, *args, **kwargs):
+        return _FakeContextManager()
+
+    def markdown(self, *args, **kwargs):
+        pass
+
     def columns(self, spec, *args, **kwargs):
         count = spec if isinstance(spec, int) else len(spec)
         return [_FakeColumn() for _ in range(count)]
