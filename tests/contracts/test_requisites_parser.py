@@ -110,6 +110,30 @@ class TestParseBasicFields:
         result = parse_requisites(text)
         assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == 'ООО "Тензосила"'
 
+    def test_name_full_opf_quotes(self):
+        """Полная ОПФ словами + кавычки → краткая ОПФ (P1-4)."""
+        text = "Публичное акционерное общество «Вектор-Восток»"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == 'ПАО "Вектор-Восток"'
+
+    def test_name_full_opf_zao_not_eaten_by_ao(self):
+        """«Закрытое акционерное общество» → ЗАО, не АО (P1-4)."""
+        text = "Закрытое акционерное общество «Салют»"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == 'ЗАО "Салют"'
+
+    def test_name_ip_with_fio(self):
+        """«ИП + полное ФИО» без кавычек → наименование (P1-4)."""
+        text = "ИП Петров Сергей Иванович\nИНН 500100732259"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == "ИП Петров Сергей Иванович"
+
+    def test_name_ip_full_opf_with_fio(self):
+        """«Индивидуальный предприниматель + ФИО» → «ИП + ФИО» (P1-4)."""
+        text = "Индивидуальный предприниматель Петров Сергей Иванович"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == "ИП Петров Сергей Иванович"
+
     def test_empty_text(self):
         assert parse_requisites("") == {}
 
@@ -682,6 +706,7 @@ class TestAuditCards:
             "р/сч 40802810600000004321\n"
         )
         result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == "ИП Петров Сергей Иванович"  # P1-4
         assert result.get("ЗАКАЗЧИК_ИНН") == "500100732259"
         assert result.get("ЗАКАЗЧИК_ОГРН") == "315745600001234"
         assert result.get("ЗАКАЗЧИК_АДРЕС_ЮР") == (
@@ -700,6 +725,7 @@ class TestAuditCards:
             "Красный проспект, д. 1\n"
         )
         result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == 'ПАО "Вектор-Восток"'  # P1-4
         assert result.get("ЗАКАЗЧИК_ИНН") == "7801234564"
         assert result.get("ЗАКАЗЧИК_КПП") == "780101001"
         assert result.get("ЗАКАЗЧИК_АДРЕС_ЮР", "").startswith("630007")

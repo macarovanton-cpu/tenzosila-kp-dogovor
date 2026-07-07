@@ -13,6 +13,8 @@ from __future__ import annotations
 import logging
 import re
 
+from src.contracts.requisites_transforms import _OPF_MAP
+
 _logger = logging.getLogger(__name__)
 
 
@@ -111,6 +113,28 @@ def _find_phone(text: str) -> str | None:
 _NAME_RE = re.compile(
     r'(ООО|ПАО|ЗАО|АО|ИП)\s*["«“]([^"»”]{1,120})["»”]',
     re.IGNORECASE,
+)
+
+# Полная ОПФ словами + кавычки: «Публичное акционерное общество «Вектор»».
+# Маппинг полное→краткое переиспользуем из transforms (_OPF_MAP: краткое→полное).
+# Сортировка по убыванию длины — чтобы «Акционерное общество» не перехватило
+# хвост «Публичного/Закрытого акционерного общества».
+_OPF_FULL_TO_SHORT = {full.lower(): short for short, full in _OPF_MAP.items()}
+_NAME_FULL_OPF_RE = re.compile(
+    r"("
+    + "|".join(
+        re.escape(full) for full in sorted(_OPF_FULL_TO_SHORT, key=len, reverse=True)
+    )
+    + r')\s*["«“]([^"»”]{1,120})["»”]',
+    re.IGNORECASE,
+)
+
+# ИП + полное ФИО без кавычек: «ИП Петров Сергей Иванович». «ИП» —
+# case-sensitive (иначе матчится внутри произвольного текста), полная форма
+# ОПФ — без учёта регистра.
+_NAME_IP_RE = re.compile(
+    r"(?<![А-Яа-яёЁ])(?:ИП|(?i:Индивидуальный\s+предприниматель))\s+"
+    r"([А-ЯЁ][а-яё]+\s+[А-ЯЁ][а-яё]+\s+[А-ЯЁ][а-яё]+)"
 )
 
 # Адрес: строка начинается с 6-значного индекса ИЛИ содержит «г.»/«ул.»/«пер.»
@@ -254,11 +278,7 @@ def parse_requisites(text: str) -> dict[str, str]:
     # ------------------------------------------------------------------
     # 3. Наименование организации (по тексту без сегмента банка)
     # ------------------------------------------------------------------
-    m = _NAME_RE.search(scan_text)
-    if m:
-        opf = m.group(1).upper()
-        name = m.group(2).strip()
-        result["ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ"] = f'{opf} "{name}"'
+    _extract_name(scan_text, result)
 
     # ------------------------------------------------------------------
     # 4. Числовые токены: ИНН, ОГРН, БИК, КПП, р/с, к/с (по полному тексту —
@@ -281,6 +301,30 @@ def parse_requisites(text: str) -> dict[str, str]:
     _extract_osnovanie(text, result)
 
     return result
+
+
+def _extract_name(scan_text: str, result: dict[str, str]) -> None:
+    """Краткое наименование: аббревиатура/полная ОПФ + кавычки, либо ИП + ФИО.
+
+    Приоритет сверху вниз — первый сматчившийся вариант выигрывает.
+    """
+    m = _NAME_RE.search(scan_text)
+    if m:
+        opf = m.group(1).upper()
+        name = m.group(2).strip()
+        result["ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ"] = f'{opf} "{name}"'
+        return
+
+    m = _NAME_FULL_OPF_RE.search(scan_text)
+    if m:
+        opf = _OPF_FULL_TO_SHORT[m.group(1).lower()]
+        name = m.group(2).strip()
+        result["ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ"] = f'{opf} "{name}"'
+        return
+
+    m = _NAME_IP_RE.search(scan_text)
+    if m:
+        result["ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ"] = f"ИП {m.group(1).strip()}"
 
 
 def _extract_inn_kpp_slash(text: str, result: dict[str, str]) -> None:

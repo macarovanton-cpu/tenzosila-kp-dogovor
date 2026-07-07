@@ -283,9 +283,9 @@ class TestSyntheticCards:
         _, errors, _ = _parse_and_validate(text)
         assert errors == []
 
-    def test_ip_card_name_gap_is_loud_then_fixable(self):
-        """ИП без кавычек: парсер не берёт наименование (P1-4) — валидатор
-        делает пропуск громким; после ручного ввода имени errors уходят."""
+    def test_ip_card_name_recognized_no_errors(self):
+        """ИП без кавычек: после P1-4 наименование распознаётся парсером,
+        валидатор ошибок не даёт (раньше пропуск закрывался ручным вводом)."""
         text = (
             "ИП Сидорова Анна Андреевна\n"
             "ИНН 500100732259\n"
@@ -296,11 +296,8 @@ class TestSyntheticCards:
             "действует на основании Свидетельства\n"
         )
         full, errors, _ = _parse_and_validate(text)
-        assert any("наименование" in e for e in errors)
-        # Менеджер дозаполнил руками — блок снят
-        full["ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ"] = "ИП Сидорова Анна Андреевна"
-        errors2, _ = validate_requisites(full)
-        assert errors2 == []
+        assert full.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == "ИП Сидорова Анна Андреевна"
+        assert errors == []
 
     def test_broken_inn_card_is_loud(self):
         """Аналог примера 6: битый ИНН парсер отбрасывает → поле пусто →
