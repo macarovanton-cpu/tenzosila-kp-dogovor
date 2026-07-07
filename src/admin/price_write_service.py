@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 from copy import deepcopy
@@ -20,6 +21,8 @@ from typing import Any
 
 from src.admin.price_models import UNKNOWN_PRICE_CLASS, PriceItem
 from src.config import PRICES_JSON
+
+logger = logging.getLogger(__name__)
 
 # Канонические поля схемы prices.json, которые сериализуются из полей PriceItem.
 # Всё, чего тут нет (data_incomplete, notes, dealer_note, components), переносится
@@ -249,5 +252,7 @@ def _clear_prices_cache() -> None:
         from src.data_loader import load_prices
 
         load_prices.clear()
-    except Exception:
+    except (ImportError, AttributeError):
         pass
+    except Exception:
+        logger.exception("_clear_prices_cache: не удалось сбросить кэш load_prices")
