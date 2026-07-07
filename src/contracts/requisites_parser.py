@@ -133,6 +133,15 @@ _ANCHOR_KS = re.compile(r"к/?с\b|корр?есп", re.IGNORECASE)
 _ANCHOR_YUR = re.compile(r"юрид|юр\.", re.IGNORECASE)
 _ANCHOR_POCT = re.compile(r"почт|факт", re.IGNORECASE)
 
+# Границы-конца сегмента АДРЕСА: метка любого другого поля (по образцу
+# _BANK_END). \b-гарды — чтобы «ул. Банковская» / «Телеграфная» не резали.
+_ADDR_END = re.compile(
+    r"(?<![А-Яа-яёЁ])(?:ИНН\b|КПП\b|ОГРН|БИК\b|ОКПО|ОКВЭД|[РрКк]/?сч?\b"
+    r"|Расч[её]тн|Корр|Банк\b|Тел\b|Телефон|Факс|E-?mail|Эл\.\s*почт"
+    r"|Директор|Руководител|в\s+лице|Основани|Контакт|Почтов|Юридич|Юр\.|Фактич)",
+    re.IGNORECASE,
+)
+
 # Якоря для директора (консервативно — только «в лице», «директор», «руководитель»)
 _ANCHOR_DIRECTOR = re.compile(
     r"(?:в\s+лице|директор\b|руководитель\b|управляющий\b|президент\b)",
@@ -391,18 +400,29 @@ def _extract_addresses(text: str, result: dict[str, str]) -> None:
         # Строка выглядит как адрес?
         # Индекс — отдельностоящее 6-значное число, а НЕ подстрока длинного
         # реквизита (ИНН/ОГРН/счёт): иначе любая числовая строка станет адресом.
-        is_addr = (
-            re.search(r"(?<!\d)\d{6}(?!\d)", stripped)  # индекс
-            or re.search(r"(?:г\.|ул\.|пер\.|пр-т|проспект|бульвар)\s", stripped, re.IGNORECASE)
+        index_m = re.search(r"(?<!\d)\d{6}(?!\d)", stripped)
+        street_m = re.search(
+            r"(?:г\.|ул\.|пер\.|пр-т|проспект|бульвар)\s", stripped, re.IGNORECASE
         )
-        if not is_addr:
+        if not index_m and not street_m:
+            continue
+        # Значение — от начала адреса (индекс или уличный маркер, что раньше)
+        # до метки следующего поля: иначе слитная карточка целиком уходит
+        # в адрес (ИНН, счета, телефон — всё в одном поле договора).
+        start = min(m.start() for m in (index_m, street_m) if m)
+        value = stripped[start:]
+        end_m = _ADDR_END.search(value)
+        if end_m:
+            value = value[:end_m.start()]
+        value = value.strip(" ,;")
+        if not value:
             continue
         if _ANCHOR_YUR.search(stripped):
-            addr_candidates.append(("yur", stripped))
+            addr_candidates.append(("yur", value))
         elif _ANCHOR_POCT.search(stripped):
-            addr_candidates.append(("poct", stripped))
+            addr_candidates.append(("poct", value))
         else:
-            addr_candidates.append(("none", stripped))
+            addr_candidates.append(("none", value))
 
     for kind, addr_line in addr_candidates:
         # Очищаем строку от якорного слова
