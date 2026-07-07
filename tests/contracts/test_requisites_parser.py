@@ -518,6 +518,28 @@ class TestEtalonCards:
         assert result.get("ЗАКАЗЧИК_ОСНОВАНИЕ") == "Доверенность № 5 от 12.01.2026"
         assert result.get("ЗАКАЗЧИК_БИК") == "044525607"
 
+    def test_bank_dash_name_with_label(self):
+        """P0-4: дефисное имя банка с меткой — берётся целиком, не '»'."""
+        result = parse_requisites("Банк: ПАО «Тест-Банк»")
+        assert result.get("ЗАКАЗЧИК_БАНК") == "ПАО «Тест-Банк»"
+
+    def test_bank_dash_name_without_label_empty(self):
+        """P0-4: «Банк» внутри дефисного имени — не метка; лучше пусто, чем '»'."""
+        result = parse_requisites("р/с 40702810123450067890 в ПАО «Тест-Банк»")
+        assert "ЗАКАЗЧИК_БАНК" not in result
+
+    def test_bank_dash_name_in_org_not_eaten_by_blank_span(self):
+        """P0-4: «Тест-Банк» в имени организации не забеливается как банк."""
+        text = "ООО «Тест-Банк»\nИНН 7707083893\nБанк: ПАО Сбербанк"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == 'ООО "Тест-Банк"'
+        assert result.get("ЗАКАЗЧИК_БАНК") == "ПАО Сбербанк"
+
+    def test_bank_label_without_value_empty(self):
+        """P0-4: метка банка без буквенного значения → поле пустое."""
+        result = parse_requisites("Банк: 12345")
+        assert "ЗАКАЗЧИК_БАНК" not in result
+
     def test_bank_is_last_field_cut_at_newline(self):
         """Банк — последнее поле: сегмент режется до \\n/конца, не тянет пустоту."""
         result_nl = parse_requisites("ООО «Тест»\nБанк: ПАО Сбербанк\n")

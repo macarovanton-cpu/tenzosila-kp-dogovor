@@ -157,10 +157,10 @@ _FIO_RE = re.compile(r"[А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё
 _OSNOV_START = re.compile(r"(?:на\s+)?основани\w*\s*:?\s*", re.IGNORECASE)
 
 # Метка банка (первое вхождение — начало сегмента). Слово «Банк» матчим только
-# как начало поля (перед ним не буква): «в Банк», «Банк:», «Наименование банка»,
-# «Банк получателя» — но НЕ «Сбербанк».
+# как начало поля (перед ним не буква и не дефис): «в Банк», «Банк:»,
+# «Наименование банка», «Банк получателя» — но НЕ «Сбербанк» и НЕ «Тест-Банк».
 _BANK_LABEL = re.compile(
-    r"(?:наименование\s+банка|банк\w*\s+получателя|(?<![А-Яа-яёЁ])банк\w*)\s*:?\s*",
+    r"(?:наименование\s+банка|банк\w*\s+получателя|(?<![А-Яа-яёЁ\-])банк\w*)\s*:?\s*",
     re.IGNORECASE,
 )
 
@@ -435,17 +435,17 @@ def _extract_bank(text: str, result: dict[str, str]) -> tuple[int, int] | None:
     Кавычки и слово «Банк» внутри названия игнорируем (см. _BANK_END). Возвращает
     диапазон сегмента (для забеливания перед разбором имени/адреса) или None.
     """
-    m = _BANK_LABEL.search(text)
-    if not m:
-        return None
-    value_start = m.end()
-    raw = _segment_until(text, value_start, _BANK_END)
-    cleaned = raw.strip().rstrip(".,; ")
-    # Пусто или похоже на число (метка без значения) — не банк.
-    if not cleaned or re.fullmatch(r"[\d\s\-]+", cleaned):
-        return None
-    result.setdefault("ЗАКАЗЧИК_БАНК", cleaned)
-    return (m.start(), value_start + len(raw))
+    for m in _BANK_LABEL.finditer(text):
+        value_start = m.end()
+        raw = _segment_until(text, value_start, _BANK_END)
+        cleaned = raw.strip().rstrip(".,; ")
+        # Сегмент без единой буквы (пусто, число, кавычка-огрызок) — не значение
+        # банка: отбраковываем и пробуем следующую метку.
+        if not cleaned or not re.search(r"[А-Яа-яёЁA-Za-z]", cleaned):
+            continue
+        result.setdefault("ЗАКАЗЧИК_БАНК", cleaned)
+        return (m.start(), value_start + len(raw))
+    return None
 
 
 def _extract_osnovanie(text: str, result: dict[str, str]) -> None:
