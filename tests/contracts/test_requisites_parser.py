@@ -382,6 +382,24 @@ class TestBugKpp04Prefix:
         assert result.get("ЗАКАЗЧИК_БИК") == "044525225"
         assert result.get("ЗАКАЗЧИК_КПП") == "040101001"
 
+    def test_kpp_04_then_bik_same_line(self):
+        """P0-2: КПП региона 04 + БИК на одной строке → оба по своим якорям."""
+        result = parse_requisites("КПП 041101001 БИК 048405001")
+        assert result.get("ЗАКАЗЧИК_КПП") == "041101001"
+        assert result.get("ЗАКАЗЧИК_БИК") == "048405001"
+
+    def test_bik_then_kpp_04_same_line(self):
+        """P0-2: обратный порядок — БИК, затем КПП региона 04."""
+        result = parse_requisites("БИК 048405001 КПП 041101001")
+        assert result.get("ЗАКАЗЧИК_БИК") == "048405001"
+        assert result.get("ЗАКАЗЧИК_КПП") == "041101001"
+
+    def test_kpp_04_bik_same_line_with_inn(self):
+        """P0-2: репро аудита — ИНН + КПП 04 + БИК на одной строке."""
+        result = parse_requisites("ИНН 0411123456 КПП 041101001 БИК 048405001")
+        assert result.get("ЗАКАЗЧИК_КПП") == "041101001"
+        assert result.get("ЗАКАЗЧИК_БИК") == "048405001"
+
 
 class TestInnKppSlash:
     """Слитный формат «ИНН/КПП 10цифр/9цифр» — частый в реальных карточках.

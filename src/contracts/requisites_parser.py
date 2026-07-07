@@ -277,8 +277,8 @@ def _extract_numeric_fields(text: str, result: dict[str, str]) -> None:
     lines = text.splitlines()
 
     for line in lines:
-        digits_in_line = _DIGITS_ONLY.findall(line)
-        for digits in digits_in_line:
+        for token in _DIGITS_ONLY.finditer(line):
+            digits = token.group(0)
             length = len(digits)
 
             # ИНН: 10 или 12 цифр + валидная контрольная сумма
@@ -295,7 +295,7 @@ def _extract_numeric_fields(text: str, result: dict[str, str]) -> None:
 
             # БИК vs КПП: оба 9 цифр
             if length == 9:
-                _resolve_bik_kpp(digits, line, result)
+                _resolve_bik_kpp(digits, line, token.start(), result)
                 continue
 
             # р/с vs к/с: оба 20 цифр
@@ -304,13 +304,24 @@ def _extract_numeric_fields(text: str, result: dict[str, str]) -> None:
                 continue
 
 
-def _resolve_bik_kpp(digits: str, context: str, result: dict[str, str]) -> None:
+def _nearest_anchor_left(context: str, pos: int) -> str | None:
+    """Ближайший к позиции pos якорь КПП/БИК слева: 'kpp' | 'bik' | None."""
+    kpp_end = max((m.end() for m in _ANCHOR_KPP.finditer(context, 0, pos)), default=-1)
+    bik_end = max((m.end() for m in _ANCHOR_BIK.finditer(context, 0, pos)), default=-1)
+    if kpp_end == bik_end == -1:
+        return None
+    return "kpp" if kpp_end > bik_end else "bik"
+
+
+def _resolve_bik_kpp(digits: str, context: str, pos: int, result: dict[str, str]) -> None:
     """9 цифр: определить БИК или КПП по префиксу и якорям.
 
     БИК РФ всегда начинается на 04. Но КПП регионов с кодом 04 (напр. налоговые
     органы) — тоже на 04. Поэтому:
     - не 04 → БИК физически невозможен → КПП (якорь БИК без КПП = противоречие → пусто);
-    - 04 → формат подходит обоим → явный одиночный якорь КПП перебивает дефолт-БИК.
+    - 04 → формат подходит обоим → явный одиночный якорь КПП перебивает дефолт-БИК;
+    - 04 + оба якоря на строке → привязка по ближайшему якорю СЛЕВА от токена
+      (pos — позиция токена в context), иначе КПП региона 04 затирает БИК.
     """
     starts_04 = digits.startswith("04")
     has_bik = bool(_ANCHOR_BIK.search(context))
@@ -319,8 +330,15 @@ def _resolve_bik_kpp(digits: str, context: str, result: dict[str, str]) -> None:
     if starts_04:
         if has_kpp and not has_bik:
             result.setdefault("ЗАКАЗЧИК_КПП", digits)
+        elif has_kpp and has_bik:
+            nearest = _nearest_anchor_left(context, pos)
+            if nearest == "kpp":
+                result.setdefault("ЗАКАЗЧИК_КПП", digits)
+            else:
+                # ближайший слева БИК или якорей слева нет → БИК (дефолт для 04)
+                result.setdefault("ЗАКАЗЧИК_БИК", digits)
         else:
-            # якорь БИК, оба якоря или нет якоря → БИК (дефолт для 04)
+            # якорь БИК или нет якоря → БИК (дефолт для 04)
             result.setdefault("ЗАКАЗЧИК_БИК", digits)
     else:
         if has_bik and not has_kpp:
