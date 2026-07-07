@@ -185,3 +185,61 @@ def test_rows_to_items_maps_russian_bucket_labels_to_payment_groups(monkeypatch)
         "installation_and_verification",
         "delivery",
     ]
+
+
+def test_suspect_names_catches_real_misclassified_shefmontazh(monkeypatch):
+    """Реальный кейс из калибровки (КП 245620.1): имя не начинается с
+    «монтаж», строгий классификатор пропустил, payment_group осталась
+    scales — warning должен это подхватить."""
+    page = _load_dogovor_page(monkeypatch)
+
+    items = [
+        {
+            "name": "ПАК ОРИОН Стандарт (оборудование + шеф-монтаж)",
+            "payment_group": "scales",
+        },
+    ]
+
+    assert page._suspect_names(items) == [
+        "ПАК ОРИОН Стандарт (оборудование + шеф-монтаж)",
+    ]
+
+
+def test_suspect_names_ignores_normal_supply_item(monkeypatch):
+    """Обычная поставка без триггер-слов — нет ложного срабатывания."""
+    page = _load_dogovor_page(monkeypatch)
+
+    items = [{"name": "Доп. опция ЗИП", "payment_group": "scales"}]
+
+    assert page._suspect_names(items) == []
+
+
+def test_suspect_names_ignores_correctly_classified_foundation_preset(monkeypatch):
+    """Пресетное имя фундамента матчит и «фундамент», и «бетон», но уже
+    корректно классифицировано по ключу (payment_group=foundation) —
+    warning не должен срабатывать на штатных именах."""
+    page = _load_dogovor_page(monkeypatch)
+
+    items = [
+        {
+            "name": "Фундамент железобетонный в приямок под весы ВЕСТА-С-60-20, 20м",
+            "payment_group": "foundation",
+        },
+    ]
+
+    assert page._suspect_names(items) == []
+
+
+def test_suspect_names_ignores_correctly_classified_installation(monkeypatch):
+    """Корректно классифицированный монтаж — нет ложного срабатывания
+    даже при совпадении по слову «монтаж»."""
+    page = _load_dogovor_page(monkeypatch)
+
+    items = [
+        {
+            "name": "Монтаж и поверка",
+            "payment_group": "installation_and_verification",
+        },
+    ]
+
+    assert page._suspect_names(items) == []

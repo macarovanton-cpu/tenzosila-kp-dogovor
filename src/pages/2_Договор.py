@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import sys
 import tempfile
 from datetime import date
@@ -215,6 +216,30 @@ def _bucket_to_pg(bucket: str, name: str) -> str:
     if name.lower().startswith("доставка"):
         return "delivery"
     return "scales"
+
+
+# Эвристика для warning'а (P1-5, docs/AUDIT_2026-07.md) — НЕ участвует в
+# классификации payment_group. Ловит позиции, чьё имя похоже на монтаж/
+# фундамент/поверку, но не подошло под анкореные паттерны в from_kp.py
+# (_NAME_INSTALL_RE, _NAME_FOUNDATION_RE), поэтому осело в scales/delivery.
+# Список слов откалиброван на 78 позициях из 17 реальных КП (Supabase):
+# «бетон»/«плит»/«строительн»/«свая» либо ловили только шум (уже верно
+# классифицированные пресеты), либо не встретились ни разу — убраны.
+_SUSPECT_WORK_RE = re.compile(
+    r"монтаж|поверк|пусконаладк|фундамент",
+    re.IGNORECASE,
+)
+
+
+def _suspect_names(items: list[dict]) -> list[str]:
+    """Имена позиций, похожих на монтаж/фундамент, но не так классифицированных."""
+    return [
+        it["name"] for it in items
+        if it.get("payment_group") not in (
+            "installation_and_verification", "foundation",
+        )
+        and _SUSPECT_WORK_RE.search(it.get("name", ""))
+    ]
 
 
 def _items_to_rows(items: list[dict]) -> list[dict]:
@@ -789,6 +814,14 @@ if is_extracted():
             st.error(
                 "Позиции без бакета (укажите бакет в колонке): "
                 + ", ".join(f"«{n}»" for n in _unbucketed)
+            )
+
+        _suspect = _suspect_names(_synced)
+        if _suspect:
+            st.warning(
+                "Проверьте бакет — по названию похоже на монтаж/фундамент, "
+                "но позиция отнесена к «Оборудование» (попадёт в сумму "
+                "поставки): " + ", ".join(f"«{n}»" for n in _suspect)
             )
 
     else:
