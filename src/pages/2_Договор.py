@@ -56,6 +56,7 @@ from src.contracts.state import (  # noqa: E402
 )
 from src.contracts.requisites_parser import parse_requisites  # noqa: E402
 from src.contracts.requisites_transforms import derive_requisites  # noqa: E402
+from src.contracts.requisites_validation import validate_requisites  # noqa: E402
 from src.contracts.utils import format_date_parts, infer_director_gender  # noqa: E402
 from src.data_loader import load_models, load_payment_terms, load_prices  # noqa: E402
 from src.storage.supabase_client import (  # noqa: E402
@@ -602,6 +603,12 @@ with st.expander("Вставить реквизиты текстом", expanded=
                 st.success(f"Распознано полей: {len(_parsed)}. Проверьте и дополните.")
             else:
                 st.info("Не удалось распознать реквизиты. Введите поля вручную.")
+            # Разбор проблем распознавания: errors блокируют генерацию ниже
+            _req_errors, _req_warns = validate_requisites(_full)
+            for _e in _req_errors:
+                st.error(_e)
+            for _w in _req_warns:
+                st.warning(_w)
     with _btn_col2:
         if st.button("Заполнить производные поля", key="btn_derive_requisites"):
             _cur = st.session_state["contract"]["requisites"]
