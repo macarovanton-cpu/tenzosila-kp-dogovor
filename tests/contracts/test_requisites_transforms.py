@@ -84,6 +84,11 @@ class TestDirectorInitials:
         from src.contracts.requisites_transforms import director_initials
         assert director_initials("Петрова Мария Ивановна") == "М.И. Петрова"
 
+    def test_surname_initials_reordered(self):
+        """«Иванов И.И.» → «И.И. Иванов», а не обеднённое «И. Иванов» (P1-2)."""
+        from src.contracts.requisites_transforms import director_initials
+        assert director_initials("Иванов И.И.") == "И.И. Иванов"
+
 
 # ---------------------------------------------------------------------------
 # position_genitive
@@ -221,3 +226,17 @@ class TestDeriveRequisites:
         derived, _ = derive_requisites(fields)
         assert "ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП" not in derived
         assert "ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ" not in derived
+
+    def test_fio_initials_soft_degrade(self):
+        """«Фамилия И.О.»: РП = именительный + warning, пол не выводится (P1-2).
+
+        РП-склонение по инициалам невозможно — derive не должен молча отдать
+        кривой РП в преамбулу договора.
+        """
+        from src.contracts.requisites_transforms import derive_requisites
+        fields = {"ЗАКАЗЧИК_ДИРЕКТОР_ФИО": "Иванов И.И."}
+        derived, warnings = derive_requisites(fields)
+        assert derived.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП") == "Иванов И.И."
+        assert derived.get("ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ") == "И.И. Иванов"
+        assert "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ" not in derived
+        assert any("полное ФИО" in w for w in warnings)

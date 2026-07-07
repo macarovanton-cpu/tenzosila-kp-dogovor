@@ -198,6 +198,10 @@ _OTHER_ROLE_RE = re.compile(
 # ФИО: три слова с заглавной буквы (фамилия имя отчество)
 _FIO_RE = re.compile(r"[А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+")
 
+# ФИО с инициалами: «Фамилия И.О.» — самый частый формат реальных карточек.
+# Полное ФИО приоритетнее (по нему возможны РП/пол); инициалы — fallback.
+_FIO_INITIALS_RE = re.compile(r"[А-ЯЁ][а-яё]+ [А-ЯЁ]\.\s?[А-ЯЁ]\.")
+
 # Основание: метка-начало («на основании» / «Основание:»). Резать до следующей
 # метки поля, а НЕ до первой точки/запятой — иначе «Доверенность № 5 от
 # 12.01.2026» обрежется по дате.
@@ -607,13 +611,15 @@ def _extract_director_fields(text: str, result: dict[str, str]) -> None:
 
         # Ищем ФИО в остатке окна; если нет — на следующей непустой строке,
         # но только если та не вводит новую должность/контакт (главбух и т.п.).
-        fio_m = _FIO_RE.search(fio_region)
+        # Полное ФИО приоритетнее формата «Фамилия И.О.» (P1-2).
+        fio_m = _FIO_RE.search(fio_region) or _FIO_INITIALS_RE.search(fio_region)
         if not fio_m:
             next_line = _next_content_line(text, window_start)
             if (next_line
                     and not _OTHER_ROLE_RE.search(next_line)
                     and not _ANCHOR_DIRECTOR.search(next_line)):
-                fio_m = _FIO_RE.search(next_line)
+                fio_m = (_FIO_RE.search(next_line)
+                         or _FIO_INITIALS_RE.search(next_line))
         if fio_m:
             director_fios.append(fio_m.group(0))
 

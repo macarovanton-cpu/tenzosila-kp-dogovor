@@ -51,16 +51,27 @@ def full_name_from_short(short: str) -> str:
 # Инициалы директора
 # ---------------------------------------------------------------------------
 
+# ФИО в формате «Фамилия И.О.» (в т.ч. с пробелом между инициалами): по нему
+# невозможны РП-склонение и определение пола — derive деградирует мягко.
+_FIO_SURNAME_INITIALS_RE = re.compile(
+    r"[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?\s+[А-ЯЁ]\.\s?[А-ЯЁ]\."
+)
+
+
 def director_initials(fio: str) -> str:
     """Фамилия Имя Отчество → И.О. Фамилия.
 
     При ФИО из двух слов (нет отчества) → И. Фамилия.
+    При формате «Фамилия И.О.» → И.О. Фамилия (перестановка).
     При одном слове → "".
     """
     parts = fio.strip().split()
     if len(parts) < 2:
         return ""
     last = parts[0]
+    # «Иванов И.И.» — инициалы уже готовы, только переставить
+    if len(parts) == 2 and re.fullmatch(r"[А-ЯЁ]\.[А-ЯЁ]\.", parts[1]):
+        return f"{parts[1]} {last}"
     first_init = parts[1][0].upper() + "." if parts[1] else ""
     mid_init = parts[2][0].upper() + "." if len(parts) >= 3 and parts[2] else ""
     initials = (first_init + mid_init) if mid_init else first_init
@@ -200,10 +211,13 @@ def derive_requisites(
         if full:
             derived["ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ"] = full
 
-    # 2. Пол директора по отчеству (используем существующую функцию)
+    # 2. Пол директора по отчеству (используем существующую функцию).
+    # По «Фамилия И.О.» отчества нет: пол не выводим (молчаливый male для
+    # женщины сломал бы «действующего/действующей» в преамбуле).
     fio = fields.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", "").strip()
+    fio_is_initials = bool(_FIO_SURNAME_INITIALS_RE.fullmatch(fio))
     gender = fields.get("ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", "").strip()
-    if fio and not gender:
+    if fio and not gender and not fio_is_initials:
         gender = infer_director_gender(fio)
     if gender:
         derived["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = gender
@@ -221,8 +235,17 @@ def derive_requisites(
         if pos_rp:
             derived["ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ_РП"] = pos_rp
 
-    # 5. ФИО в РП через petrovich
-    if fio:
+    # 5. ФИО в РП через petrovich. По инициалам склонение невозможно —
+    # мягкая деградация: именительный в поле (видимый текст в преамбуле,
+    # а не дыра) + явный warning вместо неуверенного вызова petrovich.
+    if fio and fio_is_initials:
+        derived["ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП"] = fio
+        warnings.append(
+            "ФИО руководителя распознано в формате «Фамилия И.О.» — "
+            "родительный падеж не построен (оставлен именительный). "
+            "Впишите полное ФИО и нажмите «Заполнить производные поля»."
+        )
+    elif fio:
         effective_gender = gender or "male"
         fio_rp, uncertain = decline_fio(fio, effective_gender)
         if fio_rp:

@@ -340,6 +340,18 @@ class TestDirectorFio:
         result = parse_requisites(text)
         assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ") == "Директор"
 
+    def test_fio_initials_extracted(self):
+        """ФИО «Фамилия И.О.» извлекается по якорю директора (P1-2)."""
+        text = "Директор Смирнов П.А."
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") == "Смирнов П.А."
+
+    def test_fio_full_preferred_over_initials(self):
+        """Полное ФИО в окне приоритетнее формата с инициалами (P1-2)."""
+        text = "Директор Иванов Иван Иванович"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") == "Иванов Иван Иванович"
+
     def test_osnование_extracted(self):
         """Основание извлекается по «на основании»."""
         text = "действующего на основании Устава"
@@ -693,6 +705,7 @@ class TestAuditCards:
         assert result.get("ЗАКАЗЧИК_БИК") == "044525225"
         assert result.get("ЗАКАЗЧИК_АДРЕС_ЮР", "").startswith("115093")
         assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ") == "Генеральный директор"  # P1-3
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") == "Иванов И.И."  # P1-2
 
     def test_card2_glued_single_line(self):
         """Карточка 2 (слитная строка): телефон ≠ ИНН (P0-1), адрес ограничен (P0-3)."""
@@ -709,6 +722,7 @@ class TestAuditCards:
             "198096, г. Санкт-Петербург, Трамвайный пр., д. 5"
         )
         assert result.get("ЗАКАЗЧИК_EMAIL") == "info@neva-stroy.ru"
+        assert result.get("ЗАКАЗЧИК_ДИРЕКТОР_ФИО") == "Смирнов П.А."  # P1-2
 
     def test_card3_ip_no_garbage(self):
         """Карточка 3 (ИП): нет мусора; метка «Адрес:» не липнет к значению."""
