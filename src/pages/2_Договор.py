@@ -494,7 +494,8 @@ if mode == "Из базы (по номеру)":
             st.error(f"Ошибка поиска: {e}")
 
     if kp_row is not None:
-        st.session_state.pop("w_contract_type", None)
+        # Смена КП меняет подпись авто-типа → радио пере-seed'ится честно.
+        st.session_state["contract"]["current_kp_number"] = kp_row.get("kp_number")
         try:
             prices = load_prices()
             models_json = load_models()
@@ -846,6 +847,34 @@ if is_extracted():
 # Секция 3 — Ручной ввод (общая)
 # ---------------------------------------------------------------------------
 
+# --- Автовыбор типа документа (с ручным override) ---
+cs = st.session_state["contract"]
+_auto_deal = {
+    "items": get_spec_items(),
+    "scope_overrides": cs.get("scope_overrides", {}),
+    "flags": cs.get("flags", {}),
+    "delivery_address": cs.get("manual", {}).get("object_address", ""),
+}
+_clauses_ctx_now = build_clauses_context(_auto_deal)
+_auto_type = decide_contract_type(
+    _clauses_ctx_now.get("installation_scope", "none"),
+    _clauses_ctx_now.get("foundation_scope", "none"),
+    bool(_clauses_ctx_now.get("has_orion", False)),
+)
+_auto_label = "Поставка" if _auto_type == "supply" else "Спецификация"
+# Пере-seed радио только при смене подписи (КП или авто-тип) —
+# ручной выбор пользователя переживает reruns.
+_sig = f"{cs.get('current_kp_number', '')}:{_auto_type}"
+if st.session_state.get("_contract_type_sig") != _sig:
+    st.session_state["w_contract_type"] = _auto_label
+    st.session_state["_contract_type_sig"] = _sig
+w_contract_type = st.radio(
+    "Тип документа",
+    ["Спецификация", "Поставка"],
+    horizontal=True,
+    key="w_contract_type",
+)
+
 st.subheader("Параметры договора")
 _manual = st.session_state["contract"]["manual"]
 manual_col1, manual_col2 = st.columns(2)
@@ -877,12 +906,14 @@ with manual_col2:
         key="w_spec_number",
         on_change=sync_manual_field, args=("spec_number",),
     )
-    st.session_state.setdefault("w_valid_until", _manual.get("valid_until"))
-    st.date_input(
-        "Срок действия договора до",
-        key="w_valid_until",
-        on_change=sync_manual_field, args=("valid_until",),
-    )
+    # Срок действия используется только договором поставки.
+    if w_contract_type == "Поставка":
+        st.session_state.setdefault("w_valid_until", _manual.get("valid_until"))
+        st.date_input(
+            "Срок действия договора до",
+            key="w_valid_until",
+            on_change=sync_manual_field, args=("valid_until",),
+        )
 
 st.divider()
 
@@ -890,33 +921,7 @@ st.divider()
 # Секция 4 — Генерация (общая)
 # ---------------------------------------------------------------------------
 
-cs = st.session_state["contract"]
 generated = cs.get("generated")
-
-# --- Автовыбор типа документа ---
-_items_now = get_spec_items()
-_cs_ovr_now = cs.get("scope_overrides", {})
-_auto_deal = {
-    "items": _items_now,
-    "scope_overrides": _cs_ovr_now,
-    "flags": cs.get("flags", {}),
-    "delivery_address": cs.get("manual", {}).get("object_address", ""),
-}
-_clauses_ctx_now = build_clauses_context(_auto_deal)
-_auto_type = decide_contract_type(
-    _clauses_ctx_now.get("installation_scope", "none"),
-    _clauses_ctx_now.get("foundation_scope", "none"),
-    bool(_clauses_ctx_now.get("has_orion", False)),
-)
-_DOC_TYPE_OPTIONS = ["Спецификация", "Поставка"]
-_default_idx = 1 if _auto_type == "supply" else 0
-w_contract_type = st.radio(
-    "Тип документа",
-    _DOC_TYPE_OPTIONS,
-    index=_default_idx,
-    horizontal=True,
-    key="w_contract_type",
-)
 
 if not generated:
     # Валидация текущих реквизитов (включая ручные правки) на каждом рендере.
