@@ -5,7 +5,27 @@
 """
 from __future__ import annotations
 
+import re
+
 from src.contracts.requisites_parser import _valid_inn
+
+# КПП: 4 цифры (код ИФНС) + код причины (цифры или заглавные латинские) + 3 цифры
+_KPP_RE = re.compile(r"^\d{4}[\dA-Z]{2}\d{3}$")
+
+
+def _valid_ogrn(digits: str) -> bool:
+    """Проверить контрольную цифру ОГРН (13 цифр) или ОГРНИП (15 цифр).
+
+    13-значный: остаток первых 12 цифр по mod 11, младший разряд = 13-я цифра.
+    15-значный: остаток первых 14 цифр по mod 13, младший разряд = 15-я цифра.
+    """
+    if not digits.isdigit():
+        return False
+    if len(digits) == 13:
+        return int(digits[:12]) % 11 % 10 == int(digits[12])
+    if len(digits) == 15:
+        return int(digits[:14]) % 13 % 10 == int(digits[14])
+    return False
 
 
 def validate_requisites(fields: dict[str, str]) -> tuple[list[str], list[str]]:
@@ -18,6 +38,8 @@ def validate_requisites(fields: dict[str, str]) -> tuple[list[str], list[str]]:
 
     name = _val("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ")
     inn = _val("ЗАКАЗЧИК_ИНН")
+    ogrn = _val("ЗАКАЗЧИК_ОГРН")
+    kpp = _val("ЗАКАЗЧИК_КПП")
     rs = _val("ЗАКАЗЧИК_РС")
     ks = _val("ЗАКАЗЧИК_КС")
     bik = _val("ЗАКАЗЧИК_БИК")
@@ -41,7 +63,40 @@ def validate_requisites(fields: dict[str, str]) -> tuple[list[str], list[str]]:
     if bik and not (bik.isdigit() and len(bik) == 9):
         errors.append("БИК должен состоять из 9 цифр")
 
+    if ogrn and not _valid_ogrn(ogrn):
+        errors.append(
+            "ОГРН/ОГРНИП не проходит проверку контрольной цифры — проверьте цифры"
+        )
+
+    # Сверка БИК ↔ к/с: последние 3 цифры к/с (в Банке России) совпадают с БИК
+    if (
+        bik and ks
+        and bik.isdigit() and len(bik) == 9
+        and ks.isdigit() and len(ks) == 20
+        and ks[-3:] != bik[-3:]
+    ):
+        errors.append(
+            "БИК и корреспондентский счёт не согласованы: последние 3 цифры "
+            "к/с должны совпадать с последними 3 цифрами БИК"
+        )
+
     # --- WARNINGS ---
+    # Соответствие форм: ИНН 10 знаков (юрлицо) ↔ ОГРН 13, ИНН 12 (ИП) ↔ ОГРНИП 15
+    if inn.isdigit() and ogrn.isdigit():
+        if len(inn) == 10 and len(ogrn) == 15:
+            warnings.append(
+                "ИНН юрлица (10 цифр) при ОГРНИП (15 цифр) — проверьте форму контрагента"
+            )
+        elif len(inn) == 12 and len(ogrn) == 13:
+            warnings.append(
+                "ИНН ИП (12 цифр) при ОГРН юрлица (13 цифр) — проверьте форму контрагента"
+            )
+
+    if kpp and not _KPP_RE.match(kpp):
+        warnings.append(
+            "КПП не соответствует формату (9 знаков, позиции 5-6 — код причины)"
+        )
+
     warn_empty = [
         ("ЗАКАЗЧИК_БИК", "Не заполнен БИК"),
         ("ЗАКАЗЧИК_КС", "Не заполнен корреспондентский счёт"),
