@@ -428,10 +428,12 @@ def _find_indicator(equipment_specs: dict, indicator_name: str) -> dict:
 
 _ITEM_ORDER: dict[str, int] = {
     "weights": 0,
-    "foundation": 1,
-    "installation": 2,
-    "verification": 3,
+    "rama": 1,
+    "pandus": 2,
+    "foundation": 3,
     "delivery": 4,
+    "installation": 5,
+    "verification": 6,
 }
 
 
