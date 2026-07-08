@@ -29,6 +29,7 @@ data/fundament/pdf_source/
 
 # E2e: рантайм-артефакты тестов и эталонные DOCX (PNG-baseline коммитим)
 tests/output/
+tests/autoverify/_actual/
 tests/contracts/synthetic/output/
 tests/baseline/docx/
 playwright-report/
