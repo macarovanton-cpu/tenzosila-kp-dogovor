@@ -188,10 +188,11 @@ def decide_contract_type(
 
     Возвращает 'supply' или 'spec'.
     'supply' — чистая поставка: нет монтажа, нет фундамента Подрядчика, нет ОРИОН.
+    Рама без монтажа — тоже поставка (FIX_SPEC БАГ-1b).
     """
     if (
         install_scope == "none"
-        and foundation_scope in {"none", "existing_foundation"}
+        and foundation_scope in {"none", "existing_foundation", "rama"}
         and not has_orion
     ):
         return "supply"

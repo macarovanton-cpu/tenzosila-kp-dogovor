@@ -74,8 +74,10 @@ def _option_key_to_spec_id(key: str) -> str | None:
         return "fence"
     if key.startswith("bytovka"):
         return "bytovka"
-    if key.startswith("rama"):
+    # Реальные ключи каталога — frame_* / ramp_set_* (data/prices.json);
+    # rama*/pandus* оставлены как страховка для легаси-снапшотов
+    if key.startswith(("rama", "frame_")):
         return "rama"
-    if key.startswith("pandus"):
+    if key.startswith(("pandus", "ramp_set_")):
         return "pandus"
     return None
