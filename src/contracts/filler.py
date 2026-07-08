@@ -52,6 +52,32 @@ def merge_runs(paragraph) -> None:
             i += 1
 
 
+_GOSREESTR_MARKER = '78871-20'
+_TPK_FORM = '«ТПК «Тензосила»»'
+_COMPANY_FORM = '«Компания «Тензосила»»'
+
+
+def _fix_gosreestr_supplier_name(doc) -> None:
+    """В ячейке ТТХ-таблицы с номером Госреестра «ТПК» → «Компания» (FIX_SPEC C4).
+
+    Форма «ТПК «Тензосила»» верна в преамбуле/реквизитах/подписях; в блоке
+    сертификации/утверждения типа (ячейка с номером Госреестра) должна стоять
+    «Компания «Тензосила»» — на это юрлицо оформлены документы утверждения типа.
+    """
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                if _GOSREESTR_MARKER not in cell.text:
+                    continue
+                for paragraph in cell.paragraphs:
+                    if _TPK_FORM not in paragraph.text:
+                        continue
+                    merge_runs(paragraph)
+                    for run in paragraph.runs:
+                        if _TPK_FORM in run.text:
+                            run.text = run.text.replace(_TPK_FORM, _COMPANY_FORM)
+
+
 def replace_in_paragraph(paragraph, data: dict) -> None:
     """
     Заменяет все плейсхолдеры {{КЛЮЧ}} в параграфе на значения из data.
@@ -124,6 +150,8 @@ def fill_template(template_path: str, data: dict, output_path: str) -> None:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     replace_in_paragraph(paragraph, data)
+
+    _fix_gosreestr_supplier_name(doc)
 
     # Обрабатываем колонтитулы — только параграфы с плейсхолдерами.
     # Guard нужен: merge_runs уничтожает field-runs (fldChar/instrText) если у них
