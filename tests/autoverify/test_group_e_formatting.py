@@ -55,7 +55,8 @@ def test_e2_section_3_present(generated) -> None:
     if generated.flow != "spec":
         return
     text = extract_text(generated.docx_paths["spec"])
-    lines = [line for line in text.split("\n") if line.startswith("Срок поставки Весов")]
+    # substring, не startswith: искомая строка сама начинается с номера «3. »
+    lines = [line for line in text.split("\n") if "Срок поставки Весов" in line]
     assert lines, f"{generated.fixture_id}: строка «Срок поставки Весов...» не найдена"
     assert lines[0].startswith("3."), (
         f"{generated.fixture_id}: пункт «Срок поставки» без номера «3.»: {lines[0]!r}"
