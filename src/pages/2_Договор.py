@@ -951,6 +951,8 @@ if not generated:
         or bool(_req_errors)
     )
 
+    # ⚠️ ЗЕРКАЛО: блок генерации ниже реплицирован в tests/autoverify/runner.py —
+    # менять ПАРНО. Постоянный фикс — вынос в src/contracts/generate_service.py.
     if st.button(
         "Сгенерировать договор и спецификацию",
         disabled=generate_disabled,
