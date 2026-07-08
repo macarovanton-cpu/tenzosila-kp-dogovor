@@ -114,6 +114,18 @@ def position_genitive(position: str) -> str:
 
 _petrovich_instance = None
 
+# Орфография РЯ: после велярных г/к/х пишется «и», не «ы». petrovich 2.0.1
+# этого правила не знает и для ж. имён с основой на г/к/х перед финальным -а
+# отдаёт неверный род. падеж (Ольга→Ольгы вместо Ольги). Правим ТОЧЕЧНО
+# результат склонения ИМЕНИ (firstname), а не всю ФИО-строку: в фамилии «-ы»
+# после к/г может быть легитимным.
+_VELAR_GENITIVE_RE = re.compile(r"([гкхГКХ])ы$")
+
+
+def _fix_velar_genitive(name: str) -> str:
+    """Финальное «-ы» после велярной г/к/х → «-и» (Ольгы→Ольги)."""
+    return _VELAR_GENITIVE_RE.sub(r"\1и", name)
+
 
 def _get_petrovich():
     """Ленивая инициализация с фиксом кодировки (petrovich 2.0.1 / Windows)."""
@@ -160,7 +172,10 @@ def decline_fio(fio: str, gender: str) -> tuple[str, bool]:
     try:
         p = _get_petrovich()
         last_decl = p.lastname(last_orig, Case.GENITIVE, g_str)
-        first_decl = p.firstname(first_orig, Case.GENITIVE, g_str)
+        # Пост-коррекция велярных прицельно к компоненту ИМЕНИ.
+        first_decl = _fix_velar_genitive(
+            p.firstname(first_orig, Case.GENITIVE, g_str)
+        )
         mid_decl = (
             p.middlename(mid_orig, Case.GENITIVE, g_str)
             if mid_orig else ""

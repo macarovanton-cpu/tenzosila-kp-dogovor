@@ -240,3 +240,110 @@ class TestDeriveRequisites:
         assert derived.get("ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ") == "И.И. Иванов"
         assert "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ" not in derived
         assert any("полное ФИО" in w for w in warnings)
+
+
+# ---------------------------------------------------------------------------
+# Велярная пост-коррекция: после г/к/х финальное «-ы» → «-и» (DIAG сценарий C)
+# petrovich 2.0.1 отдаёт «Ольгы» вместо «Ольги» — тихая порча преамбулы.
+# Правим прицельно компонент ИМЕНИ, фамилию не трогаем.
+# ---------------------------------------------------------------------------
+
+def _first_of(fio_rp: str) -> str:
+    """Второй токен род.-падежного ФИО = склонённое ИМЯ (Фамилия Имя Отчество)."""
+    return fio_rp.split()[1]
+
+
+class TestVelarGenitiveFix:
+    # Ломающиеся до фикса: велярная основа г/к/х перед финальным -а
+    @pytest.mark.parametrize("name, expected", [
+        ("Ольга", "Ольги"),
+        ("Инга", "Инги"),
+        ("Ника", "Ники"),
+        ("Вероника", "Вероники"),
+        ("Анжелика", "Анжелики"),
+        ("Лика", "Лики"),
+    ])
+    def test_velar_female_names_fixed(self, name, expected):
+        """Велярные ж. имена теперь склоняются на «-и», не «-ы»."""
+        from src.contracts.requisites_transforms import decline_fio
+        fio_rp, _ = decline_fio(f"Иванова {name} Сергеевна", "female")
+        assert _first_of(fio_rp) == expected
+        assert not _first_of(fio_rp).endswith("ы")
+
+    # Контроль: шипящие уже были верны — фикс не должен их менять
+    @pytest.mark.parametrize("name, expected", [
+        ("Даша", "Даши"),
+        ("Наташа", "Наташи"),
+        ("Маша", "Маши"),
+    ])
+    def test_sibilant_names_untouched(self, name, expected):
+        from src.contracts.requisites_transforms import decline_fio
+        fio_rp, _ = decline_fio(f"Иванова {name} Сергеевна", "female")
+        assert _first_of(fio_rp) == expected
+
+    # Контроль: обычные имена (не велярные, не шипящие)
+    @pytest.mark.parametrize("name, expected", [
+        ("Ирина", "Ирины"),
+        ("Мария", "Марии"),
+        ("Анна", "Анны"),
+    ])
+    def test_ordinary_names_untouched(self, name, expected):
+        from src.contracts.requisites_transforms import decline_fio
+        fio_rp, _ = decline_fio(f"Иванова {name} Сергеевна", "female")
+        assert _first_of(fio_rp) == expected
+
+    def test_kuznetsova_bug_case_genitive(self):
+        """Исходный баг-кейс DIAG целиком."""
+        from src.contracts.requisites_transforms import decline_fio
+        fio_rp, _ = decline_fio("Кузнецова Ольга Владимировна", "female")
+        assert fio_rp == "Кузнецовой Ольги Владимировны"
+
+    def test_helper_is_targeted(self):
+        """Хелпер правит только финальное велярное «-ы», прочее не трогает."""
+        from src.contracts.requisites_transforms import _fix_velar_genitive
+        assert _fix_velar_genitive("Ольгы") == "Ольги"
+        assert _fix_velar_genitive("Никы") == "Ники"
+        assert _fix_velar_genitive("Наташи") == "Наташи"   # уже «и»
+        assert _fix_velar_genitive("Ирины") == "Ирины"     # «-ы» не после велярной
+        assert _fix_velar_genitive("Анны") == "Анны"
+
+
+# ---------------------------------------------------------------------------
+# РЕГРЕСС НА ФАМИЛИЯХ: пост-коррекция прицельна к ИМЕНИ и НЕ трогает фамилию.
+# Прогоняем список распространённых русских фамилий (в т.ч. с к/г/х в основе,
+# -ко, -ская, -ова, -ина) через decline_fio и сверяем фамильный компонент с
+# «сырым» petrovich.lastname — ни одна фамилия не должна испортиться.
+# ---------------------------------------------------------------------------
+
+_SURNAMES_FEMALE = [
+    "Кузнецова", "Иванова", "Смирнова", "Попова", "Соколова", "Лебедева",
+    "Козлова", "Новикова", "Морозова", "Петрова", "Волкова", "Соловьёва",
+    "Васильева", "Зайцева", "Павлова", "Семёнова", "Голубева", "Виноградова",
+    "Богданова", "Воробьёва", "Фёдорова", "Михайлова", "Беляева", "Тарасова",
+    "Белова", "Комарова", "Орлова", "Киселёва", "Макарова", "Андреева",
+    "Ковалёва", "Ильина", "Гусева", "Титова", "Кузьмина", "Кудрявцева",
+    "Барановская", "Левченко", "Гладких", "Мельникова",
+]
+
+_SURNAMES_MALE = [
+    "Кузнецов", "Иванов", "Гладких", "Левченко", "Барановский",
+    "Мельник", "Кулик", "Гаврик",
+]
+
+
+class TestSurnameRegression:
+    @pytest.mark.parametrize("surname", _SURNAMES_FEMALE)
+    def test_female_surname_not_corrupted(self, surname):
+        from src.contracts.requisites_transforms import decline_fio, _get_petrovich
+        from petrovich.enums import Case
+        expected = _get_petrovich().lastname(surname, Case.GENITIVE, "female")
+        fio_rp, _ = decline_fio(f"{surname} Ирина Петровна", "female")
+        assert fio_rp.split()[0] == expected
+
+    @pytest.mark.parametrize("surname", _SURNAMES_MALE)
+    def test_male_surname_not_corrupted(self, surname):
+        from src.contracts.requisites_transforms import decline_fio, _get_petrovich
+        from petrovich.enums import Case
+        expected = _get_petrovich().lastname(surname, Case.GENITIVE, "male")
+        fio_rp, _ = decline_fio(f"{surname} Иван Петрович", "male")
+        assert fio_rp.split()[0] == expected
