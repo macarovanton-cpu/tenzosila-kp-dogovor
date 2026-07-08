@@ -456,23 +456,23 @@ class TestResolveOptionName:
         name = _resolve_option_name("fence_norma_20", "С", prices=PRICES)
         assert name == "Ограждение НОРМА высота 200мм, 20м"
 
-    def test_ramp_set_resolves_from_prices(self):
-        """ramp_set_fl_sl → label из prices.json."""
+    def test_ramp_set_resolves_to_etalon_name(self):
+        """ramp_set_fl_sl → эталонное имя (FIX_SPEC §E3b), не raw prices.json label."""
         from src.contracts.from_kp import _resolve_option_name
         name = _resolve_option_name("ramp_set_fl_sl", "ФЛ", prices=PRICES)
-        assert name == "Комплект пандусов под весы ВЕСТА-ФЛ/СЛ (L=2,9м)"
+        assert name == "Комплект пандусов для весов ВЕСТА-СЛ/ФЛ"
 
-    def test_frame_resolves_from_prices(self):
-        """frame_18 → label из prices.json, не raw-ключ."""
+    def test_frame_resolves_to_etalon_name(self):
+        """frame_18 → эталонное имя (FIX_SPEC §E3b), не raw prices.json label."""
         from src.contracts.from_kp import _resolve_option_name
         name = _resolve_option_name("frame_18", "С", prices=PRICES)
-        assert name == "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 18м"
+        assert name == "Рама 18м для весов ВЕСТА"
 
-    def test_ramp_set_f_s_resolves_from_prices(self):
-        """ramp_set_f_s → label из prices.json."""
+    def test_ramp_set_f_s_resolves_to_etalon_name(self):
+        """ramp_set_f_s → эталонное имя (FIX_SPEC §E3b), не raw prices.json label."""
         from src.contracts.from_kp import _resolve_option_name
         name = _resolve_option_name("ramp_set_f_s", "Ф", prices=PRICES)
-        assert name == "Комплект пандусов под весы ВЕСТА-Ф/С (L=3,9м)"
+        assert name == "Комплект пандусов для весов ВЕСТА-Ф/С"
 
     def test_foundation_pattern_not_overridden_by_prices(self):
         """foundation_s_f_18 с prices=PRICES всё равно использует паттерн с {line}."""

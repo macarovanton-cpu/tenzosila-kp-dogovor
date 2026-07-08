@@ -69,7 +69,10 @@ def _flat_clause_numbers(doc: Document) -> list[int]:
     in_clauses_block = False
     for paragraph in doc.paragraphs:
         text = paragraph.text.strip()
-        if "Выезд строительной" in text:
+        # «3. Срок поставки...» — последний статичный заголовок перед клаузами
+        # (FIX_SPEC D2+B1 убрал статичный абзац «Выезд строительной...», который
+        # раньше служил маркером начала блока и не всегда присутствует).
+        if text.startswith("3. Срок поставки"):
             in_clauses_block = True
             continue
         if "Технические характеристики" in text:

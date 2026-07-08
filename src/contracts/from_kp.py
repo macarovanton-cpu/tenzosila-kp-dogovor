@@ -22,6 +22,21 @@ _SIMPLE_OPTION_NAMES: dict[str, str] = {
 
 _SHEFMONTAZH_NAME = "Шеф-монтаж и пусконаладка"
 
+# Эталонные наименования FIX_SPEC §E3b — ТОЛЬКО для пути договор/спецификация.
+# data/prices.json (label) не трогаем: тот же ключ читает и КП через
+# resolve_dynamic_option_label (spec_builder.py) с подстановкой линейки, и
+# UI-чекбоксы опций — короткое эталонное имя там не проверялось и уместно не
+# везде (см. FIX_SPEC-заход-3, отступление по E3b).
+_SPEC_ONLY_NAMES: dict[str, str] = {
+    "ramp_set_fl_sl": "Комплект пандусов для весов ВЕСТА-СЛ/ФЛ",
+    "ramp_set_f_s": "Комплект пандусов для весов ВЕСТА-Ф/С",
+    "orion_lite": "Программно-аппаратный комплекс «ОРИОН»",
+    "orion_standard": "Программно-аппаратный комплекс «ОРИОН»",
+    "orion_standard_plus": "Программно-аппаратный комплекс «ОРИОН»",
+}
+
+_FRAME_RE = re.compile(r"^frame_(\d+)$")
+
 _FOUNDATION_PATTERNS = [
     (re.compile(r"^foundation_s_f_(\d+)$"),
      "Фундамент железобетонный под весы автомобильные ВЕСТА-{line}, {N}м"),
@@ -100,6 +115,11 @@ def _resolve_option_name(
         return _format_bytovka_name(opt)
     if key in _SIMPLE_OPTION_NAMES:
         return _SIMPLE_OPTION_NAMES[key]
+    if key in _SPEC_ONLY_NAMES:
+        return _SPEC_ONLY_NAMES[key]
+    m = _FRAME_RE.match(key)
+    if m:
+        return f"Рама {m.group(1)}м для весов ВЕСТА"
     for pattern, template in _FOUNDATION_PATTERNS:
         m = pattern.match(key)
         if m:

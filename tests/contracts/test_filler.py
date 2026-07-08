@@ -363,6 +363,13 @@ def test_fill_spec_with_items_no_raw_ids_leak(tmp_path):
 
     prices = json.loads(Path("data/prices.json").read_text(encoding="utf-8"))
     raw_keys = ["frame_18", "ramp_set_f_s", "ramp_set_fl_sl", "fence_norma_20"]
+    # frame_18/ramp_set_* получают эталонное имя (FIX_SPEC §E3b), не raw
+    # prices.json label — fence_norma_20 не переопределён, читает label как есть.
+    etalon_overrides = {
+        "frame_18": "Рама 18м для весов ВЕСТА",
+        "ramp_set_f_s": "Комплект пандусов для весов ВЕСТА-Ф/С",
+        "ramp_set_fl_sl": "Комплект пандусов для весов ВЕСТА-СЛ/ФЛ",
+    }
 
     kp_row = {
         "kp_number": "КП-2026-RAWID",
@@ -387,7 +394,7 @@ def test_fill_spec_with_items_no_raw_ids_leak(tmp_path):
     all_text = " ".join(c.text for row in table.rows for c in row.cells)
 
     for key in raw_keys:
-        expected_label = prices["options"][key]["label"]
+        expected_label = etalon_overrides.get(key) or prices["options"][key]["label"]
         assert expected_label in all_text
         assert key not in all_text
 
