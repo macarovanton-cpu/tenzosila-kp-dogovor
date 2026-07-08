@@ -29,6 +29,7 @@ from src.contracts.utils import (
     days_genitive,
     infer_director_gender,
     named_form,
+    normalize_quotes,
     number_to_words,
 )
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item, resolve_term_role
@@ -65,18 +66,6 @@ _TTH_SUPPLY_CONST: dict[str, str] = {
 # _buyer_context: ЗАКАЗЧИК_* → ПОКУПАТЕЛЬ_* + ПОСТАВЩИК_*
 # ---------------------------------------------------------------------------
 
-def _normalize_quotes(s: str) -> str:
-    """Прямые " " → ёлочки « »: первая → «, вторая → », поочерёдно."""
-    result, open_q = [], True
-    for ch in s:
-        if ch == '"':
-            result.append('«' if open_q else '»')
-            open_q = not open_q
-        else:
-            result.append(ch)
-    return ''.join(result)
-
-
 _OSNOV_PREFIX_RE = re.compile(r"^на\s+основании\s+", re.IGNORECASE)
 
 
@@ -94,7 +83,7 @@ def _buyer_context(ctx: dict[str, str]) -> dict[str, str]:
     """
     g = ctx.get
 
-    name = _normalize_quotes(
+    name = normalize_quotes(
         g("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") or g("ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ", "")
     )
     fio = (g("ЗАКАЗЧИК_ДИРЕКТОР_ФИО", "") or "").strip()

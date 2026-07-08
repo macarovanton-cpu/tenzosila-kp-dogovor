@@ -10,6 +10,10 @@ from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
+from src.contracts.utils import normalize_quotes
+
+_CUSTOMER_NAME_KEYS = ("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ", "ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ")
+
 
 def merge_runs(paragraph) -> None:
     """
@@ -100,6 +104,13 @@ def fill_template(template_path: str, data: dict, output_path: str) -> None:
         flat.update(data.get('requisites', {}))
         flat.update(data.get('specification', {}))
         data = flat
+
+    # Менеджер вводит имя заказчика прямыми кавычками (Shift+2) — нормализуем
+    # в ёлочки перед подстановкой (FIX_SPEC C1+C3).
+    data = dict(data)
+    for key in _CUSTOMER_NAME_KEYS:
+        if data.get(key):
+            data[key] = normalize_quotes(str(data[key]))
 
     doc = Document(template_path)
 
