@@ -134,6 +134,40 @@ class TestParseBasicFields:
         result = parse_requisites(text)
         assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == "ИП Петров Сергей Иванович"
 
+    def test_name_with_gk_insert_kept_whole(self):
+        """Spike: ОПФ + вставка «ГК» + кавычки → вставка СОХРАНЕНА, не усечена."""
+        text = "ООО ГК «ЕвроАгроТранс»"
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == 'ООО ГК "ЕвроАгроТранс"'
+
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("ООО ТД «Северный»", 'ООО ТД "Северный"'),
+            ("АО ПКФ «Волга»", 'АО ПКФ "Волга"'),
+            ("ООО ТПК «Урал»", 'ООО ТПК "Урал"'),
+        ],
+    )
+    def test_name_insert_whitelist_recognized(self, text, expected):
+        """Вставки из whitelist (ТД/ПКФ/ТПК) распознаны и сохранены."""
+        result = parse_requisites(text)
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == expected
+
+    def test_name_non_whitelist_word_not_matched_as_insert(self):
+        """Не-whitelist слово между ОПФ и кавычками НЕ матчится как вставка.
+
+        Защита от жадности: «Крутая» не в whitelist → паттерн не срабатывает,
+        наименование не извлекается (фиксируем фактическое поведение).
+        """
+        text = "ООО Крутая «Фирма»"
+        result = parse_requisites(text)
+        assert "ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ" not in result
+
+    def test_name_simple_without_insert_unchanged(self):
+        """Регресс: простое имя без вставки работает как раньше."""
+        result = parse_requisites('АО «Северная Верфь»')
+        assert result.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ") == 'АО "Северная Верфь"'
+
     def test_empty_text(self):
         assert parse_requisites("") == {}
 
