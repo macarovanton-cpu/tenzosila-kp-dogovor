@@ -54,6 +54,10 @@ from src.contracts.state import (  # noqa: E402
     sync_field,
     sync_manual_field,
 )
+from src.contracts.requisites_extract import (  # noqa: E402
+    NoTextLayerError,
+    extract_text,
+)
 from src.contracts.requisites_parser import parse_requisites  # noqa: E402
 from src.contracts.requisites_transforms import derive_requisites  # noqa: E402
 from src.contracts.requisites_validation import validate_requisites  # noqa: E402
@@ -555,14 +559,83 @@ st.divider()
 
 edited_df = None  # Будет установлен в блоке data_editor если items существуют
 
-# Панель вставки текста + парсер
-with st.expander("Вставить реквизиты текстом", expanded=not is_extracted()):
-    st.caption(
-        "Скопируйте блок реквизитов из карточки контрагента и нажмите «Распознать». "
-        "Поля заполнятся автоматически — можно редактировать. "
-        "«Заполнить производные» пересчитывает полное наименование, инициалы и "
-        "родительный падеж из уже введённых данных."
+# Производное → его первичное поле: производное перезаписывает непустое
+# текущее значение только при ИЗМЕНЕНИИ первичного в этом распознавании —
+# иначе щадим ручную правку (напр. исправленное склонение ФИО_РП).
+_DERIVED_PRIMARY = {
+    "ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ": "ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ": "ЗАКАЗЧИК_ДИРЕКТОР_ФИО",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП": "ЗАКАЗЧИК_ДИРЕКТОР_ФИО",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ_РП": "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ",
+}
+
+
+def _apply_requisites_text(text: str) -> None:
+    """Единый путь распознавания: parse → derive → merge (не затирает ручной ввод)."""
+    _cur = st.session_state["contract"]["requisites"]
+    _parsed = parse_requisites(text)
+    _derived, _warns = derive_requisites(_parsed)
+    for _dkey, _pkey in _DERIVED_PRIMARY.items():
+        _primary_unchanged = _parsed.get(_pkey, "") == _cur.get(_pkey, "")
+        if _dkey in _derived and _cur.get(_dkey) and _primary_unchanged:
+            _derived.pop(_dkey)
+    merge_requisites({**_derived, **_parsed})
+    # Сброс пола → пере-inference из нового ФИО на рендере ниже
+    st.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = ""
+    st.session_state.pop("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", None)
+    for _w in _warns:
+        st.warning(_w)
+    if _parsed:
+        st.success(f"Распознано полей: {len(_parsed)}. Проверьте и дополните.")
+    else:
+        st.info("Не удалось распознать реквизиты. Введите поля вручную.")
+    # Разбор проблем распознавания: errors блокируют генерацию ниже
+    _req_errors, _req_warns = validate_requisites(
+        st.session_state["contract"]["requisites"]
     )
+    for _e in _req_errors:
+        st.error(_e)
+    for _w in _req_warns:
+        st.warning(_w)
+
+
+def _clear_requisites() -> None:
+    """Осознанный полный сброс полей под новую карточку (on_click callback:
+    widget-ключи можно менять только до инстанцирования виджетов)."""
+    set_requisites({key: "" for key, _label in REQUISITE_FIELDS})
+    st.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = ""
+    st.session_state.pop("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", None)
+    st.session_state["w_requisites_paste"] = ""
+
+
+# Панель загрузки файла / вставки текста + парсер (единый regex-путь)
+with st.expander("Реквизиты из файла или текста", expanded=not is_extracted()):
+    st.caption(
+        "Загрузите файл реквизитов или вставьте текст и нажмите «Распознать». "
+        "Поля заполнятся автоматически (включая производные — полное "
+        "наименование, инициалы, родительный падеж), уже заполненное не "
+        "затирается. Поля можно редактировать."
+    )
+    _req_file = st.file_uploader(
+        "Файл реквизитов (DOCX или PDF с текстовым слоем)",
+        type=["docx", "pdf"],
+        key="upload_requisites_file",
+    )
+    if st.button(
+        "Распознать из файла", key="btn_parse_requisites_file",
+        disabled=_req_file is None,
+    ):
+        try:
+            _file_text = extract_text(Path(_save_uploaded(_req_file)))
+        except NoTextLayerError:
+            st.error(
+                "В файле нет текстового слоя — вставьте реквизиты текстом. "
+                "Распознавание сканов пока не поддерживается."
+            )
+        except Exception as exc:
+            st.error(f"Ошибка чтения файла: {exc}")
+        else:
+            _apply_requisites_text(_file_text)
     st.text_area(
         "Блок реквизитов",
         key="w_requisites_paste",
@@ -573,38 +646,13 @@ with st.expander("Вставить реквизиты текстом", expanded=
     _btn_col1, _btn_col2 = st.columns(2)
     with _btn_col1:
         if st.button("Распознать", key="btn_parse_requisites"):
-            _paste = st.session_state.get("w_requisites_paste", "")
-            _parsed = parse_requisites(_paste)
-            _derived, _warns = derive_requisites(_parsed)
-            _full = {key: "" for key, _label in REQUISITE_FIELDS}
-            _full.update(_parsed)
-            _full.update(_derived)
-            set_requisites(_full)
-            st.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = ""
-            st.session_state.pop("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", None)
-            for _w in _warns:
-                st.warning(_w)
-            if _parsed:
-                st.success(f"Распознано полей: {len(_parsed)}. Проверьте и дополните.")
-            else:
-                st.info("Не удалось распознать реквизиты. Введите поля вручную.")
-            # Разбор проблем распознавания: errors блокируют генерацию ниже
-            _req_errors, _req_warns = validate_requisites(_full)
-            for _e in _req_errors:
-                st.error(_e)
-            for _w in _req_warns:
-                st.warning(_w)
+            _apply_requisites_text(st.session_state.get("w_requisites_paste", ""))
     with _btn_col2:
-        if st.button("Заполнить производные поля", key="btn_derive_requisites"):
-            _cur = st.session_state["contract"]["requisites"]
-            _derived, _warns = derive_requisites(_cur)
-            merge_requisites(_derived)
-            for _w in _warns:
-                st.warning(_w)
-            if _derived:
-                st.success(f"Заполнено производных полей: {len(_derived)}.")
-            else:
-                st.info("Нечего вычислять — заполните ФИО и краткое наименование.")
+        st.button(
+            "Очистить реквизиты", key="btn_clear_requisites",
+            on_click=_clear_requisites,
+            help="Полный сброс всех полей реквизитов для новой карточки.",
+        )
 
 _render_field_group("Реквизиты заказчика", REQUISITE_FIELDS, "requisites")
 
