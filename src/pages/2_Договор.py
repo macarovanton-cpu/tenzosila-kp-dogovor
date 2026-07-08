@@ -17,7 +17,7 @@ if str(_ROOT) not in sys.path:
 from src.contracts.clauses_renderer import build_contract_clauses  # noqa: E402
 from src.contracts.clauses_context import build_clauses_context, winter_surcharge_allowed  # noqa: E402
 from src.contracts.compose import compose_spec_with_attachments, compose_supply  # noqa: E402
-from src.contracts.extractor import extract_card_data, extract_kp_data_legacy  # noqa: E402
+from src.contracts.extractor import extract_kp_data_legacy  # noqa: E402
 from src.contracts.filler import (  # noqa: E402
     fill_spec_with_items,
     fill_template,
@@ -517,22 +517,6 @@ if mode == "Из базы (по номеру)":
             st.success(f"КП «{kp_row.get('kp_number', '')}» загружен из базы.")
         except Exception as exc:
             st.error(f"Ошибка загрузки спецификации: {exc}")
-
-    st.divider()
-    st.subheader("Карточка контрагента")
-    card_file_a = st.file_uploader(
-        "PDF или DOCX карточки контрагента", type=["pdf", "docx"],
-        key="upload_card_a",
-    )
-    if st.button("Извлечь реквизиты через AI", disabled=card_file_a is None):
-        with st.spinner("AI извлекает реквизиты..."):
-            try:
-                card_path = _save_uploaded(card_file_a)
-                card_data = extract_card_data(card_path)
-                set_requisites(card_data.get("requisites", {}))
-                st.success("Реквизиты извлечены.")
-            except Exception as exc:
-                st.error(f"Ошибка извлечения реквизитов: {exc}")
 
 else:
     # ---- Mode B: Legacy AI парсинг PDF КП + карточки ----
