@@ -28,6 +28,7 @@ from src.contracts.from_kp import (
     build_specification_from_kp_snapshot,
     build_specification_items,
 )
+from src.contracts.fundament_lookup import resolve_build_task
 from src.contracts.payment_line import build_lines_from_snapshot, format_payment_line
 from src.contracts.spec_v2_filler import fill_spec_v2
 from src.contracts.supply_filler import build_supply_context, decide_contract_type
@@ -181,8 +182,16 @@ def generate_all(fixture: Fixture, out_dir: Path) -> GeneratedSet:
             str(SPEC_V2_TEMPLATE), data, items, deal, str(spec_path),
             model_qty=model_qty,
         )
-        # Фикстуры без фундаментных приложений: attachments={} — no-op склейка
-        compose_spec_with_attachments(spec_path, {}, data)
+        # Авто-подбор строительного задания — зеркало дефолта страницы
+        # (_render_fundament_attachment_choice: source="auto", контрольный лист off)
+        build_task = resolve_build_task(snapshot)
+        attachments = {
+            "build_task_source": "auto",
+            "build_task_path": str(build_task.path or ""),
+            "include_control_sheet": False,
+            "control_sheet_path": "",
+        }
+        compose_spec_with_attachments(spec_path, attachments, data)
         docx_paths["contract"] = contract_path
         docx_paths["spec"] = spec_path
 
