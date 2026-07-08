@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "id": "rama_ploshadka_montazh",
+    "flow": "spec",
+    "etalon_md": "docs/contract_templates_v1/Автовесы_рама_монтаж_gemini.md",
+    "comment": "БАГ-1a ловушка: истинная рама (frame_18, БЕЗ foundation-опции) + монтаж + поверка + доставка. Заказчик введён прямыми кавычками (C1+C3, простой случай), адрес с хвостовой точкой (E1)."
+  },
+  "kp_state": {
+    "kp_date": "2026-06-01",
+    "kp_valid_days": 15,
+    "total_term_days": null,
+    "kp_number": "КП-2026-905",
+    "manager_id": "makarov_av",
+    "client_name": "ООО \"Ромашка-Юг\"",
+    "model_line": "СЛ",
+    "model_max": 60,
+    "model_length": 18,
+    "platform_width_m": 3.0,
+    "model_id": "vesta-сл-60-18",
+    "model_price": 1805972,
+    "model_qty": 1,
+    "sensor_id": "zemic_dhm9b_30t",
+    "indicator_id": "titan_3cs",
+    "cable_m": 20,
+    "warranty_months": 24,
+    "construction_beam": "Двутавр 25Б1",
+    "construction_beam_count": 14,
+    "construction_center_beam": "",
+    "construction_center_beam_count": 0,
+    "construction_deck_mm": 6,
+    "construction_underlining_mm": 4,
+    "is_dual_range": false,
+    "bytovka_dimensions": "",
+    "is_shefmontazh": false,
+    "options": {
+      "frame_18": {
+        "enabled": true, "price": 130000, "qty": 1,
+        "customer_side": false, "retail": 130000, "dealer_is_synthetic": false
+      },
+      "ramp_set_fl_sl": {
+        "enabled": true, "price": 280000, "qty": 1,
+        "customer_side": false, "retail": 280000, "dealer_is_synthetic": false
+      },
+      "install_default": {
+        "enabled": true, "price": 180000, "qty": 1,
+        "customer_side": false, "retail": 180000, "dealer_is_synthetic": false
+      },
+      "verification_default": {
+        "enabled": true, "price": 60000, "qty": 1,
+        "customer_side": false, "retail": 60000, "dealer_is_synthetic": false
+      },
+      "delivery_default": {
+        "enabled": true, "price": 60000, "qty": 1,
+        "customer_side": false, "retail": 60000, "dealer_is_synthetic": false
+      }
+    },
+    "custom_items": [],
+    "spec_items_overrides": {},
+    "payment_preset_id": "split_by_items",
+    "payment_days": 5,
+    "payment_custom_text": "",
+    "payment_split_state": {},
+    "payment_v1_prepay": 50,
+    "payment_v2_prepay": 30,
+    "payment_v2_preship": 40,
+    "payment_v3_days": 15,
+    "payment_v3_trigger_id": "after_installation"
+  },
+  "requisites": {
+    "ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ": "ООО \"Ромашка-Юг\"",
+    "ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ": "Общество с ограниченной ответственностью \"Ромашка-Юг\"",
+    "ЗАКАЗЧИК_ИНН": "7728168972",
+    "ЗАКАЗЧИК_КПП": "772801002",
+    "ЗАКАЗЧИК_ОГРН": "1027700132196",
+    "ЗАКАЗЧИК_АДРЕС_ЮР": "117420, г. Москва, ул. Намёткина, д. 17",
+    "ЗАКАЗЧИК_АДРЕС_ПОЧТ": "117420, г. Москва, ул. Намёткина, д. 17",
+    "ЗАКАЗЧИК_РС": "40702810400000012346",
+    "ЗАКАЗЧИК_БАНК": "ПАО Сбербанк, г. Москва",
+    "ЗАКАЗЧИК_КС": "30101810400000000225",
+    "ЗАКАЗЧИК_БИК": "044525225",
+    "ЗАКАЗЧИК_ТЕЛЕФОН": "+7 495 123-45-68",
+    "ЗАКАЗЧИК_EMAIL": "info@romashka-yug.ru",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ": "Генеральный директор",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ФИО": "Кузнецов Андрей Павлович",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ_РП": "Генерального директора",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП": "Кузнецова Андрея Павловича",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ": "А.П. Кузнецов",
+    "ЗАКАЗЧИК_ОСНОВАНИЕ": "Устава",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ": "male"
+  },
+  "contract": {
+    "contract_date": "2026-06-15",
+    "contract_number": "905/2026",
+    "spec_number": "1",
+    "object_address": "Московская обл., г. Подольск, промзона «Львовская», уч. 7.",
+    "scope_overrides": {},
+    "flags": {},
+    "payment_rows": null
+  }
+}
