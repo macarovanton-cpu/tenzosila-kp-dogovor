@@ -68,6 +68,9 @@ def _option_key_to_spec_id(key: str) -> str | None:
         return "foundation"
     if "orion_install" in key:
         return "orion_install"
+    # Опоры — собственный id, иначе затирают ПАК (id "orion") в items_by_id
+    if key == "orion_cable_poles":
+        return "orion_poles"
     if key.startswith("orion"):
         return "orion"
     if key.startswith("fence"):

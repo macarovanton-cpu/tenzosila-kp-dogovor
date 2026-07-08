@@ -33,7 +33,18 @@ _SPEC_ONLY_NAMES: dict[str, str] = {
     "orion_lite": "Программно-аппаратный комплекс «ОРИОН»",
     "orion_standard": "Программно-аппаратный комплекс «ОРИОН»",
     "orion_standard_plus": "Программно-аппаратный комплекс «ОРИОН»",
+    "orion_auto": "Программно-аппаратный комплекс «ОРИОН»",
+    "orion_auto_plus": "Программно-аппаратный комплекс «ОРИОН»",
+    "orion_cable_poles": (
+        "Установка опор и кабель-трасс для программно-аппаратного комплекса «ОРИОН»"
+    ),
 }
+
+# FIX_SPEC §A1: наименование монтажа ОРИОН зависит от сценария
+_ORION_INSTALL_NAME_FOUNDATION = (
+    "Монтаж и настройка программно-аппаратного комплекса «ОРИОН»"
+)
+_ORION_INSTALL_NAME_NO_FOUNDATION = "Монтаж ПАК «ОРИОН»"
 
 _FRAME_RE = re.compile(r"^frame_(\d+)$")
 
@@ -82,15 +93,90 @@ def _row_sort_key(row: dict[str, Any]) -> int:
     name = row.get("name", "")
     if name.startswith("Весы автомобильные"):
         return 0
-    if "Фундамент" in name:
+    if name.startswith("Программно-аппаратный комплекс"):
         return 1
-    if "Монтаж" in name:
+    if "Фундамент" in name:
         return 2
-    if "Поверка" in name:
+    if "опор и кабель-трасс" in name:
         return 3
-    if "Доставка" in name:
+    if "ОРИОН" in name and "Монтаж" in name:
+        return 5
+    if "Монтаж" in name:
         return 4
-    return 5
+    if "Поверка" in name:
+        return 6
+    if "Доставка" in name:
+        return 7
+    return 8
+
+
+def _expand_orion_options(
+    options: dict[str, Any], prices: dict[str, Any] | None
+) -> dict[str, Any]:
+    """FIX_SPEC §A1: расщепить бандл ОРИОН на отдельные позиции спецификации.
+
+    Бандл «оборудование + шеф-монтаж» (orion_lite/…/auto_plus) заменяется на:
+    - тот же ключ с ценой доли оборудования (позиция ПАК, spec_id «orion»);
+    - orion_install с ценой доли монтажа (имя зависит от сценария);
+    - orion_cable_poles по retail из прайса — ТОЛЬКО при фундаменте и если
+      опоры не выбраны в КП вручную.
+    Дележ фактической цены КП — пропорционально components из прайса,
+    округление в ПАК: сумма частей == цене бандла (деньги не теряются).
+    """
+    bundle_key = next(
+        (k for k in options
+         if k.startswith("orion") and k not in ("orion_cable_poles", "orion_install")),
+        None,
+    )
+    if bundle_key is None:
+        return options
+
+    entry = (prices or {}).get("options", {}).get(bundle_key, {})
+    components = entry.get("components") or {}
+    equipment = int(components.get("equipment") or 0)
+    montazh = int(components.get("shef_montazh") or 0)
+    if equipment + montazh <= 0:
+        _logger.warning(
+            "_expand_orion_options: у %r нет components в прайсе — бандл не расщеплён",
+            bundle_key,
+        )
+        return options
+
+    bundle = options[bundle_key]
+    price = int(bundle.get("price") or 0)
+    montazh_part = round(price * montazh / (equipment + montazh))
+    equipment_part = price - montazh_part
+
+    has_foundation = any(k.startswith("foundation_") for k in options)
+    install_name = (
+        _ORION_INSTALL_NAME_FOUNDATION if has_foundation
+        else _ORION_INSTALL_NAME_NO_FOUNDATION
+    )
+
+    expanded: dict[str, Any] = {}
+    for key, opt in options.items():
+        if key != bundle_key:
+            expanded[key] = opt
+            continue
+        common = {
+            "enabled": True,
+            "qty": bundle.get("qty") or 1,
+            "customer_side": bundle.get("customer_side", False),
+        }
+        expanded[bundle_key] = {**common, "price": equipment_part}
+        expanded["orion_install"] = {
+            **common, "price": montazh_part, "spec_name": install_name,
+        }
+        if has_foundation and "orion_cable_poles" not in options:
+            poles = (prices or {}).get("options", {}).get("orion_cable_poles", {})
+            # Позиции нет в КП — итог договора больше итога КП на её цену
+            expanded["orion_cable_poles"] = {
+                **common,
+                "customer_side": False,
+                "price": int(poles.get("price_retail") or 0),
+                "auto_added": True,
+            }
+    return expanded
 
 
 def _format_bytovka_name(opt: dict[str, Any] | None = None) -> str:
@@ -109,6 +195,8 @@ def _resolve_option_name(
     prices: dict[str, Any] | None = None,
 ) -> str | None:
     """Вернуть каноническое имя для ключа опции или None если неизвестный."""
+    if opt and opt.get("spec_name"):
+        return str(opt["spec_name"])
     if key == "install_default" and installation_scope == "shefmontazh":
         return _SHEFMONTAZH_NAME
     if key == "bytovka_weigh_room":
@@ -305,7 +393,7 @@ def build_spec_rows_from_snapshot(
         "customer_side": False,
     })
 
-    options = data.get("options") or {}
+    options = _expand_orion_options(data.get("options") or {}, prices)
     installation_scope = data.get("installation_scope")
     for key, opt in options.items():
         qty_raw = opt.get("qty")
@@ -448,12 +536,15 @@ def _find_indicator(equipment_specs: dict, indicator_name: str) -> dict:
 
 _ITEM_ORDER: dict[str, int] = {
     "weights": 0,
-    "rama": 1,
-    "pandus": 2,
-    "foundation": 3,
-    "delivery": 4,
-    "installation": 5,
-    "verification": 6,
+    "orion": 1,
+    "rama": 2,
+    "pandus": 3,
+    "foundation": 4,
+    "orion_poles": 5,
+    "delivery": 6,
+    "installation": 7,
+    "orion_install": 8,
+    "verification": 9,
 }
 
 
@@ -472,7 +563,7 @@ def build_specification_items(
     length = model.get("length", "")
     width = model.get("width", 3.0)
     model_price = float(model.get("price") or 0)
-    options = data.get("options") or {}
+    options = _expand_orion_options(data.get("options") or {}, prices)
     installation_scope = data.get("installation_scope")
 
     items: list[SpecItem] = []
@@ -517,6 +608,8 @@ def build_specification_items(
         metadata: dict[str, Any] = {}
         if customer_side:
             metadata["customer_side"] = True
+        if opt.get("auto_added"):
+            metadata["auto_added"] = True
         if spec_id == "installation":
             if installation_scope in ("full", "shefmontazh"):
                 metadata["scope"] = installation_scope
