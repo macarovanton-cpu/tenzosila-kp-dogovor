@@ -28,6 +28,25 @@ def _valid_ogrn(digits: str) -> bool:
     return False
 
 
+# Веса контрольного ключа счёта (23 позиции): префикс(3) + номер счёта(20)
+_ACCOUNT_WEIGHTS = [7, 1, 3] * 7 + [7, 1]
+
+
+def _valid_account(account: str, bik: str) -> bool:
+    """Проверить контрольный ключ расчётного счёта (20 цифр) вместе с БИК.
+
+    Строка для проверки (23 цифры) = префикс + account, где префикс для
+    расчётного счёта — последние 3 цифры БИК (bik[6:9]). Валиден, если
+    взвешенная по _ACCOUNT_WEIGHTS сумма цифр кратна 10.
+    Предполагает, что длины уже проверены (account 20, bik 9, обе цифры).
+    """
+    if not (account.isdigit() and bik.isdigit()):
+        return False
+    digits = bik[6:9] + account
+    checksum = sum(int(d) * w for d, w in zip(digits, _ACCOUNT_WEIGHTS)) % 10
+    return checksum == 0
+
+
 def validate_requisites(fields: dict[str, str]) -> tuple[list[str], list[str]]:
     """Вернуть (errors, warnings). errors блокируют «Сгенерировать договор»."""
     errors: list[str] = []
@@ -62,6 +81,19 @@ def validate_requisites(fields: dict[str, str]) -> tuple[list[str], list[str]]:
         errors.append("Корреспондентский счёт должен состоять из 20 цифр")
     if bik and not (bik.isdigit() and len(bik) == 9):
         errors.append("БИК должен состоять из 9 цифр")
+
+    # Контрольный ключ р/с считается вместе с БИК — только при валидных длинах
+    # обоих (нет опорного БИК — не считаем, длина р/с проверена выше).
+    if (
+        rs and bik
+        and rs.isdigit() and len(rs) == 20
+        and bik.isdigit() and len(bik) == 9
+        and not _valid_account(rs, bik)
+    ):
+        errors.append(
+            "Расчётный счёт не проходит проверку контрольного ключа с БИК — "
+            "проверьте цифры"
+        )
 
     if ogrn and not _valid_ogrn(ogrn):
         errors.append(
