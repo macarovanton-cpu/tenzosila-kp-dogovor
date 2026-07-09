@@ -442,8 +442,8 @@ def test_generated_docx_term_days_with_vmerge(prices):
       - 1-я content-row (модель): cell[2].text="17" + <w:vMerge w:val="restart"/>
       - 2-я / 3-я (frame, fence): cell[2].text="" + <w:vMerge/> (continue)
       - 4-я (foundation): "8", без vMerge
-      - 5-я (install): "3", без vMerge
-      - 6-я (delivery): "1", без vMerge
+      - 5-я (delivery): "1", без vMerge
+      - 6-я (install): "3", без vMerge
       - 7-я (verification): "1", без vMerge
     """
     state = _state(
@@ -518,8 +518,8 @@ def test_generated_docx_term_days_with_vmerge(prices):
 
     # Порядок content-rows совпадает со spec_items:
     # vesta-с-80-18 (модель), frame_18, fence_norma_18, foundation_s_f_18,
-    # install_default, delivery_default, verification_default
-    # (OPTION_BLOCKS_ORDER: install → delivery → verification).
+    # delivery_default, install_default, verification_default
+    # (OPTION_BLOCKS_ORDER: delivery → install → verification, T4).
 
     # row 1 = модель: vMerge=restart, value="17"
     text, vm = col2_info(trs[1])
@@ -539,15 +539,15 @@ def test_generated_docx_term_days_with_vmerge(prices):
     assert vm == "none"
     assert text == "8"
 
-    # row 5 = install: без vMerge, value="3"
+    # row 5 = delivery: без vMerge, value="1"
     text, vm = col2_info(trs[5])
     assert vm == "none"
-    assert text == "3"
+    assert text == "1"
 
-    # row 6 = delivery: без vMerge, value="1"
+    # row 6 = install: без vMerge, value="3"
     text, vm = col2_info(trs[6])
     assert vm == "none"
-    assert text == "1"
+    assert text == "3"
 
     # row 7 = verification: без vMerge, value="1"
     text, vm = col2_info(trs[7])
@@ -749,12 +749,12 @@ def test_generated_docx_full_set_with_canopy_and_orion(prices):
     # row 5 = foundation → "10"
     text, vm = col2(trs[5])
     assert vm == "none" and text == "10"
-    # row 6 = install → "3"
+    # row 6 = delivery → "1"
     text, vm = col2(trs[6])
-    assert vm == "none" and text == "3"
-    # row 7 = delivery → "1"
-    text, vm = col2(trs[7])
     assert vm == "none" and text == "1"
+    # row 7 = install → "3"
+    text, vm = col2(trs[7])
+    assert vm == "none" and text == "3"
     # row 8 = verification → "1"
     text, vm = col2(trs[8])
     assert vm == "none" and text == "1"

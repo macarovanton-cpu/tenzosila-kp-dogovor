@@ -44,8 +44,8 @@ OPTION_BLOCKS_ORDER: list[str] = [
     "pak_orion",
     "canopy",
     "foundation_and_base",
-    "install",
     "delivery",
+    "install",
     "verification",
 ]
 
