@@ -68,14 +68,19 @@ def _option_key_to_spec_id(key: str) -> str | None:
         return "foundation"
     if "orion_install" in key:
         return "orion_install"
+    # Опоры — собственный id, иначе затирают ПАК (id "orion") в items_by_id
+    if key == "orion_cable_poles":
+        return "orion_poles"
     if key.startswith("orion"):
         return "orion"
     if key.startswith("fence"):
         return "fence"
     if key.startswith("bytovka"):
         return "bytovka"
-    if key.startswith("rama"):
+    # Реальные ключи каталога — frame_* / ramp_set_* (data/prices.json);
+    # rama*/pandus* оставлены как страховка для легаси-снапшотов
+    if key.startswith(("rama", "frame_")):
         return "rama"
-    if key.startswith("pandus"):
+    if key.startswith(("pandus", "ramp_set_")):
         return "pandus"
     return None

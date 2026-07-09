@@ -237,8 +237,11 @@ def resolve_payment_group(item_key: str) -> str:
         return "foundation"
     if item_key == "delivery_default":
         return "delivery"
-    if item_key in ("install_default", "verification_default"):
+    if item_key in ("install_default", "verification_default", "orion_install"):
         return "installation_and_verification"
+    # Опоры/кабель-трассы ОРИОН оплачиваются вместе с фундаментом (эталон A1)
+    if item_key == "orion_cable_poles":
+        return "foundation"
     return "scales"
 
 

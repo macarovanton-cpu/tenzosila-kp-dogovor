@@ -110,7 +110,7 @@ def build_contract_clauses(deal: dict) -> dict[str, list[RenderedClause]]:
         "scales_or_with_orion": "Весы и комплект ПАК «ОРИОН»" if has_orion else "Весы",
         "install_site_label": "месту установки" if foundation_scope == "rama" else "фундаменту",
         "obligations_range": obligations_range,
-        "delivery_address_text": deal.get("delivery_address", ""),
+        "delivery_address_text": (deal.get("delivery_address") or "").rstrip(". "),
         "winter_surcharge_amount": _format_amount(flags.get("winter_surcharge_amount")),
     }
 

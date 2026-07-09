@@ -83,7 +83,7 @@ class TestBuildSpecificationItems:
         assert any("future_unknown_42" in m for m in caplog.messages)
 
     def test_sort_order(self):
-        """weights < foundation < installation < verification < delivery."""
+        """weights < foundation < delivery < installation < verification (FIX_SPEC E3a)."""
         from src.contracts.from_kp import build_specification_items
         opts = {
             "delivery_default": {"qty": 1, "price": 50_000, "customer_side": False},
@@ -94,9 +94,9 @@ class TestBuildSpecificationItems:
         items = build_specification_items(_make_kp_row(options=opts))
         ids = [i["id"] for i in items]
         assert ids.index("weights") < ids.index("foundation")
-        assert ids.index("foundation") < ids.index("installation")
+        assert ids.index("foundation") < ids.index("delivery")
+        assert ids.index("delivery") < ids.index("installation")
         assert ids.index("installation") < ids.index("verification")
-        assert ids.index("verification") < ids.index("delivery")
 
     def test_installation_scope_with_foundation(self):
         """install_default + foundation → scope='fundament'."""

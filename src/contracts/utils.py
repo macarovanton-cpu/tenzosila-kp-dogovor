@@ -178,6 +178,27 @@ def named_form(name: str) -> str:
     return 'именуемое'
 
 
+def normalize_quotes(s: str) -> str:
+    """Прямые кавычки " " → вложенные ёлочки « » (менеджер вводит Shift+2).
+
+    Каждая кавычка, кроме последней в строке, открывает уровень вложенности
+    («); последняя кавычка закрывает ВСЕ ещё открытые уровни (» ×глубина).
+    Так `"Ромашка"` → `«Ромашка»`, а `"Агрофирма "Промышленная"` (три прямые,
+    менеджер не ставит явную внутреннюю закрывающую) → `«Агрофирма «Промышленная»»`.
+    """
+    positions = [i for i, ch in enumerate(s) if ch == '"']
+    if not positions:
+        return s
+    last = positions[-1]
+    result = list(s)
+    depth = 0
+    for i in positions[:-1]:
+        result[i] = '«'
+        depth += 1
+    result[last] = '»' * depth
+    return ''.join(result)
+
+
 def format_date_parts(date_str: str) -> dict:
     """
     Разбирает дату из строки и возвращает словарь с частями.

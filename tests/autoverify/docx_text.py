@@ -80,11 +80,15 @@ class SpecTable:
     itogo_per_1: int              # значение строки ИТОГО / ИТОГО за 1 весы
 
 
+_ITOGO_PREFIXES = ("ИТОГО", "ОБЩАЯ ИТОГОВАЯ СУММА")
+
+
 def find_spec_table(path: Path) -> SpecTable:
     """Найти таблицу со строкой ИТОГО и распарсить позиции + итог.
 
     Формат КП и спецификации v2 одинаков в важном: колонка 0 — наименование,
     колонка 1 — сумма; строка «ИТОГО»/«ИТОГО за 1 весы» закрывает позиции.
+    Поставка (compose_supply) использует «ОБЩАЯ ИТОГОВАЯ СУММА» вместо «ИТОГО».
     """
     doc = Document(str(path))
     for table in doc.tables:
@@ -97,8 +101,9 @@ def find_spec_table(path: Path) -> SpecTable:
                 continue
             name = cells[0].text.strip()
             value_text = cells[1].text.strip()
-            # «ИТОГО» (КП), «ИТОГО с НДС, руб.» (спека), «ИТОГО за 1 весы» (qty>1)
-            if name.startswith("ИТОГО"):
+            # «ИТОГО» (КП), «ИТОГО с НДС, руб.» (спека), «ИТОГО за 1 весы» (qty>1),
+            # «ОБЩАЯ ИТОГОВАЯ СУММА» (поставка)
+            if name.startswith(_ITOGO_PREFIXES):
                 itogo = parse_money(value_text)
                 break  # позиции закончились; «за N весов» не парсим
             if normalize_spaces(value_text).strip() == "ЗАКАЗЧИК":

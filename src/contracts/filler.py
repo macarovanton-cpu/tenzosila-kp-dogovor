@@ -10,6 +10,10 @@ from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
+from src.contracts.utils import normalize_quotes
+
+_CUSTOMER_NAME_KEYS = ("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ", "ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ")
+
 
 def merge_runs(paragraph) -> None:
     """
@@ -46,6 +50,32 @@ def merge_runs(paragraph) -> None:
             runs = paragraph.runs
         else:
             i += 1
+
+
+_GOSREESTR_MARKER = '78871-20'
+_TPK_FORM = '«ТПК «Тензосила»»'
+_COMPANY_FORM = '«Компания «Тензосила»»'
+
+
+def _fix_gosreestr_supplier_name(doc) -> None:
+    """В ячейке ТТХ-таблицы с номером Госреестра «ТПК» → «Компания» (FIX_SPEC C4).
+
+    Форма «ТПК «Тензосила»» верна в преамбуле/реквизитах/подписях; в блоке
+    сертификации/утверждения типа (ячейка с номером Госреестра) должна стоять
+    «Компания «Тензосила»» — на это юрлицо оформлены документы утверждения типа.
+    """
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                if _GOSREESTR_MARKER not in cell.text:
+                    continue
+                for paragraph in cell.paragraphs:
+                    if _TPK_FORM not in paragraph.text:
+                        continue
+                    merge_runs(paragraph)
+                    for run in paragraph.runs:
+                        if _TPK_FORM in run.text:
+                            run.text = run.text.replace(_TPK_FORM, _COMPANY_FORM)
 
 
 def replace_in_paragraph(paragraph, data: dict) -> None:
@@ -101,6 +131,13 @@ def fill_template(template_path: str, data: dict, output_path: str) -> None:
         flat.update(data.get('specification', {}))
         data = flat
 
+    # Менеджер вводит имя заказчика прямыми кавычками (Shift+2) — нормализуем
+    # в ёлочки перед подстановкой (FIX_SPEC C1+C3).
+    data = dict(data)
+    for key in _CUSTOMER_NAME_KEYS:
+        if data.get(key):
+            data[key] = normalize_quotes(str(data[key]))
+
     doc = Document(template_path)
 
     # Обрабатываем все параграфы документа
@@ -113,6 +150,8 @@ def fill_template(template_path: str, data: dict, output_path: str) -> None:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     replace_in_paragraph(paragraph, data)
+
+    _fix_gosreestr_supplier_name(doc)
 
     # Обрабатываем колонтитулы — только параграфы с плейсхолдерами.
     # Guard нужен: merge_runs уничтожает field-runs (fldChar/instrText) если у них
