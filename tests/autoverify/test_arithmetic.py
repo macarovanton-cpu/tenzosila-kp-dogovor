@@ -8,17 +8,12 @@ from tests.autoverify.docx_text import extract_text, find_spec_table, vat_rates
 _TABLE_KINDS = ("kp", "spec", "supply")
 
 
-def _expected_items_total(generated, include_auto_added: bool = True) -> int:
-    """Σ позиций per-unit без customer_side — из входного контекста раннера.
-
-    include_auto_added=False — без позиций, добавленных только в договор
-    (FIX_SPEC §A1: авто-опоры ОРИОН; в КП их нет, итог КП меньше).
-    """
+def _expected_items_total(generated) -> int:
+    """Σ позиций per-unit без customer_side — из входного контекста раннера."""
     return sum(
         int(it.get("total") or 0)
         for it in generated.items
         if not it.get("metadata", {}).get("customer_side")
-        and (include_auto_added or not it.get("metadata", {}).get("auto_added"))
     )
 
 
@@ -37,10 +32,8 @@ def test_spec_table_sums(generated) -> None:
         # supply-спецификация агрегирует позиции (весы одной строкой, без работ)
         # — сверка с полным Σ входных позиций осмысленна только для kp/spec.
         if kind in ("kp", "spec"):
-            # КП не содержит авто-добавленных в договор позиций (авто-опоры ОРИОН)
-            expected = _expected_items_total(
-                generated, include_auto_added=(kind != "kp")
-            )
+            # Инвариант: сумма КП == сумма договора (одни и те же позиции).
+            expected = _expected_items_total(generated)
             assert table.itogo_per_1 == expected, (
                 f"{where}: ИТОГО {table.itogo_per_1} != Σ позиций входа {expected}"
             )
