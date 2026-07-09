@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "version": "0.4",
+    "version": "0.5",
     "generated_at": "2026-04-29",
     "source": "Интервью с менеджером (А. Макаров, 23.04.2026); v0.4 — переделка модели оплаты (29.04.2026)",
     "notes": [
@@ -13,7 +13,8 @@
       "Валидация: для каждого пресета сумма процентов по одной позиции должна быть равна 100. Для `split_by_items` — сумма по каждой группе (весы, фундамент и т.д.) отдельно.",
       "v0.2 (2026-04-25): Убран префикс «— » из body_template и render_split_by_items — маркер списка рисует Word через стиль абзаца (1.5b-fix2).",
       "v0.3 (2026-04-25): Возвращён префикс «— » в render_split_by_items и многострочные body_template — Listing рендерит \\n как <w:br/> в одном параграфе, и стиль list-marker применяется только к первой строке (1.5b-fix3).",
-      "v0.4 (2026-04-29): Удалены prepay_50_postpay_50, prepay_30_postpay_70, postpay_100_15d, postpay_100_30d. Введены 3 параметризуемых варианта: v1_prepay_postpay (Аванс+Постоплата), v2_prepay_preship_postpay (Аванс+Перед-отгрузкой+Постоплата), v3_postpay_only (100% постоплата с настраиваемой точкой отсчёта). prepay_100, split_by_items, custom — без изменений."
+      "v0.4 (2026-04-29): Удалены prepay_50_postpay_50, prepay_30_postpay_70, postpay_100_15d, postpay_100_30d. Введены 3 параметризуемых варианта: v1_prepay_postpay (Аванс+Постоплата), v2_prepay_preship_postpay (Аванс+Перед-отгрузкой+Постоплата), v3_postpay_only (100% постоплата с настраиваемой точкой отсчёта). prepay_100, split_by_items, custom — без изменений.",
+      "v0.5 (2026-07-09): Изменён дефолт группы installation_and_verification в split_by_items с prepay 0 / postpay 100 на 50/50 (W-домен, FIX_SPEC)."
     ]
   },
   "default_preset_id": "split_by_items",
@@ -116,8 +117,8 @@
           "id": "installation_and_verification",
           "label": "Монтаж и поверка",
           "default_percents": {
-            "prepay": 0,
-            "postpay": 100
+            "prepay": 50,
+            "postpay": 50
           },
           "editable_percent_keys": ["prepay", "postpay"],
           "postpay_trigger": "по факту выполнения монтажа и поверки",
