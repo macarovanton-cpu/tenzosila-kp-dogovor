@@ -258,7 +258,7 @@ def test_dynamic_label_ramp_f_s_wrong_line_unchanged():
 
 
 def test_model_name_excludes_fence(prices, models_json):
-    """Имя первой позиции (весы) содержит ровно 3 части: название, датчики, терминал.
+    """Имя первой позиции (весы) — одна строка с названием модели.
 
     Ограждение — отдельная строка spec_items, НЕ часть имени модели.
     """
@@ -278,11 +278,9 @@ def test_model_name_excludes_fence(prices, models_json):
     items = build_spec_items(state, prices, models_json)
     model_name = items[0]["name"]
     parts = model_name.split("\n")
-    assert len(parts) == 3, f"Ожидалось 3 части, получено {len(parts)}: {parts}"
+    assert len(parts) == 1, f"Ожидалась 1 часть, получено {len(parts)}: {parts}"
     assert "Ограждение" not in model_name
     assert "ВЕСТА" in parts[0]
-    assert parts[1].startswith("Датчики:")
-    assert parts[2].startswith("Терминал:")
 
 
 def test_build_spec_items_uses_dynamic_foundation_label(prices, models_json):
@@ -556,22 +554,19 @@ def test_construction_description_rail():
     assert "подшив 3 мм" in text
 
 
-# --- multiline model name (sensors / terminal / fence) ---
+# --- multiline model name (platform width / fence) ---
 
 
-def test_model_name_is_multiline_with_sensors_and_terminal(
-    prices, models_json
-):
+def test_model_name_excludes_sensors_and_terminal(prices, models_json):
+    """Датчики/терминал — отдельные позиции комплекта поставки, не часть имени модели."""
     state = _base_state()
     state["sensor_id"] = "zemic_dhm9b_30t"
     state["indicator_id"] = "titan_3cs"
     items = build_spec_items(state, prices, models_json)
     name = items[0]["name"]
     assert "ВЕСТА-С-60-18" in name
-    assert "Датчики:" in name
-    assert "Zemic DHM9B-30t" in name
-    assert "шт." in name
-    assert "Терминал: ТИТАН 3ЦС" in name
+    assert "Датчики:" not in name
+    assert "Терминал:" not in name
 
 
 def test_model_name_includes_nonstandard_platform_width(prices, models_json):

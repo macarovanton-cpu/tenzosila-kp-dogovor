@@ -300,12 +300,15 @@ def test_kp_valid_days_paragraph_is_bold(prices):
 
 
 def test_spec_item_name_is_richtext_with_8pt_subline(prices):
-    """Имя модели в spec_items_fmt — RichText, вспомогательные строки 8pt.
+    """Имя модели в spec_items_fmt — RichText, вспомогательная строка 8pt.
 
-    Ограждение НЕ должно попадать в имя, даже если fence включён.
+    Датчики/терминал/ограждение НЕ должны попадать в имя, даже если
+    fence включён; subline-механизм проверяем через нестандартную
+    ширину платформы.
     """
     state = _state(
         model_id="vesta-с-80-18",
+        platform_width_m=3.5,
         options={
             "fence_norma_18": {
                 "enabled": True, "price": 128_000, "qty": 1,
@@ -320,8 +323,9 @@ def test_spec_item_name_is_richtext_with_8pt_subline(prices):
     # docxtpl.RichText сериализуется в XML с size в half-points
     xml = str(name)
     assert "ВЕСТА-С-80-18" in xml
-    assert "Датчики:" in xml
-    assert "Терминал" in xml
+    assert "Размер платформы:" in xml
+    assert "Датчики:" not in xml
+    assert "Терминал" not in xml
     assert "Ограждение" not in xml, f"Ограждение не должно быть в имени весов: {xml[:300]}"
     # 8pt = half-points 16
     assert 'w:sz w:val="16"' in xml or 'sz w:val="16"' in xml, (

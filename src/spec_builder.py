@@ -8,7 +8,6 @@ from src.config import (
     UNIT_BY_BLOCK,
 )
 from src.data_loader import (
-    get_equipment_info,
     get_model_by_id,
     get_price_by_model_id,
 )
@@ -73,16 +72,15 @@ def _format_model_full_spec_name(
     model: dict | None,
     model_id: str,
     state: dict,
-    models_json: dict,
 ) -> str:
     """Многострочное имя для первой позиции спецификации.
 
     Структура (plain string с \\n; форматирование шрифта — в kp_generator):
         Весы автомобильные {full_name}
-        Датчики: {sensor_label}, {sensors_count} шт.
-        Терминал: {indicator_label}
+        Размер платформы: {…} (только при нестандартной ширине)
 
-    Ограждение, рама, пандусы — отдельные строки spec_items, в имя НЕ включаются.
+    Ограждение, рама, пандусы, датчики, терминал — отдельные строки
+    spec_items или отдельные позиции комплекта поставки, в имя НЕ включаются.
     """
     parts = [_format_model_name(model, model_id)]
     if model:
@@ -92,17 +90,6 @@ def _format_model_full_spec_name(
                 "Размер платформы: "
                 f"{format_platform_size(state.get('model_length', ''), width)}"
             )
-        sensor_info = get_equipment_info(
-            models_json, "sensor", state.get("sensor_id", "")
-        )
-        sensors_count = model.get("sensors_count", 0)
-        parts.append(
-            f"Датчики: {sensor_info['label']}, {sensors_count} шт."
-        )
-        indicator_info = get_equipment_info(
-            models_json, "indicator", state.get("indicator_id", "")
-        )
-        parts.append(f"Терминал: {indicator_info['label']}")
     return "\n".join(parts)
 
 
@@ -269,9 +256,7 @@ def build_spec_items(
         items.append({
             "num": 1,
             "item_key": model_id,
-            "name": _format_model_full_spec_name(
-                model, model_id, state, models_json
-            ),
+            "name": _format_model_full_spec_name(model, model_id, state),
             "qty": qty,
             "unit": "шт",
             "price": price,
