@@ -81,3 +81,7 @@ data/fundament/build_task/
 data/fundament/control_sheet/
 
 data/prices.backup.json
+
+# Тестовые данные парсера — реальные реквизиты, не коммитить
+scripts/spike_data/
+outputs/
