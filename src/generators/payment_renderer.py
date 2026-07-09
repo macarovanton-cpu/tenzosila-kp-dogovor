@@ -9,7 +9,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.payment_wording import TRIGGER_WORDING, default_preset_percents, kind_word
+from src.payment_wording import (
+    TRIGGER_WORDING,
+    default_preset_percents,
+    installation_object,
+    kind_word,
+)
 
 
 def get_active_payment_groups(spec_items: list[dict]) -> dict:
@@ -95,8 +100,9 @@ def render_split_by_items(
             word = kind_word(f_prepay, f_post, "postpay").capitalize()
             lines.append(f"— {word} за фундамент: {f_post}% — {due('FOUNDATION_ACT')}.")
 
-    # --- Строка 4: монтаж и поверка (обе фазы одной строкой) ---
+    # --- Строка 4: монтаж и поверка (обе фазы одной строкой; W6 — шеф-монтаж) ---
     if g["installation_and_verification"]:
+        iv_label = installation_object("lite", bool(state.get("is_shefmontazh")))
         iv_prepay = pct("installation_and_verification", "prepay")
         iv_post = pct("installation_and_verification", "postpay")
         phases: list[str] = []
@@ -109,7 +115,7 @@ def render_split_by_items(
                 f"{iv_post}% {kind_word(iv_prepay, iv_post, 'postpay')} — {due('WORK_ACT')}"
             )
         if phases:
-            lines.append(f"— Монтаж и поверка: {'; '.join(phases)}.")
+            lines.append(f"— {iv_label}: {'; '.join(phases)}.")
 
     return "\n".join(lines)
 

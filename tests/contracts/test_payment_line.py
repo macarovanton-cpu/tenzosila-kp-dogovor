@@ -552,6 +552,50 @@ def test_bridge_split_delivery_postpay_survives_when_scales_postpay_zero():
 
 
 # ---------------------------------------------------------------------------
+# W6 — шеф-монтаж в объекте оплаты (installation_scope из снапшота КП)
+# ---------------------------------------------------------------------------
+
+def test_bridge_w6_shefmontazh_object():
+    """installation_scope='shefmontazh' → «шеф-монтажных работ и поверки» в обеих фазах."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 1_000_000),
+        _item("install_default", "installation_and_verification", 100_000),
+    ]
+    payment = {
+        "preset_id": "split_by_items",
+        "days": 5,
+        "split_state": _split(iv=(50, 50)),
+    }
+    lines = build_lines_from_snapshot(
+        payment, spec_items, installation_scope="shefmontazh"
+    )
+    iv_lines = [ln for ln in lines if ln.trigger in
+                (PaymentTrigger.BRIGADE_READY, PaymentTrigger.WORK_ACT)]
+    assert len(iv_lines) == 2
+    assert all(ln.share_object == "шеф-монтажных работ и поверки" for ln in iv_lines)
+
+
+def test_bridge_w6_default_scope_keeps_montazh():
+    """Без scope (или full) — обычный объект «монтажных работ и поверки»."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 1_000_000),
+        _item("install_default", "installation_and_verification", 100_000),
+    ]
+    payment = {
+        "preset_id": "split_by_items",
+        "days": 5,
+        "split_state": _split(iv=(50, 50)),
+    }
+    for scope in (None, "full"):
+        lines = build_lines_from_snapshot(
+            payment, spec_items, installation_scope=scope
+        )
+        iv_lines = [ln for ln in lines if ln.trigger in
+                    (PaymentTrigger.BRIGADE_READY, PaymentTrigger.WORK_ACT)]
+        assert all(ln.share_object == "монтажных работ и поверки" for ln in iv_lines)
+
+
+# ---------------------------------------------------------------------------
 # P1 — процент в составных строках
 # ---------------------------------------------------------------------------
 

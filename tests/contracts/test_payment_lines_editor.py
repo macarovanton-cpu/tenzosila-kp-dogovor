@@ -168,7 +168,7 @@ def test_default_fill_warns_when_snapshot_preset_is_not_supported(monkeypatch):
     monkeypatch.setattr("src.ui.payment_lines_editor.set_payment_lines", lambda rows: None)
     monkeypatch.setattr(
         "src.ui.payment_lines_editor.build_lines_from_snapshot",
-        lambda payment, items, model_qty=1: [],
+        lambda payment, items, model_qty=1, installation_scope=None: [],
     )
 
     render_payment_lines_editor()

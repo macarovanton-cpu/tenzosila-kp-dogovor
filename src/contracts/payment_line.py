@@ -10,6 +10,7 @@ from src.payment_wording import (
     default_days,
     default_preset_percents,
     default_split_percents,
+    installation_object,
     kind_word,
 )
 
@@ -237,12 +238,18 @@ def _amount(total: int, pct: int) -> int:
 
 
 def build_lines_from_snapshot(
-    payment: dict, spec_items: list[dict], model_qty: int = 1
+    payment: dict,
+    spec_items: list[dict],
+    model_qty: int = 1,
+    installation_scope: str | None = None,
 ) -> list[PaymentLine]:
     """Черновые строки платёжного раздела из снапшота оплаты.
 
     split_by_items — строки по бакетам; прочие пресеты — строки от общей суммы;
     custom → []. Строка пропускается, если управляющий процент == 0 или сумма == 0.
+
+    installation_scope — из снапшота КП (W6): "shefmontazh" → объект монтажа
+    «шеф-монтажных работ и поверки».
 
     spec_items остаются per-unit; суммы бакетов домножаются на model_qty
     (график покрывает подытог_за_1 × qty).
@@ -333,8 +340,9 @@ def build_lines_from_snapshot(
             base_amount=base_l3,
         ))
 
-    # L4/L5 — монтаж и поверка
+    # L4/L5 — монтаж и поверка (W6: объект по installation_scope)
     if g["installation_and_verification"]:
+        iv_obj = installation_object("full", installation_scope == "shefmontazh")
         iv_prepay = pct("installation_and_verification", "prepay")
         iv_post   = pct("installation_and_verification", "postpay")
         if iv_prepay > 0:
@@ -342,7 +350,7 @@ def build_lines_from_snapshot(
             if amt != 0:
                 lines.append(PaymentLine(
                     kind_word(iv_prepay, iv_post, "prepay"), float(iv_prepay),
-                    "от стоимости", "монтажных работ и поверки", amt,
+                    "от стоимости", iv_obj, amt,
                     PaymentTrigger.BRIGADE_READY, days,
                     base_amount=iv_total,
                 ))
@@ -350,7 +358,7 @@ def build_lines_from_snapshot(
         if iv_post != 0 and amt != 0:
             lines.append(PaymentLine(
                 kind_word(iv_prepay, iv_post, "postpay"), float(iv_post),
-                "от стоимости", "монтажных работ и поверки", amt,
+                "от стоимости", iv_obj, amt,
                 PaymentTrigger.WORK_ACT, days,
                 base_amount=iv_total,
             ))

@@ -83,7 +83,8 @@ def _build_payment_rows(
         raw_rows = fixture.payment_rows
     else:
         lines = build_lines_from_snapshot(
-            snapshot.get("payment") or {}, items, model_qty
+            snapshot.get("payment") or {}, items, model_qty,
+            installation_scope=snapshot.get("installation_scope"),
         )
         raw_rows = [_line_to_row(line) for line in lines]
     rows = _recompute_amounts(_normalize_rows(raw_rows), spec_total)

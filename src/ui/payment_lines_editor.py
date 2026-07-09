@@ -248,7 +248,11 @@ def render_payment_lines_editor() -> None:
 
     if st.button("Заполнить по умолчанию"):
         payment = st.session_state["contract"].get("kp_payment_snapshot") or {}
-        lines = build_lines_from_snapshot(payment, spec_items, model_qty)
+        kp_snap = st.session_state["contract"].get("kp_snapshot") or {}
+        lines = build_lines_from_snapshot(
+            payment, spec_items, model_qty,
+            installation_scope=kp_snap.get("installation_scope"),
+        )
         if not lines:
             st.warning(
                 "Пресет оплаты из КП не поддерживает автозаполнение. "

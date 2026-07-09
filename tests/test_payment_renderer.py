@@ -312,6 +312,19 @@ def test_split_zero_prepay_skips_line(payment_terms):
     assert lines[0].startswith("— Оплата: 100% —")
 
 
+def test_split_shefmontazh_label(payment_terms):
+    """W6: is_shefmontazh → строка монтажа называется «Шеф-монтаж и поверка»."""
+    items = [
+        _item("vesta-с-60-18", "scales"),
+        _item("install_default", "installation_and_verification"),
+    ]
+    state = _state("split_by_items", is_shefmontazh=True)
+    text = render_payment_block(state, items, payment_terms)
+    iv_line = text.split("\n")[-1]
+    assert iv_line.startswith("— Шеф-монтаж и поверка:")
+    assert "Монтаж и поверка:" not in iv_line
+
+
 def test_split_days_from_state(payment_terms):
     """Срок печатается в каждой строке и берётся из state['payment_days']."""
     items = [
