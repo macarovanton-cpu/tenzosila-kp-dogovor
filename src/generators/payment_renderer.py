@@ -12,8 +12,12 @@ from typing import Any
 from src.payment_wording import (
     TRIGGER_WORDING,
     default_preset_percents,
+    foundation_object,
     installation_object,
+    join_ru,
     kind_word,
+    scales_object_parts,
+    wording_flags,
 )
 
 
@@ -48,7 +52,8 @@ def render_split_by_items(
     """
     active = get_active_payment_groups(spec_items)
     g = active["groups"]
-    has_orion = active["has_orion"]
+    flags = wording_flags(spec_items)
+    has_orion = flags["has_orion"]
 
     groups_by_id = {grp["id"]: grp for grp in preset.get("groups", [])}
     pct = lambda gid, k: _split_pct(state, gid, k, groups_by_id)  # noqa: E731
@@ -61,13 +66,14 @@ def render_split_by_items(
     s_prepay, s_post = pct("scales", "prepay"), pct("scales", "postpay")
     lines: list[str] = []
 
-    # --- Строка 1: предоплата (весы [+ фундамент]) ---
+    # --- Строка 1: предоплата (весы [+ ОРИОН/рама/пандусы] [+ фундамент]) ---
     if only_scales and not has_orion:
         scales_label = "стоимости проекта"
-    elif has_orion:
-        scales_label = "стоимости весов (включая ПАК ОРИОН)"
     else:
-        scales_label = "стоимости весов"
+        scales_gen = join_ru(scales_object_parts(
+            "lite_gen", has_orion, flags["has_ramps"], flags["has_frame"]
+        ))
+        scales_label = f"стоимости {scales_gen}"
     prepay_parts: list[str] = []
     if s_prepay > 0:
         prepay_parts.append(f"{s_prepay}% {scales_label}")
@@ -87,18 +93,23 @@ def render_split_by_items(
         word = kind_word(s_prepay, s_post, "postpay").capitalize()
         if only_scales:
             label = word
-        elif g["delivery"]:
-            label = f"{word} за весы и доставку"
         else:
-            label = f"{word} за весы"
+            obj_parts = scales_object_parts(
+                "lite_acc", has_orion, flags["has_ramps"], flags["has_frame"]
+            )
+            if g["delivery"]:
+                obj_parts.append("доставку")
+            label = f"{word} за {join_ru(obj_parts)}"
         lines.append(f"— {label}: {s_post}% — {due('SHIPMENT_READY')}.")
 
-    # --- Строка 3: доплата за фундамент ---
+    # --- Строка 3: доплата за фундамент (W9: опоры ОРИОН — объект и триггер) ---
     if g["foundation"]:
         f_prepay, f_post = pct("foundation", "prepay"), pct("foundation", "postpay")
         if f_post > 0:
             word = kind_word(f_prepay, f_post, "postpay").capitalize()
-            lines.append(f"— {word} за фундамент: {f_post}% — {due('FOUNDATION_ACT')}.")
+            f_obj = foundation_object("lite", flags["has_poles"])
+            f_due = due("FOUNDATION_ACT_POLES" if flags["has_poles"] else "FOUNDATION_ACT")
+            lines.append(f"— {word} за {f_obj}: {f_post}% — {f_due}.")
 
     # --- Строка 4: монтаж и поверка (обе фазы одной строкой; W6 — шеф-монтаж) ---
     if g["installation_and_verification"]:

@@ -448,7 +448,7 @@ def test_bridge_v3_after_delivery():
 
 
 def test_bridge_prepay_100():
-    """prepay_100 → 1 строка; предоплата; pct=100; SPEC_SIGNED; amount==ИТОГО."""
+    """prepay_100 → 1 строка; предоплата; pct=100; W7 — триггер с основанием «счёт»."""
     spec_items = [_item("vesta-c-60-18", "scales", 800_000)]
     payment = {"preset_id": "prepay_100", "days": 5}
     lines = build_lines_from_snapshot(payment, spec_items)
@@ -456,8 +456,13 @@ def test_bridge_prepay_100():
     ln = lines[0]
     assert ln.kind == "предоплата"
     assert ln.share_pct == 100.0
-    assert ln.trigger == PaymentTrigger.SPEC_SIGNED
+    assert ln.trigger == PaymentTrigger.SPEC_SIGNED_INVOICE
     assert ln.amount == 800_000
+    text = format_payment_line(ln, 1)
+    assert text.endswith(
+        "с момента подписания настоящей Спецификации, "
+        "на основании выставленного Поставщиком счёта."
+    )
 
 
 def test_bridge_non_split_remainder_exact():
@@ -549,6 +554,77 @@ def test_bridge_split_delivery_postpay_survives_when_scales_postpay_zero():
     assert l3.share_pct is None
     assert l3.share_prep is None
     assert "доставк" in l3.share_object
+
+
+# ---------------------------------------------------------------------------
+# W9 — опоры/кабель-трассы ОРИОН и рама/пандусы называются в объекте
+# ---------------------------------------------------------------------------
+
+def test_bridge_w9_orion_poles_object_and_trigger():
+    """orion_cable_poles → объект доплаты фундамента с опорами + расширенный триггер."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 2_000_000),
+        _item("orion_standard", "scales", 500_000),
+        _item("foundation_s_f_18", "foundation", 1_000_000),
+        _item("orion_cable_poles", "foundation", 125_000),
+    ]
+    payment = {"preset_id": "split_by_items", "days": 5, "split_state": _split()}
+    lines = build_lines_from_snapshot(payment, spec_items)
+    l2 = next(ln for ln in lines if ln.trigger in
+              (PaymentTrigger.FOUNDATION_ACT, PaymentTrigger.FOUNDATION_ACT_POLES))
+    assert l2.trigger == PaymentTrigger.FOUNDATION_ACT_POLES
+    assert l2.share_object == (
+        "фундамента Весов и установку опор и кабель-трасс для ПАК ОРИОН"
+    )
+    assert l2.amount == 562_500  # 50% от (1 000 000 + 125 000)
+    text = format_payment_line(l2, 2)
+    assert text.endswith(
+        "с момента подписания Акта выполненных работ по строительству "
+        "фундамента и установке опор и кабель-трасс."
+    )
+
+
+def test_bridge_w9_no_poles_keeps_plain_foundation():
+    """Без опор — обычный объект и обычный триггер FOUNDATION_ACT."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 2_000_000),
+        _item("foundation_s_f_18", "foundation", 1_000_000),
+    ]
+    payment = {"preset_id": "split_by_items", "days": 5, "split_state": _split()}
+    lines = build_lines_from_snapshot(payment, spec_items)
+    l2 = next(ln for ln in lines if ln.share_object == "фундамента Весов")
+    assert l2.trigger == PaymentTrigger.FOUNDATION_ACT
+
+
+def test_bridge_rama_ramps_named_in_scales_object():
+    """Рама + пандусы называются в объекте весов (L1 и L3)."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 800_000),
+        _item("frame_18", "scales", 150_000),
+        _item("ramp_set_4", "scales", 50_000),
+        _item("delivery_default", "delivery", 100_000),
+    ]
+    payment = {
+        "preset_id": "split_by_items",
+        "days": 5,
+        "split_state": _split(delivery=(50, 50)),
+    }
+    lines = build_lines_from_snapshot(payment, spec_items)
+    l1 = next(ln for ln in lines if ln.trigger == PaymentTrigger.SPEC_SIGNED)
+    l3 = next(ln for ln in lines if ln.trigger == PaymentTrigger.SHIPMENT_READY)
+    assert l1.share_object == "Весов, комплекта пандусов и рамы"
+    assert l3.share_object == "Весов, комплекта пандусов, рамы и доставки"
+
+
+def test_bridge_frame_only_no_ramps():
+    """Только рама без пандусов → «Весов и рамы» (пандусы не упоминаются)."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 800_000),
+        _item("frame_18", "scales", 150_000),
+    ]
+    payment = {"preset_id": "split_by_items", "days": 5, "split_state": _split()}
+    lines = build_lines_from_snapshot(payment, spec_items)
+    assert lines[0].share_object == "Весов и рамы"
 
 
 # ---------------------------------------------------------------------------

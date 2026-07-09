@@ -27,7 +27,9 @@ from src.contracts.state import (
 
 _TRIGGER_LABELS: dict[str, PaymentTrigger] = {
     "Подписание спецификации": PaymentTrigger.SPEC_SIGNED,
+    "Подписание спецификации (счёт)": PaymentTrigger.SPEC_SIGNED_INVOICE,
     "Акт фундамента": PaymentTrigger.FOUNDATION_ACT,
+    "Акт фундамента (+опоры ОРИОН)": PaymentTrigger.FOUNDATION_ACT_POLES,
     "Готовность к отгрузке": PaymentTrigger.SHIPMENT_READY,
     "Готовность принять бригаду": PaymentTrigger.BRIGADE_READY,
     "Акт выполненных работ": PaymentTrigger.WORK_ACT,

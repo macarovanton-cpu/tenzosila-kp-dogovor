@@ -32,19 +32,17 @@ from src.contracts.utils import (
     normalize_quotes,
     number_to_words,
 )
+from src.payment_wording import SUPPLY_TRIGGER_OVERRIDES
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item, resolve_term_role
 
 
 # ---------------------------------------------------------------------------
-# Тексты триггеров под контекст договора поставки
-# (без монтажа и Спецификации — заменяем два триггера)
+# Тексты триггеров под контекст договора поставки (W8): общий словарь
+# + контекстные override'ы из payment_wording (без монтажа и Спецификации).
 # ---------------------------------------------------------------------------
 
 SUPPLY_TRIGGER_TEXTS: dict[PaymentTrigger, str] = {
-    **TRIGGER_TEXTS,
-    PaymentTrigger.SPEC_SIGNED: "подписания настоящего Договора",
-    PaymentTrigger.WORK_ACT:    "поставки Весов Покупателю",
-    PaymentTrigger.DELIVERED:   "поставки Весов Покупателю",
+    t: SUPPLY_TRIGGER_OVERRIDES.get(t.value, txt) for t, txt in TRIGGER_TEXTS.items()
 }
 
 # ---------------------------------------------------------------------------

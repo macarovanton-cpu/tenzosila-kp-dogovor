@@ -71,6 +71,14 @@ def test_prepay_100(payment_terms):
     assert "10 банковских дней" in text
 
 
+def test_prepay_100_no_invoice_phrase_in_kp(payment_terms):
+    """W7 — только full-регистр: фраза про счёт НЕ протекает в КП (lite)."""
+    state = _state("prepay_100")
+    text = render_payment_block(state, [], payment_terms)
+    assert "счёта" not in text
+    assert "счета" not in text
+
+
 # --- Variant 1: Аванс + Постоплата ---
 
 
@@ -200,7 +208,7 @@ def test_split_full_set(payment_terms):
     assert "ПАК ОРИОН" in lines[0]
     assert "фундамента" in lines[0]
     assert "с момента подписания Договора" in lines[0]
-    assert "Доплата за весы и доставку" in lines[1]
+    assert "Доплата за весы (включая ПАК ОРИОН) и доставку" in lines[1]
     assert "после уведомления о готовности Весов к отгрузке" in lines[1]
     assert "Доплата за фундамент" in lines[2]
     assert "после подписания Акта выполненных работ по строительству фундамента" in lines[2]
@@ -310,6 +318,39 @@ def test_split_zero_prepay_skips_line(payment_terms):
     lines = text.split("\n")
     assert len(lines) == 1
     assert lines[0].startswith("— Оплата: 100% —")
+
+
+def test_split_w9_orion_poles_object_and_trigger(payment_terms):
+    """W9 lite: опоры ОРИОН названы в доплате за фундамент + расширенный триггер."""
+    items = [
+        _item("vesta-с-60-18", "scales"),
+        _item("orion_standard", "scales"),
+        _item("foundation_s_f_18", "foundation"),
+        _item("orion_cable_poles", "foundation"),
+    ]
+    state = _state("split_by_items")
+    text = render_payment_block(state, items, payment_terms)
+    f_line = next(ln for ln in text.split("\n") if "за фундамент" in ln)
+    assert "за фундамент и установку опор и кабель-трасс для ПАК ОРИОН" in f_line
+    assert f_line.endswith(
+        "после подписания Акта выполненных работ по строительству "
+        "фундамента и установке опор и кабель-трасс."
+    )
+
+
+def test_split_rama_ramps_named(payment_terms):
+    """Рама/пандусы называются в объекте весов (lite, оба падежа)."""
+    items = [
+        _item("vesta-с-60-18", "scales"),
+        _item("frame_18", "scales"),
+        _item("ramp_set_4", "scales"),
+        _item("delivery_default", "delivery"),
+    ]
+    state = _state("split_by_items")
+    text = render_payment_block(state, items, payment_terms)
+    lines = text.split("\n")
+    assert "50% стоимости весов, комплекта пандусов и рамы" in lines[0]
+    assert "Доплата за весы, комплект пандусов, раму и доставку:" in lines[1]
 
 
 def test_split_shefmontazh_label(payment_terms):

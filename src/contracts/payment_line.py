@@ -10,18 +10,24 @@ from src.payment_wording import (
     default_days,
     default_preset_percents,
     default_split_percents,
+    foundation_object,
     installation_object,
+    join_ru,
     kind_word,
+    scales_object_parts,
+    wording_flags,
 )
 
 
 class PaymentTrigger(str, Enum):
-    SPEC_SIGNED    = "SPEC_SIGNED"
-    FOUNDATION_ACT = "FOUNDATION_ACT"
-    SHIPMENT_READY = "SHIPMENT_READY"
-    BRIGADE_READY  = "BRIGADE_READY"
-    WORK_ACT       = "WORK_ACT"
-    DELIVERED      = "DELIVERED"
+    SPEC_SIGNED         = "SPEC_SIGNED"
+    SPEC_SIGNED_INVOICE = "SPEC_SIGNED_INVOICE"    # W7: prepay_100, основание «счёт»
+    FOUNDATION_ACT      = "FOUNDATION_ACT"
+    FOUNDATION_ACT_POLES = "FOUNDATION_ACT_POLES"  # W9: + установка опор и кабель-трасс
+    SHIPMENT_READY      = "SHIPMENT_READY"
+    BRIGADE_READY       = "BRIGADE_READY"
+    WORK_ACT            = "WORK_ACT"
+    DELIVERED           = "DELIVERED"
 
 
 # full-регистр общего словаря (единственный источник формулировок триггеров).
@@ -139,8 +145,9 @@ def _non_split_phases(
         ], v3_days
 
     if preset_id == "prepay_100":
+        # W7: простая поставка — основание «счёт» в триггере.
         return [
-            ("предоплата", 100, PaymentTrigger.SPEC_SIGNED),
+            ("предоплата", 100, PaymentTrigger.SPEC_SIGNED_INVOICE),
         ], days
 
     # custom и неизвестные пресеты — свободный текст, строки не генерируем
@@ -188,23 +195,21 @@ def _build_non_split_lines(
 
     return lines
 
-def _active_buckets(spec_items: list[dict]) -> dict:
-    """Какие группы оплаты есть в спецификации + есть ли ОРИОН (item_key orion_*).
+def _active_buckets(spec_items: list[dict]) -> dict[str, bool]:
+    """Какие группы оплаты есть в спецификации (payment_group → bool).
 
     Локальная копия логики generators.payment_renderer.get_active_payment_groups —
-    contracts не зависит от рендер-слоя.
+    contracts не зависит от рендер-слоя. Флаги формулировок (ОРИОН, опоры,
+    рама/пандусы) — payment_wording.wording_flags.
     """
     groups = dict.fromkeys(
         ("scales", "foundation", "delivery", "installation_and_verification"), False
     )
-    has_orion = False
     for item in spec_items:
         g = item.get("payment_group")
         if g in groups:
             groups[g] = True
-        if str(item.get("item_key") or item.get("id", "")).startswith("orion_"):
-            has_orion = True
-    return {"groups": groups, "has_orion": has_orion}
+    return groups
 
 
 def _split_pct(split_state: dict, group_id: str, key: str) -> int:
@@ -262,9 +267,8 @@ def build_lines_from_snapshot(
     split_state = payment.get("split_state") or {}
     days = int(payment.get("days") or default_days())
 
-    active = _active_buckets(spec_items)
-    g = active["groups"]
-    has_orion = active["has_orion"]
+    g = _active_buckets(spec_items)
+    flags = wording_flags(spec_items)
 
     scales_total     = _bucket_total(spec_items, "scales") * qty
     foundation_total = _bucket_total(spec_items, "foundation") * qty
@@ -279,13 +283,18 @@ def build_lines_from_snapshot(
     s_prepay = pct("scales", "prepay")
     s_post   = pct("scales", "postpay")
 
-    # L1 — SPEC_SIGNED (весы [+ ОРИОН] [+ фундамент])
+    # Объект «весы»: ОРИОН + рама/пандусы называются (реш. Антона, механизм W9).
+    scales_parts = scales_object_parts(
+        "full", flags["has_orion"], flags["has_ramps"], flags["has_frame"]
+    )
+
+    # L1 — SPEC_SIGNED (весы [+ ОРИОН/рама/пандусы] [+ фундамент])
     amt = _amount(scales_total, s_prepay)
-    obj = "Весов (включая ПАК ОРИОН)" if has_orion else "Весов"
+    obj_parts = list(scales_parts)
     share_pct_l1: float | None = float(s_prepay)
     base_l1 = scales_total
     if g["foundation"]:
-        obj += " и фундамента Весов"
+        obj_parts.append("фундамента Весов")
         f_prepay = pct("foundation", "prepay")
         amt += _amount(foundation_total, f_prepay)
         base_l1 += foundation_total
@@ -297,11 +306,11 @@ def build_lines_from_snapshot(
         lines.append(PaymentLine(
             kind_word(s_prepay, s_post, "prepay"), share_pct_l1,
             "от стоимости" if share_pct_l1 is not None else None,
-            obj, amt, PaymentTrigger.SPEC_SIGNED, days,
+            join_ru(obj_parts), amt, PaymentTrigger.SPEC_SIGNED, days,
             base_amount=base_l1,
         ))
 
-    # L2 — FOUNDATION_ACT (доплата/оплата за фундамент)
+    # L2 — акт фундамента (W9: опоры ОРИОН — объект и расширенный триггер)
     if g["foundation"]:
         f_prepay = pct("foundation", "prepay")
         f_post = pct("foundation", "postpay")
@@ -309,18 +318,20 @@ def build_lines_from_snapshot(
         if f_post != 0 and amt != 0:
             lines.append(PaymentLine(
                 kind_word(f_prepay, f_post, "postpay"), float(f_post),
-                "от стоимости", "фундамента Весов", amt,
-                PaymentTrigger.FOUNDATION_ACT, days,
+                "от стоимости", foundation_object("full", flags["has_poles"]), amt,
+                PaymentTrigger.FOUNDATION_ACT_POLES if flags["has_poles"]
+                else PaymentTrigger.FOUNDATION_ACT,
+                days,
                 base_amount=foundation_total,
             ))
 
     # L3 — SHIPMENT_READY (весы [+ доставка])
     amt = _amount(scales_total, s_post)
-    obj = "Весов"
+    obj_parts = list(scales_parts)
     share_pct_l3: float | None = float(s_post)
     base_l3 = scales_total
     if g["delivery"]:
-        obj += " и доставки"
+        obj_parts.append("доставки")
         d_post = pct("delivery", "postpay")
         amt += _amount(delivery_total, d_post)
         base_l3 += delivery_total
@@ -336,7 +347,7 @@ def build_lines_from_snapshot(
         lines.append(PaymentLine(
             kind_word(s_prepay, s_post, "postpay"), share_pct_l3,
             "от стоимости" if share_pct_l3 is not None else None,
-            obj, amt, PaymentTrigger.SHIPMENT_READY, days,
+            join_ru(obj_parts), amt, PaymentTrigger.SHIPMENT_READY, days,
             base_amount=base_l3,
         ))
 

@@ -340,12 +340,13 @@ def test_supply_v2_trigger_texts_content():
 
 
 def test_supply_prepay100_trigger_texts():
-    """prepay_100: строка ссылается на 'настоящего Договора'."""
+    """prepay_100: строка ссылается на 'настоящего Договора' + основание «счёт» (W7)."""
     items = _spec_items(1_500_000)
     lines = build_lines_from_snapshot(_prepay100_payment(), items)
     assert len(lines) == 1
     text = _fmt(lines[0], "4.2.1", SUPPLY_TRIGGER_TEXTS)
     assert "настоящего Договора" in text
+    assert "на основании выставленного Поставщиком счёта" in text
     assert "Спецификации" not in text
 
 
