@@ -94,18 +94,20 @@ def join_ru(parts: list[str]) -> str:
 
 
 def wording_flags(spec_items: list[dict]) -> dict[str, bool]:
-    """Флаги формулировок по item_key позиций — единый детект для КП и Спец.
+    """Флаги формулировок по ключам позиций — единый детект для КП и Спец.
 
-    has_orion — любая orion_* позиция (как в детекте активных групп);
-    has_poles — опоры/кабель-трассы ОРИОН (W9, бакет foundation);
+    Позиции несут ключи двух семейств: item_key опций КП (frame_*, ramp_set_*,
+    orion_cable_poles) или канонические id Спец из contracts/spec_items.py
+    (rama, pandus, orion_poles, orion) — матчим оба.
+    has_orion — ОРИОН в сделке; has_poles — опоры/кабель-трассы ОРИОН (W9);
     has_ramps / has_frame — комплект пандусов / рама (бакет scales).
     """
-    keys = [str(it.get("item_key") or it.get("id") or "") for it in spec_items]
+    keys = {str(it.get("item_key") or it.get("id") or "") for it in spec_items}
     return {
-        "has_orion": any(k.startswith("orion_") for k in keys),
-        "has_poles": "orion_cable_poles" in keys,
-        "has_ramps": any(k.startswith("ramp_set_") for k in keys),
-        "has_frame": any(k.startswith("frame_") for k in keys),
+        "has_orion": any(k == "orion" or k.startswith("orion_") for k in keys),
+        "has_poles": bool(keys & {"orion_cable_poles", "orion_poles"}),
+        "has_ramps": any(k == "pandus" or k.startswith("ramp_set_") for k in keys),
+        "has_frame": any(k == "rama" or k.startswith("frame_") for k in keys),
     }
 
 
