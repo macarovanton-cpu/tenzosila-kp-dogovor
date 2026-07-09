@@ -14,7 +14,9 @@ from tests.autoverify.docx_text import extract_text
 # contractor_full/contractor_with_materials) -> ожидается «строительной и
 # монтажной бригад». Остальные spec-фикстуры с монтажом (без такого
 # фундамента) -> ожидается «монтажной бригады» без «строительной».
-_CONTRACTOR_BUILDS_FOUNDATION = {"fundament_montazh_poverka", "winter_concrete", "orion"}
+_CONTRACTOR_BUILDS_FOUNDATION = {
+    "fundament_montazh_poverka", "winter_concrete", "orion", "orion_poles",
+}
 _INSTALL_NO_CONTRACTOR_FOUNDATION = {"rama_ploshadka_montazh", "montazh_orion"}
 
 

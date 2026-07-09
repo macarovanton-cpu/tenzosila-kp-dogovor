@@ -117,9 +117,10 @@ def _expand_orion_options(
 
     Бандл «оборудование + шеф-монтаж» (orion_lite/…/auto_plus) заменяется на:
     - тот же ключ с ценой доли оборудования (позиция ПАК, spec_id «orion»);
-    - orion_install с ценой доли монтажа (имя зависит от сценария);
-    - orion_cable_poles по retail из прайса — ТОЛЬКО при фундаменте и если
-      опоры не выбраны в КП вручную.
+    - orion_install с ценой доли монтажа (имя зависит от сценария).
+    Опоры (orion_cable_poles) НЕ добавляются авто: это обычная опция, менеджер
+    включает её в КП явно, и в договор она приходит из снапшота КП как любая
+    другая опция.
     Дележ фактической цены КП — пропорционально components из прайса,
     округление в ПАК: сумма частей == цене бандла (деньги не теряются).
     """
@@ -167,15 +168,6 @@ def _expand_orion_options(
         expanded["orion_install"] = {
             **common, "price": montazh_part, "spec_name": install_name,
         }
-        if has_foundation and "orion_cable_poles" not in options:
-            poles = (prices or {}).get("options", {}).get("orion_cable_poles", {})
-            # Позиции нет в КП — итог договора больше итога КП на её цену
-            expanded["orion_cable_poles"] = {
-                **common,
-                "customer_side": False,
-                "price": int(poles.get("price_retail") or 0),
-                "auto_added": True,
-            }
     return expanded
 
 
@@ -608,8 +600,6 @@ def build_specification_items(
         metadata: dict[str, Any] = {}
         if customer_side:
             metadata["customer_side"] = True
-        if opt.get("auto_added"):
-            metadata["auto_added"] = True
         if spec_id == "installation":
             if installation_scope in ("full", "shefmontazh"):
                 metadata["scope"] = installation_scope
