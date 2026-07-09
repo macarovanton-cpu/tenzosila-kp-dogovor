@@ -625,6 +625,7 @@ def make_template():
         9: "Описание весов",
         10: "Максимальная нагрузка",
         11: "Цена поверочного деления",
+        14: "Госреестр",
     }
     for r_idx, expected in _expected_labels.items():
         actual = tx_table.rows[r_idx].cells[0].text.strip()
@@ -661,6 +662,16 @@ def make_template():
     # Единица измерения «кг» теперь в значении (см. build_main_scale_label).
     set_cell_text(tx_table.rows[11].cells[0], "Цена поверочного деления:")
     set_cell_text(tx_table.rows[11].cells[2], "{{ main_scale_label }}")
+
+    # Row 14 — ГОСТ/Госреестр: убираем устаревший номер 62329-15 (T3)
+    _old_gosreestr = "внесен в Госреестр средств измерений РФ под номерами 62329-15 и 78871-20."
+    _new_gosreestr = "внесен в Госреестр средств измерений РФ под номером 78871-20."
+    for cell in tx_table.rows[14].cells:
+        for p in cell.paragraphs:
+            full = get_para_text(p)
+            if _old_gosreestr in full:
+                merge_runs(p)
+                p.runs[0].text = full.replace(_old_gosreestr, _new_gosreestr)
 
     # -----------------------------------------------------------------------
     # 3. Таблица спецификации → jinja-цикл
