@@ -5,6 +5,13 @@ from enum import Enum
 from typing import Literal
 
 from src.contracts.utils import days_genitive, number_to_words
+from src.payment_wording import (
+    TRIGGER_WORDING,
+    default_days,
+    default_preset_percents,
+    default_split_percents,
+    kind_word,
+)
 
 
 class PaymentTrigger(str, Enum):
@@ -16,13 +23,10 @@ class PaymentTrigger(str, Enum):
     DELIVERED      = "DELIVERED"
 
 
+# full-регистр общего словаря (единственный источник формулировок триггеров).
+# Имя и форма сохранены — их импортируют supply_filler и payment_lines_editor.
 TRIGGER_TEXTS: dict[PaymentTrigger, str] = {
-    PaymentTrigger.SPEC_SIGNED:    "подписания настоящей Спецификации",
-    PaymentTrigger.FOUNDATION_ACT: "подписания Акта выполненных работ по строительству фундамента",
-    PaymentTrigger.SHIPMENT_READY: "получения уведомления о готовности Весов к отгрузке",
-    PaymentTrigger.BRIGADE_READY:  "уведомления о готовности принять монтажную бригаду на месте монтажа",
-    PaymentTrigger.WORK_ACT:       "подписания Акта выполненных работ по настоящей Спецификации",
-    PaymentTrigger.DELIVERED:      "поставки Весов Заказчику",
+    t: TRIGGER_WORDING[t.value]["full"] for t in PaymentTrigger
 }
 
 
@@ -102,10 +106,11 @@ def _non_split_phases(
     Дефолты процентов/дней совпадают с defaults в state.py.
     """
     preset_id = payment.get("preset_id", "")
-    days = int(payment.get("days") or 5)
+    days = int(payment.get("days") or default_days())
 
     if preset_id == "v1_prepay_postpay":
-        prepay = int(payment.get("v1_prepay") or 50)
+        v1_def = default_preset_percents("v1_prepay_postpay")
+        prepay = int(payment.get("v1_prepay") or v1_def.get("prepay", 50))
         postpay = 100 - prepay
         return [
             ("предоплата", prepay,   PaymentTrigger.SPEC_SIGNED),
@@ -113,9 +118,10 @@ def _non_split_phases(
         ], days
 
     if preset_id == "v2_prepay_preship_postpay":
-        prepay  = int(payment.get("v2_prepay")  or 30)
+        v2_def  = default_preset_percents("v2_prepay_preship_postpay")
+        prepay  = int(payment.get("v2_prepay")  or v2_def.get("prepay", 30))
         v2_preship = payment.get("v2_preship")
-        preship = 40 if v2_preship is None else int(v2_preship)
+        preship = v2_def.get("preship", 40) if v2_preship is None else int(v2_preship)
         postpay = 100 - prepay - preship
         return [
             ("предоплата", prepay,   PaymentTrigger.SPEC_SIGNED),
@@ -181,17 +187,6 @@ def _build_non_split_lines(
 
     return lines
 
-# Fallback дефолтов, когда split_state не заполнен. На практике UI
-# (payment_section._render_split) заполняет split_state этими же значениями
-# до снапшота — это лишь страховка для битых снапшотов.
-_DEFAULT_SPLIT_PERCENTS: dict[str, dict[str, int]] = {
-    "scales":                        {"prepay": 50, "postpay": 50},
-    "foundation":                    {"prepay": 50, "postpay": 50},
-    "delivery":                      {"prepay": 0,  "postpay": 100},
-    "installation_and_verification": {"prepay": 0,  "postpay": 100},
-}
-
-
 def _active_buckets(spec_items: list[dict]) -> dict:
     """Какие группы оплаты есть в спецификации + есть ли ОРИОН (item_key orion_*).
 
@@ -212,11 +207,15 @@ def _active_buckets(spec_items: list[dict]) -> dict:
 
 
 def _split_pct(split_state: dict, group_id: str, key: str) -> int:
-    """Процент из split_state[group][key], fallback — _DEFAULT_SPLIT_PERCENTS."""
+    """Процент из split_state[group][key], fallback — дефолты из payment_terms.json.
+
+    На практике UI (payment_section._render_split) заполняет split_state теми же
+    значениями до снапшота — fallback лишь страхует битые снапшоты.
+    """
     grp = split_state.get(group_id) or {}
     if key in grp:
         return int(grp[key])
-    return int(_DEFAULT_SPLIT_PERCENTS.get(group_id, {}).get(key, 0))
+    return int(default_split_percents().get(group_id, {}).get(key, 0))
 
 
 def _bucket_total(spec_items: list[dict], bucket: str) -> int:
