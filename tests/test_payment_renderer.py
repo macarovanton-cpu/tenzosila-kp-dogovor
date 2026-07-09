@@ -154,7 +154,32 @@ def test_v3_after_delivery(payment_terms):
     assert "после доставки весов" in text
 
 
-# --- split_by_items: 4 сценария ---
+# --- split_by_items: lite-форма из FIX_SPEC ---
+
+
+def test_split_base_scenario_matches_fix_spec(payment_terms):
+    """Базовый сценарий (весы+фундамент+доставка+монтаж+поверка) —
+    дословно блок «КП (lite)» из FIX_SPEC (системные дефолты, монтаж 50/50)."""
+    items = [
+        _item("vesta-с-60-18", "scales"),
+        _item("foundation_s_f_18", "foundation"),
+        _item("delivery_default", "delivery"),
+        _item("install_default", "installation_and_verification"),
+        _item("verification_default", "installation_and_verification"),
+    ]
+    state = _state("split_by_items")
+    text = render_payment_block(state, items, payment_terms)
+    assert text == (
+        "— Предоплата: 50% стоимости весов + 50% стоимости фундамента — "
+        "в течение 5 банковских дней с момента подписания Договора.\n"
+        "— Доплата за весы и доставку: 50% — в течение 5 банковских дней "
+        "после уведомления о готовности Весов к отгрузке.\n"
+        "— Доплата за фундамент: 50% — в течение 5 банковских дней "
+        "после подписания Акта выполненных работ по строительству фундамента.\n"
+        "— Монтаж и поверка: 50% предоплата — в течение 5 банковских дней "
+        "после уведомления о готовности к монтажу; 50% доплата — "
+        "в течение 5 банковских дней после подписания Акта выполненных работ."
+    )
 
 
 def test_split_full_set(payment_terms):
@@ -174,10 +199,14 @@ def test_split_full_set(payment_terms):
     assert "Предоплата:" in lines[0]
     assert "ПАК ОРИОН" in lines[0]
     assert "фундамента" in lines[0]
-    assert "Доплата за весы" in lines[1]
-    assert "доставки" in lines[1]
+    assert "с момента подписания Договора" in lines[0]
+    assert "Доплата за весы и доставку" in lines[1]
+    assert "после уведомления о готовности Весов к отгрузке" in lines[1]
     assert "Доплата за фундамент" in lines[2]
-    assert "монтажа и поверки" in lines[3]
+    assert "после подписания Акта выполненных работ по строительству фундамента" in lines[2]
+    assert "Монтаж и поверка" in lines[3]
+    assert "после уведомления о готовности к монтажу" in lines[3]
+    assert "после подписания Акта выполненных работ." in lines[3]
 
 
 def test_split_only_scales(payment_terms):
@@ -189,7 +218,10 @@ def test_split_only_scales(payment_terms):
     lines = text.split("\n")
     assert len(lines) == 2
     assert "стоимости проекта" in lines[0]
-    assert "по уведомлению о готовности" in lines[1]
+    assert lines[1] == (
+        "— Доплата: 50% — в течение 5 банковских дней "
+        "после уведомления о готовности Весов к отгрузке."
+    )
 
 
 def test_split_scales_plus_install(payment_terms):
@@ -203,8 +235,9 @@ def test_split_scales_plus_install(payment_terms):
     lines = text.split("\n")
     assert len(lines) == 3
     assert "Предоплата:" in lines[0]
-    assert "Доплата за весы" in lines[1]
-    assert "монтажа и поверки" in lines[2]
+    assert "Доплата за весы:" in lines[1]
+    assert "доставку" not in lines[1]
+    assert "Монтаж и поверка" in lines[2]
 
 
 def test_split_scales_with_orion_no_others(payment_terms):
@@ -222,7 +255,7 @@ def test_split_scales_with_orion_no_others(payment_terms):
     assert len(lines) == 2
     assert "ПАК ОРИОН" in lines[0]
     assert "Доплата:" in lines[1]
-    assert "по уведомлению о готовности" in lines[1]
+    assert "после уведомления о готовности Весов к отгрузке" in lines[1]
 
 
 def test_split_with_overrides(payment_terms):
@@ -243,6 +276,52 @@ def test_split_with_overrides(payment_terms):
     assert "40%" in text
     assert "30%" in text
     assert "60%" in text
+
+
+def test_split_iv_single_phase_word_is_oplata(payment_terms):
+    """W3: монтаж 0/100 → единичный платёж, слово «оплата», одна фаза в строке."""
+    items = [
+        _item("vesta-с-60-18", "scales"),
+        _item("install_default", "installation_and_verification"),
+    ]
+    state = _state(
+        "split_by_items",
+        payment_split_state={
+            "installation_and_verification": {"prepay": 0, "postpay": 100},
+        },
+    )
+    text = render_payment_block(state, items, payment_terms)
+    iv_line = text.split("\n")[-1]
+    assert iv_line == (
+        "— Монтаж и поверка: 100% оплата — в течение 5 банковских дней "
+        "после подписания Акта выполненных работ."
+    )
+    assert "готовности к монтажу" not in iv_line
+
+
+def test_split_zero_prepay_skips_line(payment_terms):
+    """W3: scales prepay=0 → строка предоплаты не печатается, доплата — «Оплата»."""
+    items = [_item("vesta-с-60-18", "scales")]
+    state = _state(
+        "split_by_items",
+        payment_split_state={"scales": {"prepay": 0, "postpay": 100}},
+    )
+    text = render_payment_block(state, items, payment_terms)
+    lines = text.split("\n")
+    assert len(lines) == 1
+    assert lines[0].startswith("— Оплата: 100% —")
+
+
+def test_split_days_from_state(payment_terms):
+    """Срок печатается в каждой строке и берётся из state['payment_days']."""
+    items = [
+        _item("vesta-с-60-18", "scales"),
+        _item("foundation_s_f_18", "foundation"),
+    ]
+    state = _state("split_by_items", payment_days=10)
+    text = render_payment_block(state, items, payment_terms)
+    for line in text.split("\n"):
+        assert "в течение 10 банковских дней" in line
 
 
 # --- custom и edge ---
@@ -270,7 +349,7 @@ def test_unknown_preset_id_returns_dash(payment_terms):
 
 
 def test_split_has_dash_prefix(payment_terms):
-    """split_by_items: каждая строка начинается с «— »."""
+    """split_by_items: каждая строка начинается с «— » (docx-путь Listing)."""
     items = [
         _item("vesta-с-60-18", "scales"),
         _item("foundation_s_f_18", "foundation"),

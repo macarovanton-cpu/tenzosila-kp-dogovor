@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.payment_wording import TRIGGER_WORDING, default_preset_percents, kind_word
+
 
 def get_active_payment_groups(spec_items: list[dict]) -> dict:
     """Какие группы оплаты есть в спецификации + есть ли ОРИОН (по ключу orion_*)."""
@@ -33,9 +35,11 @@ def _split_pct(state: dict, group_id: str, key: str, groups_by_id: dict) -> int:
 def render_split_by_items(
     state: dict[str, Any], spec_items: list[dict], preset: dict
 ) -> str:
-    """Динамическая сборка для пресета split_by_items.
+    """Динамическая сборка для пресета split_by_items (lite-регистр FIX_SPEC).
 
     Состав строк зависит от того, какие группы активны в spec_items.
+    Триггеры/слова-типы — из общего словаря payment_wording; срок печатается
+    в каждой строке. Строка/фаза с процентом 0 не печатается (W3, реш. 7).
     """
     active = get_active_payment_groups(spec_items)
     g = active["groups"]
@@ -43,55 +47,77 @@ def render_split_by_items(
 
     groups_by_id = {grp["id"]: grp for grp in preset.get("groups", [])}
     pct = lambda gid, k: _split_pct(state, gid, k, groups_by_id)  # noqa: E731
+    days = int(state.get("payment_days", preset.get("default_days", 5)))
+
+    def due(trigger_key: str) -> str:
+        return f"в течение {days} банковских дней {TRIGGER_WORDING[trigger_key]['lite']}"
 
     only_scales = not (g["foundation"] or g["delivery"] or g["installation_and_verification"])
+    s_prepay, s_post = pct("scales", "prepay"), pct("scales", "postpay")
     lines: list[str] = []
 
-    # --- Строка 1: Предоплата ---
+    # --- Строка 1: предоплата (весы [+ фундамент]) ---
     if only_scales and not has_orion:
-        lines.append(f"— Предоплата: {pct('scales', 'prepay')}% стоимости проекта.")
+        scales_label = "стоимости проекта"
+    elif has_orion:
+        scales_label = "стоимости весов (включая ПАК ОРИОН)"
     else:
-        scales_label = "стоимости весов (включая ПАК ОРИОН)" if has_orion else "стоимости весов"
-        prepay_parts = [f"{pct('scales', 'prepay')}% {scales_label}"]
-        if g["foundation"]:
-            prepay_parts.append(f"{pct('foundation', 'prepay')}% стоимости фундамента")
-        lines.append(f"— Предоплата: {' + '.join(prepay_parts)}.")
-
-    # --- Строка 2: Доплата за весы ---
-    if only_scales:
+        scales_label = "стоимости весов"
+    prepay_parts: list[str] = []
+    if s_prepay > 0:
+        prepay_parts.append(f"{s_prepay}% {scales_label}")
+    if g["foundation"] and pct("foundation", "prepay") > 0:
+        prepay_parts.append(f"{pct('foundation', 'prepay')}% стоимости фундамента")
+    if prepay_parts:
+        if s_prepay > 0:
+            word = kind_word(s_prepay, s_post, "prepay")
+        else:
+            word = kind_word(pct("foundation", "prepay"), pct("foundation", "postpay"), "prepay")
         lines.append(
-            f"— Доплата: {pct('scales', 'postpay')}% по уведомлению о готовности к отгрузке."
+            f"— {word.capitalize()}: {' + '.join(prepay_parts)} — {due('SPEC_SIGNED')}."
         )
-    else:
-        postpay_parts = [
-            f"{pct('scales', 'postpay')}% по уведомлению о готовности к отгрузке"
-        ]
-        if g["delivery"]:
-            postpay_parts.append(f"{pct('delivery', 'postpay')}% стоимости доставки")
-        lines.append(f"— Доплата за весы: {' + '.join(postpay_parts)}.")
 
-    # --- Строка 3: Доплата за фундамент ---
+    # --- Строка 2: доплата за весы [и доставку] (W1-lite: % весов, доставка тем же) ---
+    if s_post > 0:
+        word = kind_word(s_prepay, s_post, "postpay").capitalize()
+        if only_scales:
+            label = word
+        elif g["delivery"]:
+            label = f"{word} за весы и доставку"
+        else:
+            label = f"{word} за весы"
+        lines.append(f"— {label}: {s_post}% — {due('SHIPMENT_READY')}.")
+
+    # --- Строка 3: доплата за фундамент ---
     if g["foundation"]:
-        lines.append(
-            f"— Доплата за фундамент: {pct('foundation', 'postpay')}% "
-            f"по факту готовности фундамента."
-        )
+        f_prepay, f_post = pct("foundation", "prepay"), pct("foundation", "postpay")
+        if f_post > 0:
+            word = kind_word(f_prepay, f_post, "postpay").capitalize()
+            lines.append(f"— {word} за фундамент: {f_post}% — {due('FOUNDATION_ACT')}.")
 
-    # --- Строка 4: Монтаж и поверка ---
+    # --- Строка 4: монтаж и поверка (обе фазы одной строкой) ---
     if g["installation_and_verification"]:
-        lines.append(
-            f"— Оплата монтажа и поверки: "
-            f"{pct('installation_and_verification', 'postpay')}% "
-            f"по факту выполнения монтажа и поверки."
-        )
+        iv_prepay = pct("installation_and_verification", "prepay")
+        iv_post = pct("installation_and_verification", "postpay")
+        phases: list[str] = []
+        if iv_prepay > 0:
+            phases.append(
+                f"{iv_prepay}% {kind_word(iv_prepay, iv_post, 'prepay')} — {due('BRIGADE_READY')}"
+            )
+        if iv_post > 0:
+            phases.append(
+                f"{iv_post}% {kind_word(iv_prepay, iv_post, 'postpay')} — {due('WORK_ACT')}"
+            )
+        if phases:
+            lines.append(f"— Монтаж и поверка: {'; '.join(phases)}.")
 
     return "\n".join(lines)
 
 
 def render_v1(state: dict[str, Any], preset: dict) -> str:
     """Variant 1 — Аванс + Постоплата. Postpay = 100 − prepay."""
-    default_prepay = int(preset.get("default_percents", {}).get("prepay", 50))
-    prepay = int(state.get("payment_v1_prepay", default_prepay))
+    v1_def = default_preset_percents("v1_prepay_postpay")
+    prepay = int(state.get("payment_v1_prepay", v1_def.get("prepay", 50)))
     postpay = 100 - prepay
     days = int(state.get("payment_days", preset.get("default_days", 5)))
     return preset.get("body_template", "").format(
@@ -101,9 +127,9 @@ def render_v1(state: dict[str, Any], preset: dict) -> str:
 
 def render_v2(state: dict[str, Any], preset: dict) -> str:
     """Variant 2 — Аванс + Перед отгрузкой + Постоплата. Postpay = 100 − prepay − preship."""
-    defaults = preset.get("default_percents", {})
-    prepay = int(state.get("payment_v2_prepay", defaults.get("prepay", 30)))
-    preship = int(state.get("payment_v2_preship", defaults.get("preship", 40)))
+    v2_def = default_preset_percents("v2_prepay_preship_postpay")
+    prepay = int(state.get("payment_v2_prepay", v2_def.get("prepay", 30)))
+    preship = int(state.get("payment_v2_preship", v2_def.get("preship", 40)))
     postpay = 100 - prepay - preship
     days = int(state.get("payment_days", preset.get("default_days", 5)))
     return preset.get("body_template", "").format(

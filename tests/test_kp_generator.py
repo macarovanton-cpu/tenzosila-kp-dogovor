@@ -379,8 +379,8 @@ def test_generated_docx_payment_lines_have_dashes(prices):
 
 
 def test_generate_kp_payment_block_contains_split_lines(prices):
-    """split_by_items: убедимся, что строки про «по уведомлению» и
-    «по факту готовности фундамента» есть в тексте."""
+    """split_by_items: убедимся, что строки про «уведомления о готовности»
+    и «фундамент» есть в тексте (lite-форма FIX_SPEC)."""
     state = _state(
         payment_preset_id="split_by_items",
         options={
@@ -397,7 +397,7 @@ def test_generate_kp_payment_block_contains_split_lines(prices):
     text = " ".join(
         "".join(r.text or "" for r in p.runs) for p in doc.paragraphs
     )
-    assert "по уведомлению" in text
+    assert "после уведомления о готовности Весов к отгрузке" in text
     assert "фундамент" in text
 
 
