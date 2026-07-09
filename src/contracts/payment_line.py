@@ -57,7 +57,7 @@ def format_payment_line(
     Spec-флоу вызывает без этого аргумента → поведение не меняется.
     """
     amount_fmt  = "{:,}".format(line.amount).replace(",", chr(32))
-    words       = number_to_words(line.amount).strip().capitalize()
+    words       = number_to_words(line.amount).strip()  # W4: пропись строчными
     due_words   = days_genitive(line.due)
     trigger_txt = (trigger_texts or TRIGGER_TEXTS)[line.trigger]
     kind_cap    = line.kind.capitalize()
@@ -253,7 +253,7 @@ def build_lines_from_snapshot(
         return _build_non_split_lines(payment, spec_items, qty)
 
     split_state = payment.get("split_state") or {}
-    days = int(payment.get("days") or 5)
+    days = int(payment.get("days") or default_days())
 
     active = _active_buckets(spec_items)
     g = active["groups"]
@@ -267,8 +267,12 @@ def build_lines_from_snapshot(
     pct = lambda gid, k: _split_pct(split_state, gid, k)  # noqa: E731
     lines: list[PaymentLine] = []
 
-    # L1 — предоплата SPEC_SIGNED (весы [+ ОРИОН] [+ фундамент])
+    # Проценты бакета весов нужны для обеих строк (L1 предоплата, L3 доплата)
+    # и для слова-типа (W3): единичный платёж → «оплата», парный → пред/доплата.
     s_prepay = pct("scales", "prepay")
+    s_post   = pct("scales", "postpay")
+
+    # L1 — SPEC_SIGNED (весы [+ ОРИОН] [+ фундамент])
     amt = _amount(scales_total, s_prepay)
     obj = "Весов (включая ПАК ОРИОН)" if has_orion else "Весов"
     share_pct_l1: float | None = float(s_prepay)
@@ -278,29 +282,32 @@ def build_lines_from_snapshot(
         f_prepay = pct("foundation", "prepay")
         amt += _amount(foundation_total, f_prepay)
         base_l1 += foundation_total
+        # Осознанная защёлка L1 (не в W-списке): разные % предоплаты весов и
+        # фундамента → печатаем плоскую сумму без %. На дефолте (50/50) не срабатывает.
         if f_prepay != s_prepay:
             share_pct_l1 = None
     if amt != 0:
         lines.append(PaymentLine(
-            "предоплата", share_pct_l1,
+            kind_word(s_prepay, s_post, "prepay"), share_pct_l1,
             "от стоимости" if share_pct_l1 is not None else None,
             obj, amt, PaymentTrigger.SPEC_SIGNED, days,
             base_amount=base_l1,
         ))
 
-    # L2 — доплата FOUNDATION_ACT
+    # L2 — FOUNDATION_ACT (доплата/оплата за фундамент)
     if g["foundation"]:
+        f_prepay = pct("foundation", "prepay")
         f_post = pct("foundation", "postpay")
         amt = _amount(foundation_total, f_post)
         if f_post != 0 and amt != 0:
             lines.append(PaymentLine(
-                "доплата", float(f_post), "от стоимости", "фундамента Весов", amt,
+                kind_word(f_prepay, f_post, "postpay"), float(f_post),
+                "от стоимости", "фундамента Весов", amt,
                 PaymentTrigger.FOUNDATION_ACT, days,
                 base_amount=foundation_total,
             ))
 
-    # L3 — доплата SHIPMENT_READY (весы [+ доставка])
-    s_post = pct("scales", "postpay")
+    # L3 — SHIPMENT_READY (весы [+ доставка])
     amt = _amount(scales_total, s_post)
     obj = "Весов"
     share_pct_l3: float | None = float(s_post)
@@ -310,11 +317,17 @@ def build_lines_from_snapshot(
         d_post = pct("delivery", "postpay")
         amt += _amount(delivery_total, d_post)
         base_l3 += delivery_total
+        # Защёлка (как у L1): разные % весов и доставки → плоская сумма без %.
+        # Пересчёт графика (payment_lines_editor._recompute_amounts, autoverify)
+        # реконструирует сумму из одного %×база и не умеет разложить составную
+        # (s_post%·весы + d_post%·доставка). flat сохраняет её как есть.
+        # W1 (печать scales.postpay% + объект) отложена в Стадию 2 — вместе с
+        # правкой пересчёта, иначе график молча недобирает 50%·доставки.
         if d_post != s_post:
             share_pct_l3 = None
     if amt != 0:
         lines.append(PaymentLine(
-            "доплата", share_pct_l3,
+            kind_word(s_prepay, s_post, "postpay"), share_pct_l3,
             "от стоимости" if share_pct_l3 is not None else None,
             obj, amt, PaymentTrigger.SHIPMENT_READY, days,
             base_amount=base_l3,
@@ -323,21 +336,21 @@ def build_lines_from_snapshot(
     # L4/L5 — монтаж и поверка
     if g["installation_and_verification"]:
         iv_prepay = pct("installation_and_verification", "prepay")
+        iv_post   = pct("installation_and_verification", "postpay")
         if iv_prepay > 0:
             amt = _amount(iv_total, iv_prepay)
             if amt != 0:
                 lines.append(PaymentLine(
-                    "предоплата", float(iv_prepay), "от стоимости",
-                    "монтажных работ и поверки", amt,
+                    kind_word(iv_prepay, iv_post, "prepay"), float(iv_prepay),
+                    "от стоимости", "монтажных работ и поверки", amt,
                     PaymentTrigger.BRIGADE_READY, days,
                     base_amount=iv_total,
                 ))
-        iv_post = pct("installation_and_verification", "postpay")
         amt = _amount(iv_total, iv_post)
         if iv_post != 0 and amt != 0:
             lines.append(PaymentLine(
-                "доплата", float(iv_post), "от стоимости",
-                "монтажных работ и поверки", amt,
+                kind_word(iv_prepay, iv_post, "postpay"), float(iv_post),
+                "от стоимости", "монтажных работ и поверки", amt,
                 PaymentTrigger.WORK_ACT, days,
                 base_amount=iv_total,
             ))
