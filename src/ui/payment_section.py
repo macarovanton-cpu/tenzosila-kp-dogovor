@@ -174,6 +174,10 @@ def _render_prepay_100(state: dict, preset: dict) -> str:
     )
 
 
+# W11: русские подписи полей процентов; внутренние ключи prepay/postpay не трогаем.
+_PCT_LABELS = {"prepay": "предоплата, %", "postpay": "постоплата, %"}
+
+
 def _render_split(state: dict, preset: dict) -> str:
     # Убеждаемся, что payment_split_state заполнено дефолтами
     split = state.setdefault("payment_split_state", {})
@@ -201,7 +205,7 @@ def _render_split(state: dict, preset: dict) -> str:
             for idx, k in enumerate(group["editable_percent_keys"]):
                 with cols[idx]:
                     val = st.number_input(
-                        f"{k}, %",
+                        _PCT_LABELS.get(k, f"{k}, %"),
                         min_value=0, max_value=100, step=1,
                         value=int(split[group_id].get(k, defaults.get(k, 0))),
                         key=f"split_{group_id}_{k}",
@@ -223,9 +227,9 @@ def _render_split(state: dict, preset: dict) -> str:
         if st.button(
             "Применить ко всем группам",
             help=(
-                "Скопировать prepay/postpay из «Весы» в остальные активные "
-                "группы. Закрывает кейс ручной правки 50→30/70 в четырёх "
-                "местах подряд."
+                "Скопировать проценты предоплаты и постоплаты из «Весы» "
+                "в остальные активные группы. Закрывает кейс ручной правки "
+                "50→30/70 в четырёх местах подряд."
             ),
             key="payment_split_apply_all",
         ):
