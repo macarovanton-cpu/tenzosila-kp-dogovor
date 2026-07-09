@@ -344,17 +344,17 @@ def test_generated_docx_specification_has_no_arial_runs(prices):
 
 
 def test_generated_docx_vesta_is_orange(prices):
-    """Слово «ВЕСТА» в заголовке имеет color D04514 (1.5b-fix3)."""
+    """Полное имя модели в заголовке имеет color D04514 (T1: было хардкод «ВЕСТА»)."""
     state = _state()
     docx = generate_kp(state, prices)
     with zipfile.ZipFile(BytesIO(docx)) as z:
         xml = z.read("word/document.xml").decode("utf-8")
     pattern = re.compile(
         r'<w:r[^>]*>(?:(?!</w:r>).)*?w:val="D04514"(?:(?!</w:r>).)*?'
-        r'<w:t[^>]*>ВЕСТА</w:t>(?:(?!</w:r>).)*?</w:r>',
+        r'<w:t[^>]*>ВЕСТА-С-80-18</w:t>(?:(?!</w:r>).)*?</w:r>',
         re.DOTALL,
     )
-    assert pattern.search(xml), "Оранжевая «ВЕСТА» (D04514) не найдена"
+    assert pattern.search(xml), "Оранжевая «ВЕСТА-С-80-18» (D04514) не найдена"
 
 
 def test_generated_docx_payment_lines_have_dashes(prices):

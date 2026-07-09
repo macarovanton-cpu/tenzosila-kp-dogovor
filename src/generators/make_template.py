@@ -479,7 +479,8 @@ def make_template():
                     before_runs[0].text = new_text
                     for r in before_runs[1:]:
                         r._r.getparent().remove(r._r)
-                # runs[orange_idx] (оранжевая «ВЕСТА») остаётся нетронутой
+                # T1: полная модель вместо хардкода «ВЕСТА» в оранжевом run-е
+                runs[orange_idx].text = "{{ model_full_name }}"
 
         # vat_percent (body paragraph, not table)
         elif f"НДС {VAT_RATE*100:.0f}%" in full:
