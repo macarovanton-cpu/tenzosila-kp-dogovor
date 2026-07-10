@@ -297,12 +297,14 @@ def _save_uploaded(uploaded_file) -> str:
 
 
 @st.cache_data(show_spinner=False)
-def _load_kp_full(kp_number: str) -> dict | None:
-    """Полный снапшот КП по номеру, кэшированный по kp_number.
+def _load_kp_full(kp_number: str, updated_at: str | None = None) -> dict | None:
+    """Полный снапшот КП по номеру, кэшированный по (kp_number, updated_at).
 
     Дропдаун «Последние КП» отдаёт строку без `data` (list_recent_kps не тянет
     JSONB), поэтому снапшот дозагружаем отдельно. Кэш убирает повтор сетевого
-    запроса на каждый rerun, пока КП выбран.
+    запроса на каждый rerun, пока КП выбран. updated_at в теле не используется —
+    только как часть кэш-ключа: пересохранение КП под тем же номером обновляет
+    updated_at → cache bust, иначе страница молча отдаёт старую версию снапшота.
     """
     return get_kp_by_number(kp_number)
 
@@ -489,7 +491,7 @@ if mode == "Из базы (по номеру)":
         _summary = kp_options_map.get(selected_label)
         if _summary:
             try:
-                kp_row = _load_kp_full(_summary["kp_number"])
+                kp_row = _load_kp_full(_summary["kp_number"], _summary.get("updated_at"))
             except StorageError as e:
                 st.error(f"Ошибка загрузки КП: {e}")
     elif search_clicked and manual_kp_num:
