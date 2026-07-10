@@ -1,7 +1,6 @@
 """Страница генерации договора и спецификации."""
 from __future__ import annotations
 
-import logging
 import re
 import sys
 import tempfile
@@ -30,10 +29,7 @@ from src.contracts.fundament_lookup import (  # noqa: E402
     resolve_build_task,
     resolve_control_sheet,
 )
-from src.contracts.from_kp import (  # noqa: E402
-    build_specification_from_kp_snapshot,
-    build_specification_items,
-)
+from src.contracts.kp_load import build_kp_payload  # noqa: E402
 from src.contracts.payment_line import format_payment_line, orion_poles_without_foundation  # noqa: E402
 from src.contracts.recommendations import ORION_POLES_WITHOUT_FOUNDATION_TEXT  # noqa: E402
 from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
@@ -79,7 +75,6 @@ OUTPUT_DIR = Path("output/contracts")
 
 st.set_page_config(page_title="Договор", page_icon="📄", layout="wide")
 init_contract_state()
-_logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Определения полей
@@ -499,29 +494,26 @@ if mode == "Из базы (по номеру)":
             st.error(f"Ошибка поиска: {e}")
 
     if kp_row is not None:
-        # Смена КП меняет подпись авто-типа → радио пере-seed'ится честно.
-        st.session_state["contract"]["current_kp_number"] = kp_row.get("kp_number")
         try:
             prices = load_prices()
             models_json = load_models()
             payment_terms = load_payment_terms()
-            spec = build_specification_from_kp_snapshot(
-                kp_row, prices, models_json, payment_terms
-            )
-            set_specification(spec)
-            _snap = kp_row.get("data") or kp_row.get("snapshot") or {}
-            st.session_state["contract"]["kp_snapshot"] = _snap
-            try:
-                items = build_specification_items(kp_row, prices)
-                set_spec_items(items)
-                st.session_state["contract"]["kp_payment_snapshot"] = (
-                    _snap.get("payment") or {}
-                )
-            except Exception as exc:
-                _logger.warning("build_specification_items failed: %s", exc)
-            st.success(f"КП «{kp_row.get('kp_number', '')}» загружен из базы.")
+            payload = build_kp_payload(kp_row, prices, models_json, payment_terms)
         except Exception as exc:
-            st.error(f"Ошибка загрузки спецификации: {exc}")
+            st.error(
+                f"Ошибка загрузки КП «{kp_row.get('kp_number', '')}»: {exc}. "
+                "Данные на странице — от предыдущего КП."
+            )
+        else:
+            # Коммит state только целиком: частичное обновление оставляет на
+            # странице микс позиций/оплаты двух КП (см. STATUS, баг смены КП).
+            # Смена КП меняет подпись авто-типа → радио пере-seed'ится честно.
+            st.session_state["contract"]["current_kp_number"] = kp_row.get("kp_number")
+            set_specification(payload["spec"])
+            set_spec_items(payload["items"])
+            st.session_state["contract"]["kp_snapshot"] = payload["snapshot"]
+            st.session_state["contract"]["kp_payment_snapshot"] = payload["payment"]
+            st.success(f"КП «{kp_row.get('kp_number', '')}» загружен из базы.")
 
 else:
     # ---- Mode B: Legacy AI парсинг PDF КП + карточки ----
