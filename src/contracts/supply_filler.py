@@ -292,7 +292,7 @@ def build_supply_context(
     total_per_1, spec_rows = _supply_spec_rows(items, товар)
     total = total_per_1 * qty_scales
     сумма_цифрами = _fmt_money(total)
-    сумма_прописью = number_to_words(total).capitalize() if total else ""
+    сумма_прописью = number_to_words(total).strip() if total else ""  # W4: пропись строчными
 
     # --- Сроки ---
     role_days = _role_days_supply(items)
