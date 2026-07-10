@@ -7,6 +7,7 @@ from src.contracts.payment_line import (
     PaymentTrigger,
     build_lines_from_snapshot,
     format_payment_line,
+    orion_poles_without_foundation,
 )
 
 
@@ -732,3 +733,30 @@ def test_bridge_format_flat_line():
     text = format_payment_line(l3, 3)
     assert text.startswith("3. Доплата в размере 1 200 000")
     assert "от стоимости" not in text  # flat-формат: процент не печатается
+
+
+# ---------------------------------------------------------------------------
+# orion_poles_without_foundation — опоры ОРИОН без реального фундамента
+# ---------------------------------------------------------------------------
+
+def test_orion_poles_without_foundation_bare_poles():
+    items = [{"id": "orion_poles", "payment_group": "foundation"}]
+    assert orion_poles_without_foundation(items) is True
+
+
+def test_orion_poles_without_foundation_with_real_foundation():
+    items = [
+        {"id": "foundation", "payment_group": "foundation"},
+        {"id": "orion_poles", "payment_group": "foundation"},
+    ]
+    assert orion_poles_without_foundation(items) is False
+
+
+def test_orion_poles_without_foundation_foundation_only():
+    items = [{"id": "foundation", "payment_group": "foundation"}]
+    assert orion_poles_without_foundation(items) is False
+
+
+def test_orion_poles_without_foundation_neither():
+    items = [{"id": "delivery", "payment_group": "delivery"}]
+    assert orion_poles_without_foundation(items) is False

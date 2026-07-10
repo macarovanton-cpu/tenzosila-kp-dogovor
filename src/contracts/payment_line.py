@@ -195,6 +195,19 @@ def _build_non_split_lines(
 
     return lines
 
+def orion_poles_without_foundation(spec_items: list[dict]) -> bool:
+    """True, если бакет foundation в спецификации состоит ТОЛЬКО из опор ОРИОН.
+
+    Опоры (orion_cable_poles, spec id "orion_poles") оплачиваются в одном бакете
+    с фундаментом (resolve_payment_group, эталон A1). Если в бакете нет ничего,
+    кроме опор — значит физического фундамента в сделке нет, а автотекст оплаты
+    и Акта всё равно сошлётся на «фундамент».
+    """
+    foundation_items = [it for it in spec_items if it.get("payment_group") == "foundation"]
+    has_poles = any(it.get("id") == "orion_poles" for it in foundation_items)
+    return has_poles and all(it.get("id") == "orion_poles" for it in foundation_items)
+
+
 def _active_buckets(spec_items: list[dict]) -> dict[str, bool]:
     """Какие группы оплаты есть в спецификации (payment_group → bool).
 
