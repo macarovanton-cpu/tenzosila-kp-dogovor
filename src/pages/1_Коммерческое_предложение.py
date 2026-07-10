@@ -95,7 +95,9 @@ def main() -> None:
     errors, warnings = validate(
         st.session_state, prices, models_json, payment_terms, managers
     )
-    totals = calc_totals(spec_items)
+    totals = calc_totals(
+        spec_items, model_qty=st.session_state.get("model_qty", 1)
+    )
     term_days = resolve_term_days(spec_items, st.session_state)
 
     render_sidebar(

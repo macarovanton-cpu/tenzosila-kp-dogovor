@@ -184,6 +184,18 @@ def test_calc_totals_extracts_vat_from_inclusive_prices():
     assert totals["without_vat"] == 1220000 - totals["vat"]
 
 
+def test_calc_totals_scales_with_model_qty():
+    """model_qty масштабирует итоги ×N; дефолт (qty=1) не меняет поведения."""
+    items = [{"total": 1220000}]
+    per1 = calc_totals(items)
+    totals_x2 = calc_totals(items, model_qty=2)
+    assert totals_x2["with_vat"] == per1["with_vat"] * 2
+    assert totals_x2["vat"] == per1["vat"] * 2
+    assert totals_x2["without_vat"] == per1["without_vat"] * 2
+    # qty=1 явно и без параметра — идентичны.
+    assert calc_totals(items, model_qty=1) == per1
+
+
 def test_percent_to_retail_at_retail():
     assert percent_to_retail(1000, 1000) == 0.0
 

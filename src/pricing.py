@@ -201,10 +201,13 @@ def percent_to_retail(chosen: int, retail: int) -> float:
 
 
 def calc_totals(
-    spec_items: list[dict[str, Any]], vat_rate: float = VAT_RATE
+    spec_items: list[dict[str, Any]], vat_rate: float = VAT_RATE, model_qty: int = 1
 ) -> dict[str, int]:
-    """Цены в прайсе включают НДС 22%. Извлекаем НДС из общей суммы."""
-    with_vat = sum(int(item.get("total", 0)) for item in spec_items)
+    """Цены в прайсе включают НДС 22%. Извлекаем НДС из общей суммы.
+
+    spec_items — per-unit (за 1 весы). Итоги масштабируются ×model_qty.
+    """
+    with_vat = sum(int(item.get("total", 0)) for item in spec_items) * int(model_qty or 1)
     vat = round(with_vat * vat_rate / (1.0 + vat_rate))
     without_vat = with_vat - vat
     return {

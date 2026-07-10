@@ -41,6 +41,12 @@ def render_sidebar(
                  "Задаётся через VAT_RATE в src/config.py.",
         )
 
+        # При qty>1 метрика показывает сумму за N весов — уточняем цену за 1 шт.
+        model_qty = int(state.get("model_qty", 1) or 1)
+        if model_qty > 1:
+            per1 = calc_totals(spec_items)["with_vat"]
+            st.caption(f"за {model_qty} весов · за 1 шт: {fmt_rub(per1)}")
+
         st.divider()
 
         valid_until = state["kp_date"] + timedelta(
@@ -143,7 +149,9 @@ def _render_generate_button(
 
     try:
         docx_bytes = generate_kp(dict(state), prices)
-        total_price = calc_totals(spec_items)["with_vat"]
+        total_price = calc_totals(
+            spec_items, model_qty=state.get("model_qty", 1)
+        )["with_vat"]
         clicked = st.download_button(
             label,
             data=docx_bytes,
