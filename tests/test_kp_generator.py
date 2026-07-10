@@ -401,27 +401,27 @@ def test_generate_kp_payment_block_contains_split_lines(prices):
     text = " ".join(
         "".join(r.text or "" for r in p.runs) for p in doc.paragraphs
     )
-    assert "после уведомления о готовности Весов к отгрузке" in text
+    assert "готовность Весов к отгрузке" in text
     assert "фундамент" in text
 
 
 def test_payment_block_paragraph_has_no_list_numbering(prices):
-    """Параграф с «— Предоплата:» в готовом DOCX не содержит numPr —
+    """Параграф с «— Предоплата …» в готовом DOCX не содержит numPr —
     иначе Word добавляет list-маркер перед первой строкой, и получается
     двойное тире (1.5b-fix4)."""
     state = _state()
     docx = generate_kp(state, prices)
     with zipfile.ZipFile(BytesIO(docx)) as z:
         xml = z.read("word/document.xml").decode("utf-8")
-    # После рендера «— Предоплата:» — первая строка блока условий оплаты.
-    marker = "Предоплата:"
+    # После рендера «— Предоплата …» — первая строка блока условий оплаты.
+    marker = "Предоплата"
     idx = xml.find(marker)
     assert idx > 0, f"'{marker}' не найден в document.xml"
     para_start = xml.rfind("<w:p ", 0, idx)
     para_end = xml.find("</w:p>", idx) + len("</w:p>")
     para_xml = xml[para_start:para_end]
     assert "<w:numPr>" not in para_xml, (
-        "Параграф с «Предоплата:» содержит numPr — Word добавит лишний list-маркер"
+        "Параграф с «Предоплата» содержит numPr — Word добавит лишний list-маркер"
     )
 
 

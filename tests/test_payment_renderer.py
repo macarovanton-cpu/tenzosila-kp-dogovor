@@ -178,15 +178,11 @@ def test_split_base_scenario_matches_fix_spec(payment_terms):
     state = _state("split_by_items")
     text = render_payment_block(state, items, payment_terms)
     assert text == (
-        "— Предоплата: 50% стоимости весов + 50% стоимости фундамента — "
-        "в течение 5 банковских дней с момента подписания Договора.\n"
-        "— Доплата за весы и доставку: 50% — в течение 5 банковских дней "
-        "после уведомления о готовности Весов к отгрузке.\n"
-        "— Доплата за фундамент: 50% — в течение 5 банковских дней "
-        "после подписания Акта выполненных работ по строительству фундамента.\n"
-        "— Монтаж и поверка: 50% предоплата — в течение 5 банковских дней "
-        "после уведомления о готовности к монтажу; 50% доплата — "
-        "в течение 5 банковских дней после подписания Акта выполненных работ."
+        "— Предоплата 50% стоимости весов и фундамента — подписание Договора.\n"
+        "— Доплата 50% за весы и доставку — готовность Весов к отгрузке.\n"
+        "— Доплата 50% за фундамент — Акт по строительству фундамента.\n"
+        "— Монтаж и поверка: 50% предоплата — готовность к монтажу; "
+        "50% доплата — Акт выполненных работ."
     )
 
 
@@ -204,17 +200,17 @@ def test_split_full_set(payment_terms):
     text = render_payment_block(state, items, payment_terms)
     lines = text.split("\n")
     assert len(lines) == 4
-    assert "Предоплата:" in lines[0]
+    assert "Предоплата 50%" in lines[0]
     assert "ПАК ОРИОН" in lines[0]
     assert "фундамента" in lines[0]
-    assert "с момента подписания Договора" in lines[0]
-    assert "Доплата за весы (включая ПАК ОРИОН) и доставку" in lines[1]
-    assert "после уведомления о готовности Весов к отгрузке" in lines[1]
-    assert "Доплата за фундамент" in lines[2]
-    assert "после подписания Акта выполненных работ по строительству фундамента" in lines[2]
+    assert lines[0].endswith("— подписание Договора.")
+    assert "Доплата 50% за весы (включая ПАК ОРИОН) и доставку" in lines[1]
+    assert lines[1].endswith("— готовность Весов к отгрузке.")
+    assert "Доплата 50% за фундамент" in lines[2]
+    assert lines[2].endswith("— Акт по строительству фундамента.")
     assert "Монтаж и поверка" in lines[3]
-    assert "после уведомления о готовности к монтажу" in lines[3]
-    assert "после подписания Акта выполненных работ." in lines[3]
+    assert "готовность к монтажу" in lines[3]
+    assert lines[3].endswith("Акт выполненных работ.")
 
 
 def test_split_only_scales(payment_terms):
@@ -226,10 +222,7 @@ def test_split_only_scales(payment_terms):
     lines = text.split("\n")
     assert len(lines) == 2
     assert "стоимости проекта" in lines[0]
-    assert lines[1] == (
-        "— Доплата: 50% — в течение 5 банковских дней "
-        "после уведомления о готовности Весов к отгрузке."
-    )
+    assert lines[1] == "— Доплата 50% — готовность Весов к отгрузке."
 
 
 def test_split_scales_plus_install(payment_terms):
@@ -242,8 +235,8 @@ def test_split_scales_plus_install(payment_terms):
     text = render_payment_block(state, items, payment_terms)
     lines = text.split("\n")
     assert len(lines) == 3
-    assert "Предоплата:" in lines[0]
-    assert "Доплата за весы:" in lines[1]
+    assert "Предоплата 50%" in lines[0]
+    assert "Доплата 50% за весы" in lines[1]
     assert "доставку" not in lines[1]
     assert "Монтаж и поверка" in lines[2]
 
@@ -262,8 +255,7 @@ def test_split_scales_with_orion_no_others(payment_terms):
     lines = text.split("\n")
     assert len(lines) == 2
     assert "ПАК ОРИОН" in lines[0]
-    assert "Доплата:" in lines[1]
-    assert "после уведомления о готовности Весов к отгрузке" in lines[1]
+    assert lines[1] == "— Доплата 50% — готовность Весов к отгрузке."
 
 
 def test_split_with_overrides(payment_terms):
@@ -300,10 +292,7 @@ def test_split_iv_single_phase_word_is_oplata(payment_terms):
     )
     text = render_payment_block(state, items, payment_terms)
     iv_line = text.split("\n")[-1]
-    assert iv_line == (
-        "— Монтаж и поверка: 100% оплата — в течение 5 банковских дней "
-        "после подписания Акта выполненных работ."
-    )
+    assert iv_line == "— Монтаж и поверка: 100% оплата — Акт выполненных работ."
     assert "готовности к монтажу" not in iv_line
 
 
@@ -317,7 +306,7 @@ def test_split_zero_prepay_skips_line(payment_terms):
     text = render_payment_block(state, items, payment_terms)
     lines = text.split("\n")
     assert len(lines) == 1
-    assert lines[0].startswith("— Оплата: 100% —")
+    assert lines[0] == "— Оплата 100% — готовность Весов к отгрузке."
 
 
 def test_split_w9_orion_poles_object_and_trigger(payment_terms):
@@ -333,8 +322,7 @@ def test_split_w9_orion_poles_object_and_trigger(payment_terms):
     f_line = next(ln for ln in text.split("\n") if "за фундамент" in ln)
     assert "за фундамент и установку опор и кабель-трасс для ПАК ОРИОН" in f_line
     assert f_line.endswith(
-        "после подписания Акта выполненных работ по строительству "
-        "фундамента и установке опор и кабель-трасс."
+        "— Акт по строительству фундамента и установке опор и кабель-трасс."
     )
 
 
@@ -350,7 +338,7 @@ def test_split_rama_ramps_named(payment_terms):
     text = render_payment_block(state, items, payment_terms)
     lines = text.split("\n")
     assert "50% стоимости весов, комплекта пандусов и рамы" in lines[0]
-    assert "Доплата за весы, комплект пандусов, раму и доставку:" in lines[1]
+    assert "Доплата 50% за весы, комплект пандусов, раму и доставку" in lines[1]
 
 
 def test_split_shefmontazh_label(payment_terms):
@@ -366,16 +354,16 @@ def test_split_shefmontazh_label(payment_terms):
     assert "Монтаж и поверка:" not in iv_line
 
 
-def test_split_days_from_state(payment_terms):
-    """Срок печатается в каждой строке и берётся из state['payment_days']."""
+def test_split_no_term_in_kp(payment_terms):
+    """F1: срок в КП (lite) НЕ печатается ни в одной строке, даже при payment_days."""
     items = [
         _item("vesta-с-60-18", "scales"),
         _item("foundation_s_f_18", "foundation"),
     ]
     state = _state("split_by_items", payment_days=10)
     text = render_payment_block(state, items, payment_terms)
-    for line in text.split("\n"):
-        assert "в течение 10 банковских дней" in line
+    assert "банковских" not in text
+    assert "в течение" not in text
 
 
 # --- custom и edge ---
