@@ -34,7 +34,8 @@ from src.contracts.from_kp import (  # noqa: E402
     build_specification_from_kp_snapshot,
     build_specification_items,
 )
-from src.contracts.payment_line import format_payment_line  # noqa: E402
+from src.contracts.payment_line import format_payment_line, orion_poles_without_foundation  # noqa: E402
+from src.contracts.recommendations import ORION_POLES_WITHOUT_FOUNDATION_TEXT  # noqa: E402
 from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
 from src.contracts.spec_v2_filler import fill_spec_v2  # noqa: E402
 from src.contracts.supply_filler import build_supply_context, decide_contract_type  # noqa: E402
@@ -694,6 +695,15 @@ if is_extracted():
     })
     _install_present = _ctx0["installation_scope"] != "none"
     _has_found_item = any(it.get("id") in ("foundation", "rama") for it in _spec_items_0)
+
+    if orion_poles_without_foundation(_spec_items_0):
+        st.warning(
+            "Опоры ОРИОН без строительства фундамента Подрядчиком: авто-текст "
+            "оплаты/Акта сошлётся на «фундамент» некорректно, проверьте "
+            "формулировку вручную"
+        )
+        with st.expander("Рекомендуемая формулировка — согласовать с юристом"):
+            st.code(ORION_POLES_WITHOUT_FOUNDATION_TEXT)
 
     # --- Контроль основания ---
     st.markdown("**Основание под весы**")
