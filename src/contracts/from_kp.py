@@ -297,6 +297,7 @@ def build_specification_from_kp_snapshot(
             result[f"СПЕЦ_П{i}_НАИМЕНОВАНИЕ"] = ""
             result[f"СПЕЦ_П{i}_СУММА"] = ""
 
+    # ⚠️ per-unit сумма (без ×model_qty) — латентный дефект при qty>1; здесь только display.
     grand_total = sum(r["price"] for r in rows if not r["customer_side"])
 
     data = kp_row.get("data") or {}

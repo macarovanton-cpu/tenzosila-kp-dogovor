@@ -282,14 +282,18 @@ def build_supply_context(
     qty_scales = int(model_qty or 1)
     base_name = items[0]["name"] if items else ""
     short_name = _short_product_name(base_name)
-    товар = (
+    # Количество нужно ТОЛЬКО в §1.1 договора и строке позиции прил.№1
+    # (ключ _КОЛВО). Заголовки ТТХ/комплекта/приложения используют
+    # ТОВАР_НАИМЕНОВАНИЕ — без количества.
+    товар = short_name
+    товар_колво = (
         f"{short_name}, в количестве {qty_scales}шт." if short_name else ""
     )
 
     # --- Суммы и строки спецификации (фильтр по payment_group) ---
     # Строки спецификации — per-unit (за 1 весы). Цена договора (п.4.1) и
-    # ИТОГО-за-N — от подытог_за_1 × model_qty.
-    total_per_1, spec_rows = _supply_spec_rows(items, товар)
+    # ИТОГО-за-N — от подытог_за_1 × model_qty. Имя позиции прил.№1 — с количеством.
+    total_per_1, spec_rows = _supply_spec_rows(items, товар_колво)
     total = total_per_1 * qty_scales
     сумма_цифрами = _fmt_money(total)
     сумма_прописью = number_to_words(total).strip() if total else ""  # W4: пропись строчными
@@ -333,7 +337,8 @@ def build_supply_context(
         "ДОГОВОР_НОМЕР":        manual.get("contract_number", ""),
         "ДОГОВОР_ДАТА":         _fmt_date_ru(contract_date),
         "ДОГОВОР_ГОРОД":        manual.get("contract_city", "г. Воронеж"),
-        "ТОВАР_НАИМЕНОВАНИЕ":   товар,
+        "ТОВАР_НАИМЕНОВАНИЕ":   товар,        # без количества (заголовки)
+        "ТОВАР_НАИМЕНОВАНИЕ_КОЛВО": товар_колво,  # с количеством (§1.1 договора)
         "СУММА_ЦИФРАМИ":        сумма_цифрами,
         "СУММА_ПРОПИСЬЮ":       сумма_прописью,
         "СРОК_ПРОИЗВОДСТВА_ДН": _fmt_days(prod_days),
