@@ -78,6 +78,7 @@ class SpecTable:
     rows: list[tuple[str, int]]   # (наименование, сумма) — только числовые строки
     customer_side: list[str]      # позиции со значением «ЗАКАЗЧИК» (не в итого)
     itogo_per_1: int              # значение строки ИТОГО / ИТОГО за 1 весы
+    itogo_n: int | None = None    # вторая строка ИТОГО «за N весов» (только qty>1)
 
 
 _ITOGO_PREFIXES = ("ИТОГО", "ОБЩАЯ ИТОГОВАЯ СУММА")
@@ -95,6 +96,7 @@ def find_spec_table(path: Path) -> SpecTable:
         rows: list[tuple[str, int]] = []
         customer: list[str] = []
         itogo: int | None = None
+        itogo_n: int | None = None
         for row in table.rows:
             cells = row.cells
             if len(cells) < 2:
@@ -104,8 +106,13 @@ def find_spec_table(path: Path) -> SpecTable:
             # «ИТОГО» (КП), «ИТОГО с НДС, руб.» (спека), «ИТОГО за 1 весы» (qty>1),
             # «ОБЩАЯ ИТОГОВАЯ СУММА» (поставка)
             if name.startswith(_ITOGO_PREFIXES):
-                itogo = parse_money(value_text)
-                break  # позиции закончились; «за N весов» не парсим
+                if itogo is None:
+                    itogo = parse_money(value_text)  # первая ИТОГО = за 1 весы
+                    continue
+                itogo_n = parse_money(value_text)    # вторая ИТОГО = за N весов
+                break
+            if itogo is not None:
+                continue  # позиции закрыты первой ИТОГО; прочие строки игнорируем
             if normalize_spaces(value_text).strip() == "ЗАКАЗЧИК":
                 customer.append(name)
                 continue
@@ -115,5 +122,8 @@ def find_spec_table(path: Path) -> SpecTable:
             if value is not None:
                 rows.append((name, value))
         if itogo is not None:
-            return SpecTable(rows=rows, customer_side=customer, itogo_per_1=itogo)
+            return SpecTable(
+                rows=rows, customer_side=customer,
+                itogo_per_1=itogo, itogo_n=itogo_n,
+            )
     raise AssertionError(f"{path.name}: таблица со строкой ИТОГО не найдена")
