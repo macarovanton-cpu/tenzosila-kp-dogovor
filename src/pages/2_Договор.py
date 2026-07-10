@@ -474,7 +474,14 @@ if mode == "Из базы (по номеру)":
             key="kp_number_input",
         )
     with manual_col2:
-        search_clicked = st.button("Найти", key="kp_search_btn")
+        # При активном выборе в дропдауне ручной поиск недостижим (elif ниже) —
+        # блокируем кнопку, иначе клик молча перезагружает КП из дропдауна.
+        _dropdown_active = selected_label != "— выбрать —"
+        search_clicked = st.button(
+            "Найти", key="kp_search_btn",
+            disabled=_dropdown_active,
+            help="Сначала верните дропдаун в «— выбрать —»" if _dropdown_active else None,
+        )
 
     kp_row = None
     if selected_label != "— выбрать —":
