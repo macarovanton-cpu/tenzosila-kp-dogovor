@@ -286,7 +286,7 @@ def render_payment_lines_editor() -> None:
             "Ед.": st.column_config.SelectboxColumn("Ед.", options=_DUE_UNITS),
         },
         key="payment_editor",
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
     synced_rows = _recompute_amounts(_normalize_rows(edited_rows), spec_total)

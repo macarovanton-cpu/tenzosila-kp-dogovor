@@ -836,7 +836,7 @@ if is_extracted():
                 ),
             },
             key="spec_items_editor",
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 

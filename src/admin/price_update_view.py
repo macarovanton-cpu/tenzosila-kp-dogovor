@@ -280,7 +280,7 @@ def _render_table() -> None:
         items_to_dataframe(working_items),
         num_rows="dynamic",
         key=_EDITOR_KEY,
-        use_container_width=True,
+        width="stretch",
         column_config={
             _COL_TYPE: st.column_config.SelectboxColumn(
                 _COL_TYPE, options=[_TYPE_MODEL, _TYPE_OPTION]
