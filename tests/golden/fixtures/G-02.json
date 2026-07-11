@@ -1,0 +1,99 @@
+{
+  "meta": {
+    "id": "G-02",
+    "flow": "spec",
+    "comment": "ИП, директор-женщина, шефмонтаж. Склонения/род (requisites_transforms), installation_scope=shefmontazh."
+  },
+  "kp_state": {
+    "kp_date": "2026-06-01",
+    "kp_valid_days": 15,
+    "total_term_days": null,
+    "kp_number": "КП-2026-G02",
+    "manager_id": "makarov_av",
+    "client_name": "ИП Смирнова О.В.",
+    "model_line": "СЛ",
+    "model_max": 60,
+    "model_length": 18,
+    "platform_width_m": 3.0,
+    "model_id": "vesta-сл-60-18",
+    "model_price": 1805972,
+    "model_qty": 1,
+    "sensor_id": "zemic_dhm9b_30t",
+    "indicator_id": "titan_3cs",
+    "cable_m": 20,
+    "warranty_months": 24,
+    "construction_beam": "Двутавр 25Б1",
+    "construction_beam_count": 14,
+    "construction_center_beam": "",
+    "construction_center_beam_count": 0,
+    "construction_deck_mm": 6,
+    "construction_underlining_mm": 4,
+    "is_dual_range": false,
+    "bytovka_dimensions": "",
+    "is_shefmontazh": true,
+    "options": {
+      "frame_18": {
+        "enabled": true, "price": 130000, "qty": 1,
+        "customer_side": false, "retail": 130000, "dealer_is_synthetic": false
+      },
+      "ramp_set_fl_sl": {
+        "enabled": true, "price": 280000, "qty": 1,
+        "customer_side": false, "retail": 280000, "dealer_is_synthetic": false
+      },
+      "install_default": {
+        "enabled": true, "price": 180000, "qty": 1,
+        "customer_side": false, "retail": 180000, "dealer_is_synthetic": false
+      },
+      "verification_default": {
+        "enabled": true, "price": 60000, "qty": 1,
+        "customer_side": false, "retail": 60000, "dealer_is_synthetic": false
+      },
+      "delivery_default": {
+        "enabled": true, "price": 60000, "qty": 1,
+        "customer_side": false, "retail": 60000, "dealer_is_synthetic": false
+      }
+    },
+    "custom_items": [],
+    "spec_items_overrides": {},
+    "payment_preset_id": "split_by_items",
+    "payment_days": 5,
+    "payment_custom_text": "",
+    "payment_split_state": {},
+    "payment_v1_prepay": 50,
+    "payment_v2_prepay": 30,
+    "payment_v2_preship": 40,
+    "payment_v3_days": 15,
+    "payment_v3_trigger_id": "after_installation"
+  },
+  "requisites": {
+    "ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ": "ИП Смирнова О.В.",
+    "ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ": "Индивидуальный предприниматель Смирнова О.В.",
+    "ЗАКАЗЧИК_ИНН": "304500116000157",
+    "ЗАКАЗЧИК_КПП": "",
+    "ЗАКАЗЧИК_ОГРН": "304500116000157",
+    "ЗАКАЗЧИК_АДРЕС_ЮР": "150000, г. Ярославль, ул. Кирова, д. 9, кв. 4",
+    "ЗАКАЗЧИК_АДРЕС_ПОЧТ": "150000, г. Ярославль, ул. Кирова, д. 9, кв. 4",
+    "ЗАКАЗЧИК_РС": "40802810700000012399",
+    "ЗАКАЗЧИК_БАНК": "ПАО Сбербанк, г. Ярославль",
+    "ЗАКАЗЧИК_КС": "30101810500000000670",
+    "ЗАКАЗЧИК_БИК": "047888670",
+    "ЗАКАЗЧИК_ТЕЛЕФОН": "+7 4852 55-11-22",
+    "ЗАКАЗЧИК_EMAIL": "smirnova@mail.ru",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ": "Индивидуальный предприниматель",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ФИО": "Смирнова Ольга Викторовна",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ_РП": "Индивидуального предпринимателя",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП": "Смирновой Ольги Викторовны",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ": "О.В. Смирнова",
+    "ЗАКАЗЧИК_ОСНОВАНИЕ": "Листа записи ЕГРИП",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ": "female"
+  },
+  "contract": {
+    "contract_date": "2026-06-15",
+    "contract_number": "G02/2026",
+    "spec_number": "1",
+    "object_address": "Ярославская обл., г. Ярославль, промзона «Тормозное шоссе», уч. 4",
+    "scope_overrides": {},
+    "flags": {},
+    "payment_rows": null
+  }
+}
