@@ -36,6 +36,12 @@ _CARD_FEMALE_NOM = (
     'Директор: Петрова Ольга Сергеевна\n'
 )
 
+_CARD_C = (
+    'ООО "Тест"\n'
+    'ИНН 7712345671\n'
+    'Email: other@test.ru\n'
+)
+
 
 def _fresh_app() -> AppTest:
     return AppTest.from_file(APP_PATH, default_timeout=30).run()
@@ -126,3 +132,52 @@ def test_manual_derived_survives_reparse_of_same_card():
     req = at.session_state["contract"]["requisites"]
     assert req["ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП"] != manual_rp
     assert "Петров" in req["ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП"]
+
+
+def test_manual_primary_field_survives_conflicting_reparse():
+    """P1-8: ручная правка первичного поля переживает переразбор текста,
+    где для того же поля встретилось ДРУГОЕ значение."""
+    at = _fresh_app()
+    at.switch_page("pages/2_Договор.py").run()
+
+    _parse(at, _CARD_A)
+    req = at.session_state["contract"]["requisites"]
+    assert req["ЗАКАЗЧИК_EMAIL"] == "sidorova.ip@test.ru"
+
+    manual_email = "manual@test.ru"
+    at.text_input(key="w_ЗАКАЗЧИК_EMAIL").set_value(manual_email).run()
+    assert (
+        at.session_state["contract"]["requisites"]["ЗАКАЗЧИК_EMAIL"]
+        == manual_email
+    )
+
+    _parse(at, _CARD_C)  # тоже содержит Email, но с другим значением
+    req = at.session_state["contract"]["requisites"]
+    assert req["ЗАКАЗЧИК_EMAIL"] == manual_email
+    assert at.session_state["w_ЗАКАЗЧИК_EMAIL"] == manual_email
+    # Поле, которое пользователь не трогал руками, обновляется как обычно
+    assert req["ЗАКАЗЧИК_ИНН"] == "7712345671"
+
+
+def test_derived_not_contaminated_by_rejected_reparse():
+    """P1-8: производное поле не переезжает на значение из ОТКЛОНЁННОГО
+    (защищённого ручным вводом первичного поля) переразбора."""
+    at = _fresh_app()
+    at.switch_page("pages/2_Договор.py").run()
+
+    _parse(at, _CARD_MALE_NOM)
+    req = at.session_state["contract"]["requisites"]
+    old_rp = req["ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП"]
+    assert old_rp
+
+    manual_fio = "Кузнецов Пётр Ильич"
+    at.text_input(key="w_ЗАКАЗЧИК_ДИРЕКТОР_ФИО").set_value(manual_fio).run()
+    assert (
+        at.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ФИО"]
+        == manual_fio
+    )
+
+    _parse(at, _CARD_FEMALE_NOM)  # другое (отклонённое) ФИО в новом тексте
+    req = at.session_state["contract"]["requisites"]
+    assert req["ЗАКАЗЧИК_ДИРЕКТОР_ФИО"] == manual_fio  # родитель защищён
+    assert "Петров" not in req["ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП"]

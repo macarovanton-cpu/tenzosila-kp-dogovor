@@ -311,6 +311,7 @@ def _load_kp_full(kp_number: str, updated_at: str | None = None) -> dict | None:
 
 def _render_field_group(
     title: str, fields: list[tuple[str, str]], section: str,
+    derived_keys: frozenset[str] = frozenset(),
 ) -> None:
     st.subheader(title)
     ns = st.session_state["contract"][section]
@@ -319,16 +320,17 @@ def _render_field_group(
         for col, (key, label) in zip(cols, fields[i:i + 2]):
             wkey = f"w_{key}"
             st.session_state.setdefault(wkey, ns.get(key, ""))
+            _args = (section, key, key not in derived_keys)
             with col:
                 if key in WIDE_FIELDS:
                     st.text_area(
                         label, key=wkey, height=68,
-                        on_change=sync_field, args=(section, key),
+                        on_change=sync_field, args=_args,
                     )
                 else:
                     st.text_input(
                         label, key=wkey,
-                        on_change=sync_field, args=(section, key),
+                        on_change=sync_field, args=_args,
                     )
 
 
@@ -573,15 +575,19 @@ _DERIVED_PRIMARY = {
 
 
 def _apply_requisites_text(text: str) -> None:
-    """Единый путь распознавания: parse → derive → merge (не затирает ручной ввод)."""
-    _cur = st.session_state["contract"]["requisites"]
+    """Единый путь: parse → merge первичных (защита ручного ввода, P1-8) →
+    derive от актуальных значений → merge производных."""
+    _cs = st.session_state["contract"]
+    _cur = dict(_cs["requisites"])  # снимок ДО мерджа — для "родитель изменился?"
     _parsed = parse_requisites(text)
-    _derived, _warns = derive_requisites(_parsed)
+    merge_requisites(_parsed)  # сам пропускает ключи из requisites_manual
+    _actual = _cs["requisites"]  # состояние ПОСЛЕ мерджа первичных
+    _derived, _warns = derive_requisites(_actual)
     for _dkey, _pkey in _DERIVED_PRIMARY.items():
-        _primary_unchanged = _parsed.get(_pkey, "") == _cur.get(_pkey, "")
+        _primary_unchanged = _actual.get(_pkey, "") == _cur.get(_pkey, "")
         if _dkey in _derived and _cur.get(_dkey) and _primary_unchanged:
             _derived.pop(_dkey)
-    merge_requisites({**_derived, **_parsed})
+    merge_requisites(_derived)
     # Сброс пола → пере-inference из нового ФИО на рендере ниже
     st.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = ""
     st.session_state.pop("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", None)
@@ -605,6 +611,7 @@ def _clear_requisites() -> None:
     """Осознанный полный сброс полей под новую карточку (on_click callback:
     widget-ключи можно менять только до инстанцирования виджетов)."""
     set_requisites({key: "" for key, _label in REQUISITE_FIELDS})
+    st.session_state["contract"]["requisites_manual"] = set()
     st.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = ""
     st.session_state.pop("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", None)
     st.session_state["w_requisites_paste"] = ""
@@ -658,6 +665,7 @@ with st.expander("Реквизиты из файла или текста", expan
 
 _render_field_group(
     "Реквизиты заказчика", REQUISITE_FIELDS[:-1], "requisites",
+    derived_keys=frozenset(_DERIVED_PRIMARY),
 )
 
 # Последняя строка группы: Инициалы + Пол директора (предзаполняем из ФИО,
@@ -676,7 +684,7 @@ _ini_col, _pol_col = st.columns(2)
 with _ini_col:
     st.text_input(
         _ini_label, key=f"w_{_ini_key}",
-        on_change=sync_field, args=("requisites", _ini_key),
+        on_change=sync_field, args=("requisites", _ini_key, False),
     )
 with _pol_col:
     st.selectbox(

@@ -73,10 +73,19 @@ def set_extracted_data(raw: dict) -> None:
         st.session_state[f"w_{key}"] = val
 
 
-def sync_field(section: str, key: str) -> None:
-    """on_change callback: widget -> namespace."""
+def sync_field(section: str, key: str, trackable: bool = True) -> None:
+    """on_change callback: widget -> namespace.
+
+    Срабатывает только на реальный ввод пользователя (Streamlit не вызывает
+    on_change при программной записи st.session_state), поэтому заодно
+    помечает ПЕРВИЧНОЕ поле как введённое вручную — merge_requisites его не
+    перетрёт. trackable=False — для производных полей (ФИО в РП, инициалы
+    и т.п.), которые всегда должны следовать за актуальным первичным полем.
+    """
     wkey = f"w_{key}"
     st.session_state["contract"][section][key] = st.session_state.get(wkey, "")
+    if section == "requisites" and trackable:
+        st.session_state["contract"].setdefault("requisites_manual", set()).add(key)
 
 
 def sync_manual_field(key: str) -> None:
@@ -146,10 +155,15 @@ def merge_requisites(values: dict[str, str]) -> None:
 
     В отличие от set_requisites НЕ заменяет весь dict — обновляет только
     переданные ключи (parsed/derived), сохраняя ручной ввод остальных полей.
+    Поля из requisites_manual (пользователь редактировал их сам) пропускает —
+    иначе повторное распознавание перетирает ручную правку (P1-8).
     """
     cs = st.session_state["contract"]
     req = cs.setdefault("requisites", {})
+    manual = cs.get("requisites_manual", set())
     for key, val in values.items():
+        if key in manual:
+            continue
         v = val or ""
         req[key] = v
         st.session_state[f"w_{key}"] = v
