@@ -23,6 +23,7 @@ def _make_kp_row(
     model_length: int = 18,
     model_width: float | None = None,
     model_price: int | None = 2835000,
+    model_qty: int | None = None,
     options: dict | None = None,
     payment_preset: str = "split_by_items",
     payment_split_state: dict | None = None,
@@ -37,6 +38,8 @@ def _make_kp_row(
     }
     if model_width is not None:
         model_data["width"] = model_width
+    if model_qty is not None:
+        model_data["qty"] = model_qty
     return {
         "kp_number": "КП-2026-001",
         "model_id": f"vesta-{model_line.lower()}-{model_max}-{model_length}",
@@ -152,6 +155,21 @@ class TestBuildSpecFromKpSnapshot:
                 parts_sum += int(val)
 
         assert total == parts_sum, f"ИТОГО {total} != sum(П1..П5) {parts_sum}"
+
+    def test_итого_scales_with_model_qty(self):
+        """B7: model_qty=2 → СПЕЦ_ИТОГО == 2 × сумма per-unit строк."""
+        from src.contracts.from_kp import (
+            build_spec_rows_from_snapshot,
+            build_specification_from_kp_snapshot,
+        )
+        kp_row = _make_kp_row(model_qty=2)
+        spec = build_specification_from_kp_snapshot(kp_row, PRICES, MODELS, PAYMENT_TERMS)
+        total_str = spec["СПЕЦ_ИТОГО"].replace(" ", "").replace("\xa0", "")
+        total = int(total_str) if total_str else 0
+
+        rows = build_spec_rows_from_snapshot(kp_row, PRICES)
+        per_unit = sum(r["price"] for r in rows if not r["customer_side"])
+        assert total == per_unit * 2
 
     def test_итого_пропись_not_empty(self):
         from src.contracts.from_kp import build_specification_from_kp_snapshot

@@ -238,6 +238,7 @@ def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
         "model_length": model.get("length"),
         "platform_width_m": model.get("width", 3.0),
         "model_price": model.get("price") or None,
+        "model_qty": int(model.get("qty") or 1),
         "sensor_id": (data.get("equipment") or {}).get("sensor_id", ""),
         "indicator_id": (data.get("equipment") or {}).get("indicator_id", ""),
         "options": options,
@@ -298,8 +299,9 @@ def build_specification_from_kp_snapshot(
             result[f"СПЕЦ_П{i}_НАИМЕНОВАНИЕ"] = ""
             result[f"СПЕЦ_П{i}_СУММА"] = ""
 
-    # ⚠️ per-unit сумма (без ×model_qty) — латентный дефект при qty>1; здесь только display.
-    grand_total = sum(r["price"] for r in rows if not r["customer_side"])
+    state = _reconstruct_state(kp_row)
+    model_qty = int(state.get("model_qty") or 1)
+    grand_total = sum(r["price"] for r in rows if not r["customer_side"]) * model_qty
 
     data = kp_row.get("data") or {}
     model = data.get("model") or {}
@@ -308,7 +310,6 @@ def build_specification_from_kp_snapshot(
     length = model.get("length", "")
     model_short = f"ВЕСТА-{line}-{max_t}-{length}"
 
-    state = _reconstruct_state(kp_row)
     spec_items = build_spec_items(state, prices, models_json)
 
     item_to_days, _ = calculate_term_days_per_item(spec_items)
