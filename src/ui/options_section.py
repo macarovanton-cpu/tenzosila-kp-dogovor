@@ -1,6 +1,7 @@
 """13 блоков опций: пандусы, рама, ограждение, люки, фундамент и т.д."""
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import streamlit as st
@@ -11,6 +12,7 @@ from src.config import (
     QTY_ENABLED_BLOCKS,
     VAT_RATE,
 )
+from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
 from src.filters import get_visible_options
 from src.pricing import (
     SliderParams,
@@ -27,6 +29,10 @@ FOUNDATION_EXECUTION_CHOICES: list[str] = [
 ]
 
 _FOUNDATION_EXECUTION_DEFAULT = "пандусный"
+
+# Эвристика ТОЛЬКО для UI-подсказки (не влияет на рендер/scope): имя похоже на монтаж,
+# но менеджер оставил тип «Прочее» → клаузы монтажа не попадут в договор.
+_LOOKS_LIKE_INSTALL_RE = re.compile(r"монтаж|пусконалад|ПНР|шеф.?монтаж", re.IGNORECASE)
 
 
 def render_options_section(
@@ -202,21 +208,34 @@ def _render_custom_items(state: dict) -> None:
             "id": f"custom_{next_id}",
             "name": "",
             "price": 0,
+            "scope": DEFAULT_WORK_TYPE,
         })
         state["custom_item_next_id"] = next_id + 1
         st.rerun()
 
+    scope_keys = list(CUSTOM_WORK_TYPES.keys())
+    scope_labels = [wt.label for wt in CUSTOM_WORK_TYPES.values()]
     for item in list(state.get("custom_items", [])):
         item_id = str(item.get("id") or "")
         if not item_id:
             continue
-        cols = st.columns([5, 2, 1])
+        cols = st.columns([4, 2, 2, 1])
         name = cols[0].text_input(
             "Название",
             value=str(item.get("name", "")),
             key=f"{item_id}_name",
         ).strip()
-        price = int(cols[1].number_input(
+        current_scope = str(item.get("scope") or DEFAULT_WORK_TYPE)
+        scope_index = scope_keys.index(current_scope) if current_scope in scope_keys else 0
+        selected_label = cols[1].selectbox(
+            "Тип работ",
+            scope_labels,
+            index=scope_index,
+            key=f"{item_id}_scope",
+            help="«Монтаж» добавит в договор обязательства сторон по монтажу",
+        )
+        scope = scope_keys[scope_labels.index(selected_label)]
+        price = int(cols[2].number_input(
             "Цена, ₽",
             min_value=0,
             max_value=100_000_000,
@@ -224,7 +243,7 @@ def _render_custom_items(state: dict) -> None:
             value=int(item.get("price", 0) or 0),
             key=f"{item_id}_price",
         ))
-        if cols[2].button("×", key=f"{item_id}_delete", help="Удалить позицию"):
+        if cols[3].button("×", key=f"{item_id}_delete", help="Удалить позицию"):
             state["custom_items"] = [
                 existing for existing in state.get("custom_items", [])
                 if existing.get("id") != item_id
@@ -232,6 +251,22 @@ def _render_custom_items(state: dict) -> None:
             st.rerun()
         item["name"] = name
         item["price"] = price
+        item["scope"] = scope
+
+        # Подсказка: имя похоже на монтаж, но тип не выбран.
+        if scope == DEFAULT_WORK_TYPE and _LOOKS_LIKE_INSTALL_RE.search(name):
+            st.warning(
+                "Похоже на монтаж — выберите тип «Монтаж», иначе обязательства "
+                "сторон не попадут в договор."
+            )
+        # Подсказка: монтаж уже покрыт опцией (коллизия id в from_kp).
+        if (
+            scope == "installation"
+            and state.get("options", {}).get("install_default", {}).get("enabled")
+        ):
+            st.info(
+                "Монтаж уже покрыт опцией — ручная позиция пойдёт дополнительной строкой."
+            )
 
 
 def _requires_foundation_execution_choice(key: str) -> bool:

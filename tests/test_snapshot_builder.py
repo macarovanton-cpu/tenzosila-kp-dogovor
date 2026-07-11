@@ -246,6 +246,23 @@ def test_snapshot_custom_items_strip_internal_ids_and_empty_rows():
     ]
 
 
+def test_snapshot_custom_item_serializes_scope_only_when_not_default():
+    """scope пишется в snapshot только для не-дефолтного типа."""
+    state = _base_state()
+    state["custom_items"] = [
+        {"id": "custom_1", "name": "Монтаж навеса", "price": 90_000,
+         "scope": "installation"},
+        {"id": "custom_2", "name": "Доп шкаф", "price": 50_000, "scope": "other"},
+    ]
+
+    snap = build_kp_snapshot(state)
+
+    assert snap["custom_items"] == [
+        {"name": "Монтаж навеса", "price": 90_000, "scope": "installation"},
+        {"name": "Доп шкаф", "price": 50_000},  # «Прочее» → без поля scope
+    ]
+
+
 def test_snapshot_installation_scope_null_without_install():
     """Если монтаж не включён, installation_scope явно null."""
     state = _base_state()

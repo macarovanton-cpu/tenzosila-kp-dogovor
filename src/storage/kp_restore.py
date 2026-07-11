@@ -189,13 +189,17 @@ def reconstruct_kp_state(kp_row: dict[str, Any], prices: dict) -> dict[str, Any]
     # --- spec overrides ---
     out["spec_items_overrides"] = data.get("spec_overrides") or {}
 
-    # --- custom items: снапшот хранит только name/price → переприсваиваем id ---
+    # --- custom items: снапшот хранит name/price/scope? → переприсваиваем id ---
+    from src.contracts.custom_work_types import DEFAULT_WORK_TYPE
+
     custom: list[dict[str, Any]] = []
     for i, item in enumerate(data.get("custom_items") or [], start=1):
         custom.append({
             "id": f"custom_{i}",
             "name": item.get("name", ""),
             "price": int(item.get("price") or 0),
+            # Legacy без поля → «Прочее» (тот же рендер, что и сегодня).
+            "scope": item.get("scope", DEFAULT_WORK_TYPE),
         })
     out["custom_items"] = custom
     out["custom_item_next_id"] = len(custom) + 1

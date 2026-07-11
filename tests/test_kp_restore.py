@@ -105,6 +105,19 @@ def _kp_row(state: dict, kp_date: str = "2026-05-20") -> dict:
     }
 
 
+def test_roundtrip_legacy_custom_item_scope_is_byte_identical():
+    """Старый снапшот без scope → restore → пересейв байт-идентичен (не выдумывает scope)."""
+    state = _post_render_state()  # custom item без поля scope (legacy)
+    snap1 = build_kp_snapshot(state)
+    assert snap1["custom_items"] == [{"name": "Доп шкаф", "price": 120_000}]
+
+    out = reconstruct_kp_state(_kp_row(state), load_prices())
+    assert out["custom_items"][0]["scope"] == "other"  # restore проставил дефолт
+
+    snap2 = build_kp_snapshot(out)
+    assert snap2["custom_items"] == snap1["custom_items"]  # пересейв не добавил scope
+
+
 def test_round_trip_plain_keys():
     """build_kp_snapshot → reconstruct_kp_state: плоские ключи совпадают."""
     state = _post_render_state()
@@ -147,7 +160,7 @@ def test_round_trip_plain_keys():
     # spec overrides / custom / payment
     assert out["spec_items_overrides"] == {MODEL_ID: {"price": 1_950_000}}
     assert out["custom_items"] == [
-        {"id": "custom_1", "name": "Доп шкаф", "price": 120_000}
+        {"id": "custom_1", "name": "Доп шкаф", "price": 120_000, "scope": "other"}
     ]
     assert out["custom_item_next_id"] == 2
     assert out["payment_preset_id"] == "split_by_items"

@@ -94,13 +94,21 @@ def _build_enabled_options(opts: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 def _build_custom_items(state: dict[str, Any]) -> list[dict[str, Any]]:
     """Отдать в snapshot только валидные произвольные позиции без UI-id."""
+    from src.contracts.custom_work_types import DEFAULT_WORK_TYPE
+
     result: list[dict[str, Any]] = []
     for item in state.get("custom_items") or []:
         name = str(item.get("name") or "").strip()
         price = int(item.get("price") or 0)
         if not name or price <= 0:
             continue
-        result.append({"name": name, "price": price})
+        entry: dict[str, Any] = {"name": name, "price": price}
+        # scope пишем только для не-дефолтного типа: «Прочее» сериализуется как
+        # раньше {name, price} → старые снапшоты байт-идентичны при пересейве.
+        scope = item.get("scope")
+        if scope and scope != DEFAULT_WORK_TYPE:
+            entry["scope"] = scope
+        result.append(entry)
     return result
 
 

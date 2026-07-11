@@ -446,6 +446,75 @@ class TestBuildSpecRowsFromSnapshot:
         assert install["name"] == "Шеф-монтаж и пусконаладка"
         assert install["metadata"]["scope"] == "shefmontazh"
 
+    def test_custom_item_scope_installation_renders_montage_clauses(self):
+        """Ручная позиция с тегом «Монтаж» → id installation + scope → клаузы монтажа."""
+        from src.contracts.clauses_context import build_clauses_context
+        from src.contracts.from_kp import build_specification_items
+
+        items = build_specification_items(_make_kp_row(custom_items=[
+            {"name": "Монтаж и пусконаладка весов", "price": 180000,
+             "scope": "installation"},
+        ]))
+
+        install = next(i for i in items if i["id"] == "installation")
+        assert install["name"] == "Монтаж и пусконаладка весов"
+        assert install["is_custom"] is True
+        assert install["metadata"]["scope"] == "full"
+        assert install["payment_group"] == "installation_and_verification"
+
+        ctx = build_clauses_context({"items": items})
+        assert ctx["installation_scope"] == "full"
+
+    def test_custom_item_without_scope_is_legacy_invisible(self):
+        """Старый снапшот без поля scope → «Прочее»: id custom_N, монтаж не рендерится."""
+        from src.contracts.clauses_context import build_clauses_context
+        from src.contracts.from_kp import build_specification_items
+
+        items = build_specification_items(_make_kp_row(custom_items=[
+            {"name": "Монтаж и пусконаладка весов", "price": 180000},
+        ]))
+
+        montage = next(i for i in items if i["name"] == "Монтаж и пусконаладка весов")
+        assert montage["id"] == "custom_1"
+        assert "scope" not in montage["metadata"]
+
+        ctx = build_clauses_context({"items": items})
+        assert ctx["installation_scope"] == "none"
+
+    def test_custom_montage_collides_with_install_option(self):
+        """Опция монтажа + ручной монтаж → id installation ровно один (от опции)."""
+        from src.contracts.from_kp import build_specification_items
+        opts = {
+            "install_default": {
+                "qty": 1, "price": 180000, "retail": 180000, "customer_side": False,
+            },
+        }
+
+        items = build_specification_items(_make_kp_row(
+            options=opts,
+            custom_items=[
+                {"name": "Доп. монтаж навеса", "price": 50000, "scope": "installation"},
+            ],
+        ))
+
+        install_ids = [i for i in items if i["id"] == "installation"]
+        assert len(install_ids) == 1  # только опция
+        custom = next(i for i in items if i["name"] == "Доп. монтаж навеса")
+        assert custom["id"] == "custom_1"  # ручная осталась отдельной строкой
+        # бакет оплаты всё равно монтажный (тег «Монтаж»)
+        assert custom["payment_group"] == "installation_and_verification"
+
+    def test_custom_montage_edge_name_payment_group_follows_tag(self):
+        """Тег «Монтаж» кладёт бакет монтажа даже для имени без слова «монтаж»."""
+        from src.contracts.from_kp import build_specification_items
+
+        items = build_specification_items(_make_kp_row(custom_items=[
+            {"name": "Пусконаладочные работы", "price": 90000, "scope": "installation"},
+        ]))
+
+        pnr = next(i for i in items if i["name"] == "Пусконаладочные работы")
+        assert pnr["payment_group"] == "installation_and_verification"  # не scales
+
 
 class TestResolveOptionName:
     """Тесты _resolve_option_name с prices-lookup."""

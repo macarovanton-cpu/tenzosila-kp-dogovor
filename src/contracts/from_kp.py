@@ -6,6 +6,7 @@ import re
 import uuid
 from typing import Any
 
+from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
 from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
 from src.spec_builder import format_platform_size, resolve_payment_group
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item
@@ -642,22 +643,38 @@ def build_specification_items(
             "metadata": metadata,
         })
 
+    existing_ids = {it["id"] for it in items}
     for index, item in enumerate(data.get("custom_items") or [], start=1):
         name = str(item.get("name") or "").strip()
         price = float(item.get("price") or 0)
         if not name or price <= 0:
             continue
+        work = CUSTOM_WORK_TYPES.get(
+            item.get("scope") or DEFAULT_WORK_TYPE, CUSTOM_WORK_TYPES[DEFAULT_WORK_TYPE]
+        )
+        metadata: dict[str, Any] = {"source_index": index}
+        # Тег с канон. id продвигает позицию до него → clauses_context её видит.
+        # Коллизия (одноимённая опция уже дала этот id) → остаёмся custom_N,
+        # клаузы уже покрыты опцией, dict items_by_id не клобберим.
+        if work.spec_id and work.spec_id not in existing_ids:
+            spec_id = work.spec_id
+            existing_ids.add(spec_id)
+            if work.scope:
+                metadata["scope"] = work.scope
+        else:
+            spec_id = f"custom_{index}"
+        payment_group = work.payment_group or _payment_group_by_name(name)
         items.append({  # type: ignore[misc]
-            "id": f"custom_{index}",
+            "id": spec_id,
             "name": name,
             "unit": "шт",
             "quantity": 1.0,
             "price_per_unit": price,
             "total": price,
-            "payment_group": _payment_group_by_name(name),
+            "payment_group": payment_group,
             "is_custom": True,
             "source": "custom",
-            "metadata": {"source_index": index},
+            "metadata": metadata,
         })
 
     items.sort(key=lambda x: _ITEM_ORDER.get(x["id"], 10))
