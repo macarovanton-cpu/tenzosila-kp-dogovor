@@ -2,7 +2,7 @@
   "meta": {
     "id": "G-09",
     "flow": "spec",
-    "comment": "Договор из КП с монтажом — ТЕКУЩЕЕ (баговое) поведение custom_N (И-4: фиксируется как эталон, НЕ чинится). Монтаж введён вручную через custom_items вместо install_default: from_kp.py присваивает id=custom_1 без metadata.scope, clauses_context.py не находит items_by_id['installation'] → installation_scope=none → монтажные обязательства сторон пропадают из договора, хотя монтаж физически оплачен. Заменяется новым G-09-fixed после фикса custom_N (P3e-01)."
+    "comment": "Договор из КП с монтажом через ручную позицию (custom_items) с тегом scope='installation'. Проверяет фикс И-4: тег «Монтаж» продвигает позицию до id=installation + metadata.scope, clauses_context находит её → монтажные обязательства сторон (автокран, площадка, простой бригады) попадают в договор. Контраст с G-01 (тот же монтаж через опцию install_default)."
   },
   "kp_state": {
     "kp_date": "2026-06-01",
@@ -47,7 +47,7 @@
       }
     },
     "custom_items": [
-      {"id": "custom_1", "name": "Монтаж и пусконаладка весов", "price": 180000}
+      {"id": "custom_1", "name": "Монтаж и пусконаладка весов", "price": 180000, "scope": "installation"}
     ],
     "spec_items_overrides": {},
     "payment_preset_id": "split_by_items",
