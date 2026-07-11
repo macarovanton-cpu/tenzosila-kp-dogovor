@@ -666,14 +666,16 @@ if not _stored_gender:
     _stored_gender = infer_director_gender(_fio) if _fio else "male"
     _req["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = _stored_gender
 st.session_state.setdefault("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", _stored_gender)
-st.selectbox(
-    "Пол директора (для согласования «действующего/действующей»)",
-    options=["male", "female"],
-    format_func=lambda x: {"male": "мужской", "female": "женский"}[x],
-    key="w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ",
-    on_change=sync_field,
-    args=("requisites", "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"),
-)
+_pol_col, _ = st.columns(2)
+with _pol_col:
+    st.selectbox(
+        "Пол директора (для согласования «действующего/действующей»)",
+        options=["male", "female"],
+        format_func=lambda x: {"male": "мужской", "female": "женский"}[x],
+        key="w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ",
+        on_change=sync_field,
+        args=("requisites", "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"),
+    )
 
 st.divider()
 
