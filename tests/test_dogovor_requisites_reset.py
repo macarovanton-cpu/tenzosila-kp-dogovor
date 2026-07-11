@@ -93,7 +93,8 @@ def test_clear_button_resets_all_fields():
 
 
 def test_gender_reinferred_on_new_card():
-    """Пол директора не залипает: смена карточки → пере-inference из нового ФИО."""
+    """Пол директора не залипает, ПОКА не выбран вручную: смена карточки →
+    пере-inference из нового ФИО (P1-8: ручной выбор защищён отдельным тестом)."""
     at = _fresh_app()
     at.switch_page("pages/2_Договор.py").run()
 
@@ -181,3 +182,25 @@ def test_derived_not_contaminated_by_rejected_reparse():
     req = at.session_state["contract"]["requisites"]
     assert req["ЗАКАЗЧИК_ДИРЕКТОР_ФИО"] == manual_fio  # родитель защищён
     assert "Петров" not in req["ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП"]
+
+
+def test_manual_gender_survives_reparse():
+    """P1-8: ручной выбор пола директора переживает переразбор — даже той же
+    карточки, где авто-инференс дал бы противоположный пол."""
+    at = _fresh_app()
+    at.switch_page("pages/2_Договор.py").run()
+
+    _parse(at, _CARD_MALE_NOM)  # Иванов Иван Иванович → авто "male"
+    req = at.session_state["contract"]["requisites"]
+    assert req["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] == "male"
+
+    at.selectbox(key="w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ").set_value("female").run()
+    assert (
+        at.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"]
+        == "female"
+    )
+
+    _parse(at, _CARD_MALE_NOM)  # то же мужское ФИО — авто-инференс дал бы "male"
+    req = at.session_state["contract"]["requisites"]
+    assert req["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] == "female"  # ручной выбор сохранён
+    assert at.session_state["w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] == "female"

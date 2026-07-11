@@ -588,9 +588,11 @@ def _apply_requisites_text(text: str) -> None:
         if _dkey in _derived and _cur.get(_dkey) and _primary_unchanged:
             _derived.pop(_dkey)
     merge_requisites(_derived)
-    # Сброс пола → пере-inference из нового ФИО на рендере ниже
-    st.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = ""
-    st.session_state.pop("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", None)
+    if "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ" not in _cs.get("requisites_manual", set()):
+        # Сброс пола → пере-inference из нового ФИО на рендере ниже.
+        # Пропускаем, если пол выбран вручную (P1-8) — ручной выбор не затираем.
+        st.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = ""
+        st.session_state.pop("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", None)
     for _w in _warns:
         st.warning(_w)
     if _parsed:
