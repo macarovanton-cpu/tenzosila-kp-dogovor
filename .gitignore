@@ -57,19 +57,6 @@ CHAT_INDEX.md
 .streamlit/secrets.toml
 
 .codex/
-t e s t _ o u t p u t . t x t 
- 
- t e s t _ s u m m a r y . t x t 
- 
- t e s t _ o u t p u t . t x t 
- 
- t e s t _ s u m m a r y . t x t 
- 
- . c o d e g r a p h / 
- 
- t e m p / 
- 
- 
 *.bak
 temp/
 
@@ -85,6 +72,7 @@ data/prices.backup.json
 # Одноразовые docx-артефакты сверки — не храним в репо
 docs/review_scenarios/
 
-# �������� ������ ������� � �������� ���������, �� ���������
 scripts/spike_data/
 outputs/
+
+docs/source/*.txt
