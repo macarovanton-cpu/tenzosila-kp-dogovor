@@ -83,11 +83,10 @@ init_contract_state()
 REQUISITE_FIELDS: list[tuple[str, str]] = [
     ("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ", "Краткое наименование"),
     ("ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ", "Полное наименование"),
-    ("ЗАКАЗЧИК_ИНН", "ИНН"),
-    ("ЗАКАЗЧИК_КПП", "КПП"),
-    ("ЗАКАЗЧИК_ОГРН", "ОГРН"),
     ("ЗАКАЗЧИК_АДРЕС_ЮР", "Юридический адрес"),
     ("ЗАКАЗЧИК_АДРЕС_ПОЧТ", "Почтовый адрес"),
+    ("ЗАКАЗЧИК_ИНН", "ИНН"),
+    ("ЗАКАЗЧИК_КПП", "КПП"),
     ("ЗАКАЗЧИК_РС", "Расчётный счёт"),
     ("ЗАКАЗЧИК_БАНК", "Банк"),
     ("ЗАКАЗЧИК_КС", "Корреспондентский счёт"),
@@ -100,6 +99,7 @@ REQUISITE_FIELDS: list[tuple[str, str]] = [
     ("ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП", "ФИО (род. падеж)"),
     ("ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ", "Инициалы"),
     ("ЗАКАЗЧИК_ОСНОВАНИЕ", "Основание"),
+    ("ЗАКАЗЧИК_ОГРН", "ОГРН"),
 ]
 
 SPEC_FIELDS: list[tuple[str, str]] = [
@@ -314,22 +314,22 @@ def _render_field_group(
 ) -> None:
     st.subheader(title)
     ns = st.session_state["contract"][section]
-    col1, col2 = st.columns(2)
-    for i, (key, label) in enumerate(fields):
-        wkey = f"w_{key}"
-        st.session_state.setdefault(wkey, ns.get(key, ""))
-        col = col1 if i % 2 == 0 else col2
-        with col:
-            if key in WIDE_FIELDS:
-                st.text_area(
-                    label, key=wkey, height=68,
-                    on_change=sync_field, args=(section, key),
-                )
-            else:
-                st.text_input(
-                    label, key=wkey,
-                    on_change=sync_field, args=(section, key),
-                )
+    for i in range(0, len(fields), 2):
+        cols = st.columns(2)
+        for col, (key, label) in zip(cols, fields[i:i + 2]):
+            wkey = f"w_{key}"
+            st.session_state.setdefault(wkey, ns.get(key, ""))
+            with col:
+                if key in WIDE_FIELDS:
+                    st.text_area(
+                        label, key=wkey, height=68,
+                        on_change=sync_field, args=(section, key),
+                    )
+                else:
+                    st.text_input(
+                        label, key=wkey,
+                        on_change=sync_field, args=(section, key),
+                    )
 
 
 def _build_task_auto_text(result: BuildTaskResolution) -> str:
