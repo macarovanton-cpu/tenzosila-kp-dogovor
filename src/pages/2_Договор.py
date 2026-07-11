@@ -87,10 +87,12 @@ REQUISITE_FIELDS: list[tuple[str, str]] = [
     ("ЗАКАЗЧИК_АДРЕС_ПОЧТ", "Почтовый адрес"),
     ("ЗАКАЗЧИК_ИНН", "ИНН"),
     ("ЗАКАЗЧИК_КПП", "КПП"),
-    ("ЗАКАЗЧИК_РС", "Расчётный счёт"),
+    ("ЗАКАЗЧИК_ОГРН", "ОГРН"),
+    ("ЗАКАЗЧИК_ОСНОВАНИЕ", "Основание"),
     ("ЗАКАЗЧИК_БАНК", "Банк"),
-    ("ЗАКАЗЧИК_КС", "Корреспондентский счёт"),
     ("ЗАКАЗЧИК_БИК", "БИК"),
+    ("ЗАКАЗЧИК_РС", "Расчётный счёт"),
+    ("ЗАКАЗЧИК_КС", "Корреспондентский счёт"),
     ("ЗАКАЗЧИК_ТЕЛЕФОН", "Телефон"),
     ("ЗАКАЗЧИК_EMAIL", "Email"),
     ("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ", "Должность руководителя"),
@@ -98,8 +100,6 @@ REQUISITE_FIELDS: list[tuple[str, str]] = [
     ("ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ_РП", "Должность (род. падеж)"),
     ("ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП", "ФИО (род. падеж)"),
     ("ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ", "Инициалы"),
-    ("ЗАКАЗЧИК_ОСНОВАНИЕ", "Основание"),
-    ("ЗАКАЗЧИК_ОГРН", "ОГРН"),
 ]
 
 SPEC_FIELDS: list[tuple[str, str]] = [
@@ -656,9 +656,12 @@ with st.expander("Реквизиты из файла или текста", expan
             help="Полный сброс всех полей реквизитов для новой карточки.",
         )
 
-_render_field_group("Реквизиты заказчика", REQUISITE_FIELDS, "requisites")
+_render_field_group(
+    "Реквизиты заказчика", REQUISITE_FIELDS[:-1], "requisites",
+)
 
-# Пол директора — предзаполняем из ФИО, пользователь может изменить вручную
+# Последняя строка группы: Инициалы + Пол директора (предзаполняем из ФИО,
+# пользователь может изменить вручную)
 _req = st.session_state["contract"]["requisites"]
 _stored_gender = _req.get("ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", "")
 if not _stored_gender:
@@ -666,15 +669,24 @@ if not _stored_gender:
     _stored_gender = infer_director_gender(_fio) if _fio else "male"
     _req["ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"] = _stored_gender
 st.session_state.setdefault("w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ", _stored_gender)
-_pol_col, _ = st.columns(2)
+
+_ini_key, _ini_label = REQUISITE_FIELDS[-1]
+st.session_state.setdefault(f"w_{_ini_key}", _req.get(_ini_key, ""))
+_ini_col, _pol_col = st.columns(2)
+with _ini_col:
+    st.text_input(
+        _ini_label, key=f"w_{_ini_key}",
+        on_change=sync_field, args=("requisites", _ini_key),
+    )
 with _pol_col:
     st.selectbox(
-        "Пол директора (для согласования «действующего/действующей»)",
+        "Пол директора",
         options=["male", "female"],
         format_func=lambda x: {"male": "мужской", "female": "женский"}[x],
         key="w_ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ",
         on_change=sync_field,
         args=("requisites", "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ"),
+        help="Для согласования «действующего/действующей» в договоре.",
     )
 
 st.divider()
