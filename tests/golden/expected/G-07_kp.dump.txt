@@ -1,0 +1,1130 @@
+=== DOCX-DUMP v1 ===
+
+[DEFAULTS] rPr{sz=11} pPr{spacing=line:259/auto,after:160}
+[STYLE] 'Body Text' based='Normal' pPr{} rPr{font=PT Sans;sz=11}
+[STYLE] 'Default Paragraph Font' pPr{} rPr{}
+[STYLE] 'Default' pPr{spacing=line:240/auto,after:0} rPr{font=Arial;sz=12;color=000000}
+[STYLE] 'Hyperlink' based='Default Paragraph Font' pPr{} rPr{u=single;color=0563C1}
+[STYLE] 'List Paragraph' based='Normal' pPr{ind=left:720} rPr{}
+[STYLE] 'Normal' pPr{spacing=line:240/auto,after:0} rPr{font=Times New Roman;sz=14}
+[STYLE] 'Strong' based='Default Paragraph Font' pPr{} rPr{b}
+[STYLE] 'footer' based='Normal' pPr{} rPr{}
+[STYLE] 'header' based='Normal' pPr{} rPr{}
+[STYLE] 'heading 1' based='Normal' pPr{spacing=after:120} rPr{font=PT Sans Narrow;sz=20;b;color=015198}
+[STYLE] 'textable' based='Normal' pPr{spacing=before:100,after:100} rPr{sz=12}
+[STYLE] 'toc 1' based='Normal' pPr{} rPr{}
+[STYLE] 'Основной текст Знак' based='Default Paragraph Font' pPr{} rPr{font=PT Sans}
+[NUM] num1 = L0:bullet'\uf02d' L1:bullet'o' L2:bullet'\uf0a7' L3:bullet'\uf0b7' L4:bullet'o' L5:bullet'\uf0a7' L6:bullet'\uf0b7' L7:bullet'o' L8:bullet'\uf0a7'
+[NUM] num2 = L0:bullet'\uf0b7' L1:bullet'o' L2:bullet'\uf0a7' L3:bullet'\uf0b7' L4:bullet'o' L5:bullet'\uf0a7' L6:bullet'\uf0b7' L7:bullet'o' L8:bullet'\uf0a7'
+[NUM] num3 = L0:bullet'\uf02d' L1:bullet'o' L2:bullet'\uf0a7' L3:bullet'\uf0b7' L4:bullet'o' L5:bullet'\uf0a7' L6:bullet'\uf0b7' L7:bullet'o' L8:bullet'\uf0a7'
+[MEDIA] word/media/hdphoto1.wdp sha1=92e8765d85d7
+[MEDIA] word/media/hdphoto2.wdp sha1=b54a00b7296c
+[MEDIA] word/media/image1.jpeg sha1=dbd0c5cc7a79
+[MEDIA] word/media/image10.png sha1=68dc2c710c7f
+[MEDIA] word/media/image11.jpeg sha1=12923fae57d6
+[MEDIA] word/media/image12.jpeg sha1=29a21ea8cf45
+[MEDIA] word/media/image13.png sha1=2edb4fee83ae
+[MEDIA] word/media/image14.jpeg sha1=28d72df8fb6f
+[MEDIA] word/media/image15.png sha1=218a38ad8b32
+[MEDIA] word/media/image16.png sha1=fcb4a5df66cf
+[MEDIA] word/media/image17.jpeg sha1=6282e6608f34
+[MEDIA] word/media/image18.jpeg sha1=033c893e5b8b
+[MEDIA] word/media/image19.jpeg sha1=ec9043595ef7
+[MEDIA] word/media/image2.jpeg sha1=f3e1ae9ae5aa
+[MEDIA] word/media/image20.jpeg sha1=8f7aa69c24ef
+[MEDIA] word/media/image21.jpeg sha1=e82841ad0164
+[MEDIA] word/media/image22.jpeg sha1=cb13a87d9dec
+[MEDIA] word/media/image23.jpeg sha1=79fb9cc7e57c
+[MEDIA] word/media/image24.jpeg sha1=c0bb268f2114
+[MEDIA] word/media/image25.png sha1=de0390ac9bca
+[MEDIA] word/media/image26.jpeg sha1=3b3c25fd4893
+[MEDIA] word/media/image27.jpeg sha1=29ba34a405ac
+[MEDIA] word/media/image28.jpeg sha1=0fa1ab745061
+[MEDIA] word/media/image29.jpeg sha1=4dcb5702e9c9
+[MEDIA] word/media/image3.jpeg sha1=d791afbd6ce8
+[MEDIA] word/media/image30.jpeg sha1=36ab59214a67
+[MEDIA] word/media/image31.jpeg sha1=6d5969b1605f
+[MEDIA] word/media/image32.jpeg sha1=a45ac8932746
+[MEDIA] word/media/image33.jpeg sha1=cbe017a86fb1
+[MEDIA] word/media/image34.jpeg sha1=8a8a59389dde
+[MEDIA] word/media/image35.jpeg sha1=c9f7244e9be6
+[MEDIA] word/media/image36.jpeg sha1=276c7f19d6ee
+[MEDIA] word/media/image37.jpeg sha1=bced8f82ec1b
+[MEDIA] word/media/image38.jpeg sha1=866141f71454
+[MEDIA] word/media/image39.png sha1=88b4f7c1c568
+[MEDIA] word/media/image4.jpeg sha1=6a274719ab1d
+[MEDIA] word/media/image40.png sha1=4cfc4be3dcc2
+[MEDIA] word/media/image41.png sha1=4c8a4d5a70d4
+[MEDIA] word/media/image42.png sha1=c6cc6885eccd
+[MEDIA] word/media/image43.png sha1=b1427db56323
+[MEDIA] word/media/image44.jpeg sha1=aa94fc8103d9
+[MEDIA] word/media/image5.jpeg sha1=0b60acb73ac2
+[MEDIA] word/media/image6.jpeg sha1=ca118ea7fc31
+[MEDIA] word/media/image7.jpeg sha1=5b367f0fc6bd
+[MEDIA] word/media/image8.png sha1=8a68848ce6b7
+[MEDIA] word/media/image9.png sha1=65c8192fbd88
+
+=== BODY ===
+P{spacing=before:360,after:360}
+  R{font=PT Sans;color=000000} 'Кому: ООО «Ромашка»'
+P{style='heading 1'}
+  R{color=000000} 'Коммерческое предложение № КП-2026-G07 от 01.06.2026\nна поставку автомобильных весов '
+  R{color=D04514} 'ВЕСТА-СЛ-60-18'
+P{}
+  R{} [DRAWING 6300470x4722495]
+P{style='toc 1'}
+  R{font=PT Sans;sz=11} [FIELD 'TOC \\o "1-3" \\h \\z \\u'] cached='Преимущества\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437188 \\h'] cached='2'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Характеристики ВЕСТА'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437189 \\h'] cached='3'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Спецификация'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437190 \\h'] cached='4'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Конструкция весов ВЕСТА'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437191 \\h'] cached='5'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Особенности двухопорных датчиков Zemic'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437192 \\h'] cached='7'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Цифровая весоизмерительная система'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437193 \\h'] cached='8'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Опции'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437194 \\h'] cached='8'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Фундамент'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437195 \\h'] cached='10'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Монтаж'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437196 \\h'] cached='10'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Поверка'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437197 \\h'] cached='11'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Автоматизация: программно-аппаратный комплекс ОРИОН'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437198 \\h'] cached='11'
+P{style='toc 1'}
+  R{style='Hyperlink';font=PT Sans;sz=11} 'Доставка'
+  R{font=PT Sans;sz=11} '\t'
+  R{font=PT Sans;sz=11} [FIELD 'PAGEREF _Toc195437199 \\h'] cached='12'
+P{style='toc 1'}
+P{}
+  [PAGEBREAK]
+P{style='heading 1'}
+  R{} 'Преимущества'
+TBL{cols=3;grid=3402,3402,3402}
+  TR{h=auto:2268}
+    TC{}
+      P{style='Body Text'}
+        R{} [DRAWING 2052000x1345465]
+    TC{}
+      P{style='Body Text'}
+        R{} [DRAWING 2052000x1355688]
+    TC{}
+      P{style='Body Text'}
+        R{} [DRAWING 2050443x1356995]
+  TR{}
+    TC{}
+      P{style='Body Text';spacing=after:120}
+        R{b;color=D04514} 'Жесткая балка'
+      P{style='Body Text';jc=both;ind=right:175}
+        R{} 'Балка изготавливается с пятикратным запасом прочности и при нагружении весов не прогибается, за счет чего датчик всегда стабилен. Это обеспечивает максимальную точность взвешивания и бесперебойную работу весов.'
+    TC{}
+      P{style='Body Text';spacing=after:120}
+        R{b;color=D04514} '8 ½ двутавров в каждой секции весов'
+      P{style='Body Text';jc=both;ind=right:175}
+        R{} 'Это весы без гребенки, без разрывов платформы и без деформаций на протяжении 10 лет эксплуатации. А отсутствие подшивки нижним листом предотвращает внутреннюю коррозию.'
+    TC{}
+      P{style='Body Text';spacing=after:120}
+        R{b;color=D04514} 'Минимум технического обслуживания'
+      P{style='Body Text';jc=both}
+        R{} 'Большая подплатформенная высота, высокая рабочая высота датчика и особая система торцевых отбойников снижают объем работ при техническом обслуживании до 3-х раз.'
+  TR{h=auto:451}
+    TC{}
+      P{style='Body Text'}
+    TC{}
+      P{style='Body Text'}
+    TC{}
+      P{style='Body Text'}
+  TR{h=auto:2835}
+    TC{}
+      P{style='Body Text'}
+        R{} [DRAWING 2052000x1539776]
+    TC{}
+      P{style='Body Text'}
+        R{sz=16} [DRAWING 2061859x1548000]
+    TC{}
+      P{}
+        R{} [DRAWING 2041808x1539060]
+  TR{}
+    TC{}
+      P{style='Body Text';spacing=after:120}
+        R{b;color=D04514} 'Цифровая комплектация'
+      P{style='Body Text';jc=both;ind=right:175}
+        R{} 'Шифрованный сигнал, удаленная диагностика, простота ремонта и обслуживания – три основных преимущества цифровой весоизмерительной системы.'
+    TC{}
+      P{style='Body Text';spacing=after:120}
+        R{b;color=D04514} 'Двухопорный датчик'
+      P{style='Body Text';jc=both;ind=right:175}
+        R{} 'Благодаря конструкции датчика исключено падение платформы, обрыв кабеля и обледенение.'
+      P{style='Body Text';jc=both}
+        R{} 'Гарантированная 100% точность.'
+    TC{}
+      P{style='Body Text';spacing=after:120}
+        R{b;color=D04514} 'Удобство транспортировки'
+      P{style='Body Text';jc=both}
+        R{} 'Модульная конструкция позволяет перевозить любую модель весов стандартным автотранспортом или в 20 или 40-футовом контейнере, что снижает стоимость доставки, особенно в дальние регионы.'
+P{spacing=before:240}
+TBL{cols=2;grid=1576,8346}
+  TR{}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11} [DRAWING 860612x860612]
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11} 'Посмотрите установку двух весов ВЕСТА, \nвоспользуйтесь ссылкой или QR кодом '
+        R{style='Hyperlink';font=PT Sans;sz=11} 'https://rutube.ru/video/df3e35df0ff4388b26490fb6b483ec98'
+P{spacing=before:240}
+P{style='heading 1'}
+  R{} 'Характеристики ВЕСТА-СЛ-60-18'
+TBL{cols=3;grid=1418,5808,2697}
+  TR{h=auto:567}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11;b;color=000000} 'НАИМЕНОВАНИЕ ПОКАЗАТЕЛЯ'
+    TC{}
+      P{style='Body Text';jc=center}
+        R{b} 'ЗНАЧЕНИЕ ПОКАЗАТЕЛЯ'
+  TR{h=auto:1020}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11;color=000000} 'Рабочий диапазон температур, °С:\n- для Тензодатчиков Zemic DHM9B-30t\n- для Весового индикатора (терминала) ТИТАН 3ЦС'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11} '-30...+40\n-10...+40'
+  TR{h=auto:680}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11;color=000000} 'Наибольшая скорость заезда и движения по грузоприемной платформе, км/ч'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11;color=000000} 'Не более 5'
+  TR{h=auto:1020}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11;color=000000} 'Пылевлагозащита'
+      P{}
+        R{font=PT Sans;sz=11} '- '
+        R{font=PT Sans;sz=11;color=000000} 'для Весового индикатора (терминала)'
+      P{}
+        R{font=PT Sans;sz=11} '- '
+        R{font=PT Sans;sz=11;color=000000} 'для Тензодатчиков'
+    TC{}
+      P{jc=center}
+      P{jc=center}
+        R{font=PT Sans;sz=11;color=000000} 'Не заявлено'
+      P{jc=center}
+        R{font=PT Sans;sz=11;color=000000} 'IP 68'
+  TR{h=auto:340}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11;color=000000} 'Интерфейсы портов весового индикатора (терминала)'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11} 'RS485, RS232'
+  TR{h=auto:698}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11} 'Электрическое питание\xa0— от сети переменного тока с параметрами: '
+      P{}
+        R{font=PT Sans;sz=11} '- напряжение, В\xa0 '
+      P{}
+        R{font=PT Sans;sz=11} '- частота, Гц\xa0\xa0'
+    TC{}
+      P{}
+      P{jc=center}
+        R{font=PT Sans;sz=11} '187… 242'
+      P{jc=center}
+        R{font=PT Sans;sz=11} '49… 51'
+  TR{h=auto:340}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11} 'Потребляемая мощность, не более, ВА\xa0'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11} '5'
+  TR{h=auto:340}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11} 'Гарантия '
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11} '24 месяца'
+  TR{h=auto:454}
+    TC{span=3}
+      P{}
+        R{font=PT Sans;sz=11;b;color=D04514} 'Базовая комплектация: \n'
+        R{font=PT Sans;sz=11;color=000000} 'Модульная грузоприемная платформа; '
+      P{}
+        R{font=PT Sans;sz=11;color=000000} 'Комплект датчиков весоизмерительных цифровых DHM9B-30t; '
+      P{}
+        R{font=PT Sans;sz=11;color=000000} 'Балансировочная коробка КБТ, Сигнальный кабель 20 м, металлорукав с ПВХ-изоляцией; '
+      P{}
+        R{font=PT Sans;sz=11;color=000000} 'Терминал весовой цифровой ТИТАН 3ЦС; '
+      P{}
+        R{font=PT Sans;sz=11;color=000000} 'Комплект документации: паспорт/РЭ на весы, паспорт/РЭ на индикатор (терминал), сертификаты на датчики, типовой чертеж фундамента (строительное задание).'
+  TR{h=auto:454}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11;b;color=D04514} 'Описание весов'
+    TC{}
+      P{jc=center}
+  TR{h=auto:340}
+    TC{span=2}
+      P{style='Body Text'}
+        R{} 'Максимальная нагрузка, т'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11;color=000000} '60'
+  TR{h=auto:340}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11;color=000000} 'Цена поверочного деления:'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11;color=000000} '10 кг (до 30 т)\n20 кг (от 30 до 60 т)'
+  TR{h=auto:340}
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11} 'Габаритные размеры грузоприемной платформы, м '
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11} '18×3'
+  TR{h=auto:340}
+    TC{span=3}
+      P{}
+        R{font=PT Sans;sz=11} 'Конструкция колейная: Двутавр 25Б1 14 шт., лист настила 6 мм рифлёный, нижний подшив 4 мм'
+  TR{h=auto:680}
+    TC{span=3}
+      P{}
+        R{font=PT Sans;sz=11} 'Автомобильные весы ВЕСТА выпускаются по ГОСТ OIML R-76-1-2011. Тип весов утвержден и внесен в Госреестр средств измерений РФ под номером 78871-20.'
+  TR{h=auto:340}
+    TC{span=3}
+      P{}
+        R{font=PT Sans;sz=11} 'Весы ВЕСТА соответствуют техническому регламенту Евразийского Экономического Союза.'
+  TR{h=auto:340}
+    TC{}
+      P{spacing=before:60,after:60}
+        R{font=PT Sans;sz=11} [DRAWING 711200x711200]
+    TC{span=2}
+      P{}
+        R{font=PT Sans;sz=11} 'Сертификаты и свидетельства '
+        R{style='Hyperlink';font=PT Sans;sz=11} 'https://tenzosila.ru/o-kompanii/sertifikaty'
+        R{font=PT Sans;sz=11} ' '
+P{spacing=line:259/auto,after:160}
+P{spacing=line:259/auto,after:160}
+P{spacing=line:259/auto,after:160}
+P{style='heading 1'}
+  R{} 'Спецификация'
+TBL{cols=3;grid=5670,2127,2126}
+  TR{h=auto:794}
+    TC{}
+      P{spacing=line:288/auto}
+        R{font=PT Sans;sz=11;b} 'Наименование'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;b} 'Цена, руб.'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;b} 'Срок исполнения, рабочих дней'
+  TR{h=auto:71}
+    TC{}
+      P{style='Default';spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} 'Весы автомобильные ВЕСТА-СЛ-60-18'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '1 805 972'
+    TC{vmerge=restart}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '20'
+  TR{h=auto:71}
+    TC{}
+      P{style='Default';spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} 'Бетонное основание для весов на раме'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '550 000'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '10'
+  TR{h=auto:71}
+    TC{}
+      P{style='Default';spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} 'Доставка весов до объекта'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '60 000'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '1'
+  TR{h=auto:71}
+    TC{}
+      P{style='Default';spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} 'Монтаж и пусконаладка автовесов'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '180 000'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '3'
+  TR{h=auto:71}
+    TC{}
+      P{style='Default';spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} 'Первичная поверка'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '60 000'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '1'
+  TR{h=auto:397}
+    TC{}
+      P{style='Default';spacing=line:288/auto}
+        R{font=PT Sans;sz=11;b;color=D04514} 'ИТОГО'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;b;color=D04514} '2 655 972'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '35'
+P{spacing=before:120;ind=left:23}
+  R{font=PT Sans;sz=11;color=000000} 'Все цены указаны в рублях с НДС 22%.'
+P{spacing=before:120;ind=left:23}
+  R{font=PT Sans;sz=11;color=000000} '\n'
+P{spacing=before:240,after:60;ind=left:23}
+  R{font=PT Sans;sz=11;b} 'Условия поставки'
+P{style='Body Text'}
+  R{} '— Предоплата 50% стоимости весов и фундамента — подписание Договора.\n— Доплата 50% за весы и доставку — готовность Весов к отгрузке.\n— Доплата 50% за фундамент — Акт по строительству фундамента.\n— Монтаж и поверка: 50% предоплата — готовность к монтажу; 50% доплата — Акт выполненных работ.'
+P{}
+P{}
+P{}
+  R{font=PT Sans;b} 'Срок действия настоящего коммерческого предложения — 15 дней.'
+P{}
+  [PAGEBREAK]
+P{style='heading 1'}
+  R{} 'Конструкция весов ВЕСТА'
+P{style='Body Text'}
+  R{} 'Автомобильные весы ВЕСТА представляют собой сборную конструкцию.'
+P{style='Body Text'}
+  R{} 'Грузоприемная платформа состоит из двух сборочных единиц: поперечных балок и модулей. Нагрузка на тензодатчики передаётся через опорные плиты, расположенные в балках.'
+P{spacing=before:240,after:120}
+  R{font=PT Sans;b} 'Преимущества конструкции на силовой балке'
+TBL{cols=4;grid=5046,113,4649,257}
+  TR{}
+    TC{span=2}
+      P{style='Body Text';ind=left:-108}
+        R{} [DRAWING 3132000x2133765]
+    TC{span=2}
+      P{style='Body Text'}
+        R{b;color=D04514} 'Максимальная точность'
+      P{style='Body Text'}
+        R{} 'Балка изготавливается с пятикратным запасом прочности и при нагружении весов не прогибается, за счет чего датчик всегда стабилен, это обеспечивает максимальную точность взвешивания и бесперебойную работу весов.'
+      P{style='Body Text'}
+        R{} 'У других производителей узел встройки датчика интегрирован в модуль и при нагружении платформа изгибается вместе с узлом встройки. Датчик отклоняется от вертикальной оси, что увеличивает погрешность взвешивания, особенно при использовании датчиков колонного типа.'
+  TR{}
+    TC{}
+      P{style='Body Text'}
+    TC{span=2}
+      P{style='Body Text'}
+  TR{}
+    TC{span=2}
+      P{style='Body Text';ind=left:-108}
+        R{} [DRAWING 3159125x1808982]
+    TC{span=2}
+      P{style='Body Text'}
+        R{b;color=D04514} 'Удобная доставка'
+      P{style='Body Text'}
+        R{} 'Модульная конструкция позволяет перевозить любую модель весов стандартным автотранспортом или в 20 или 40-футовом контейнере, что снижает стоимость доставки, особенно в дальние регионы.'
+      P{style='Body Text'}
+        R{} 'У многих производителей для перевозки весов с интегрированным узлом встройки требуются панелевозы или спецтранспорт, что увеличивает стоимость доставки.'
+  TR{}
+    TC{}
+      P{style='Body Text'}
+    TC{span=2}
+      P{style='Body Text'}
+  TR{}
+    TC{span=2}
+      P{style='Body Text';ind=left:-108}
+        R{} [DRAWING 3132000x2349000]
+    TC{span=2}
+      P{style='Body Text'}
+        R{b;color=D04514} 'Удобное обслуживание'
+      P{style='Body Text'}
+        R{} 'Конструкция балки позволяет расположить датчики в удобном для обслуживания месте.'
+      P{style='Body Text'}
+        R{} 'У многих производителей датчики находятся в глубине платформы под колесами автомобиля, что усложняет обслуживание и очистку датчиков.'
+  TR{}
+    TC{}
+      P{style='Body Text'}
+    TC{span=2}
+      P{style='Body Text'}
+        R{} '.'
+P{spacing=line:259/auto,after:160}
+  [PAGEBREAK]
+P{spacing=before:240,after:120}
+  R{font=PT Sans;b} 'Преимущества модулей платформы весов ВЕСТА-С'
+TBL{cols=4;grid=5148,11,4751,11}
+  TR{}
+    TC{span=2}
+      P{ind=left:-128}
+        R{font=PT Sans;sz=11} [DRAWING 3132000x1523346]
+    TC{span=2}
+      P{style='Body Text'}
+        R{b;color=D04514} 'Без гребенки, без разрывов, без деформаций'
+      P{style='Body Text'}
+        R{} 'Несущим профилем модуля является двутавр. Для 60 т весов используется марка 25Б2, для 80 т – 30Б1, для 100 т – 30Б2. Двутавры находятся непосредственно под колесами, за счет чего верхний лист не продавливается даже через 10 лет эксплуатации, даже при превышении номинальных осевых нагрузок.'
+  TR{}
+    TC{}
+      P{style='Body Text'}
+    TC{span=2}
+      P{style='Body Text'}
+  TR{}
+    TC{span=2}
+      P{ind=left:-128}
+        R{} [DRAWING 3131820x2076450]
+    TC{span=2}
+      P{style='Body Text'}
+        R{b;color=D04514} 'Не ржавеют изнутри'
+      P{style='Body Text'}
+        R{} 'Для максимальной жесткости платформы сегментарно подшиваются нижним листом. Это сохраняет вентиляцию, за счет чего весы медленнее корродируют, сохраняя свои прочностные характеристики.'
+P{style='Body Text';spacing=before:480}
+  R{} 'Многие '
+  R{b;color=D04514} 'модели других производителей'
+  R{} ' сделаны на базе швеллеров, в результате чего можно столкнуться со следующими трудностями:'
+TBL{cols=3;grid=3230,3336,3336}
+  TR{}
+    TC{}
+      P{jc=center;spacing=before:240;ind=left:-128}
+        R{} [DRAWING 1979929x1120140]
+    TC{}
+      P{jc=center;spacing=before:240}
+        R{} [DRAWING 6781800x1158240]
+        R{} [DRAWING 6781800x1158240]
+        R{} [DRAWING 1978660x1120140]
+    TC{}
+      P{jc=center;spacing=before:240}
+        R{} [DRAWING 1978660x1120140]
+  TR{}
+    TC{}
+      P{style='Body Text';jc=center;ind=left:-128}
+        R{sz=10} 'Гребенка'
+    TC{}
+      P{style='Body Text';jc=center}
+        R{sz=10} 'Разрыв платформы'
+    TC{}
+      P{style='Body Text';jc=center}
+        R{sz=10} 'Прогиб платформы'
+P{style='Body Text';spacing=before:480}
+  R{} 'Из-за '
+  R{b;color=D04514} 'подшивки нижним листом'
+  R{} ' внутри весов скапливается вода и грязь, в результате весы через 3-5 лет начинают ржаветь изнутри.'
+TBL{cols=2;grid=4920,5051}
+  TR{}
+    TC{}
+      P{style='Body Text';jc=center;spacing=before:120;ind=left:-108}
+        R{} [DRAWING 6781800x1158240]
+        R{} [DRAWING 6781800x1158240]
+        R{} [PICT]
+    TC{}
+      P{style='Body Text';jc=center;spacing=before:120}
+        R{} [PICT]
+  TR{}
+    TC{}
+      P{style='Body Text';jc=center}
+        R{} 'Ржавчина'
+    TC{}
+      P{style='Body Text';jc=center;spacing=before:120}
+        R{} 'Обледенение'
+P{style='heading 1'}
+  R{} 'Особенности двухопорных датчиков Zemic'
+P{spacing=before:240,after:120}
+  R{font=PT Sans;b} 'Исключено падение платформы с датчиков'
+TBL{cols=2;grid=5046,5046}
+  TR{}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=16} [DRAWING 2988000x2243327]
+    TC{}
+      P{}
+        R{font=PT Sans} [DRAWING 2988000x2239932]
+  TR{}
+    TC{}
+      P{spacing=before:120}
+        R{font=PT Sans;sz=11} 'В весах ВЕСТА '
+        R{font=PT Sans;sz=11;b;color=D04514} 'на двухопорных датчиках'
+        R{font=PT Sans;sz=11} ' конструкция ответной чашки датчика формирует большой возвращающий момент, что само по себе ограничивает качение платформы в продольной и поперечной плоскостях.'
+      P{}
+        R{font=PT Sans;sz=11} 'Нет риска, что датчик «выскочит» из чашек при резком заезде или торможении автомобиля на платформе.'
+    TC{}
+      P{spacing=before:120}
+        R{font=PT Sans;sz=11} 'В весах '
+        R{font=PT Sans;sz=11;b;color=D04514} 'с'
+        R{font=PT Sans;sz=11} ' '
+        R{font=PT Sans;sz=11;b;color=D04514} 'датчиками колонного типа'
+        R{font=PT Sans;sz=11} ' требуется ежегодно регулировать систему ограничения качения платформы, иначе высока вероятность падения весов с датчиков.'
+      P{}
+        R{font=PT Sans;sz=11} 'Если зазор ограничителя составляет более 5 мм, то датчик уже сильно качается.'
+      P{}
+        R{font=PT Sans;sz=11} 'Весы массой 9 тонн с машиной массой 75 тонн от падения спасают ограничители качения, которые в большинстве случаев представляют собой 2 болта М30. При '
+        R{style='Основной текст Знак';sz=11} 'трогании'
+        R{font=PT Sans;sz=9;color=FF0000} ' '
+        R{font=PT Sans;sz=11} 'или остановке автомобиля на весах на эти болты приходится колоссальная нагрузка.'
+P{spacing=before:240,after:120}
+  R{font=PT Sans;b} 'Исключен обрыв кабеля'
+TBL{cols=2;grid=5046,5046}
+  TR{}
+    TC{}
+      P{ind=left:-108}
+        R{font=PT Sans} [DRAWING 2988000x2241000]
+    TC{}
+      P{}
+        R{font=PT Sans} [DRAWING 2988000x2239936]
+  TR{}
+    TC{}
+      P{spacing=before:120;ind=left:-108}
+        R{font=PT Sans;sz=11} 'Датчик жестко закреплен на платформе, что '
+        R{font=PT Sans;sz=11;b;color=D04514} 'исключает его вращение'
+        R{font=PT Sans;sz=11} ' и последующий обрыв кабеля.'
+    TC{}
+      P{spacing=before:120}
+        R{font=PT Sans;sz=11} 'Частой проблемой выхода весов из строя является '
+        R{font=PT Sans;sz=11;b;color=D04514} 'обрыв кабеля.'
+        R{font=PT Sans;sz=11} ' От вибрации тонкую фиксирующую шпильку обламывает, и датчик начинает вращаться обрывая кабель.'
+P{style='heading 1'}
+  [PAGEBREAK]
+P{spacing=line:259/auto,after:120}
+  R{font=PT Sans;b} 'Исключена погрешность и неисправности, вызванные обледенением датчика '
+TBL{cols=2;grid=5046,5046}
+  TR{}
+    TC{}
+      P{ind=left:-108}
+        R{font=PT Sans;sz=11;color=000000} [DRAWING 2988000x2239880]
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;color=D04514} [DRAWING 2978390x2239645]
+  TR{}
+    TC{}
+      P{spacing=before:120;ind=left:-108}
+        R{font=PT Sans;sz=11} 'В весах ВЕСТА рабочая часть датчика находится на высоте 12 см от закладной плиты. Таким образом, критическое обледенение и загрязнение подплатформенного пространства, которые вызывают неисправности и увеличивают погрешность, маловероятно.'
+    TC{}
+      P{style='Body Text';spacing=before:120}
+        R{} 'У колонного датчика рабочая часть начинается на высоте 4 см от закладной плиты (высота нижней чашки). Даже небольшая грязе-ледяная корка толщиной (от 4 см) гарантированно увеличивает погрешность и может привести к поломке датчика.'
+P{spacing=before:120}
+  R{font=PT Sans;sz=11;highlight=yellow} 'Датчики HM9B имеют '
+  R{style='Основной текст Знак';sz=11;highlight=yellow} 'сертификат'
+  R{font=PT Sans;sz=9;highlight=yellow} ' '
+  R{font=PT Sans;sz=11;b;color=D04514;highlight=yellow} 'OIML R60/2000-CNI-06.06'
+  R{font=PT Sans;sz=11;highlight=yellow} ' и сертификат '
+  R{font=PT Sans;sz=11;b;color=D04514;highlight=yellow} 'PTB №: D09-06.08'
+P{style='heading 1';spacing=before:240}
+  R{style='Strong';b} 'Цифровая весоизмерительная система'
+TBL{cols=2;grid=5046,4989}
+  TR{}
+    TC{}
+      P{style='Body Text';ind=left:-108}
+        R{} [DRAWING 2880000x1970861]
+      P{style='Body Text';ind=left:-108}
+        R{} 'Цифровой индикатор'
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b} 'Особенности '
+      P{}
+        R{font=PT Sans;sz=11} 'Весы сохраняют работоспособность в случае частичной или полной неисправности одного из тензодатчиков.'
+      P{}
+        R{font=Corbel;sz=11} 'Автоматическая'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'диагностика'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'каждого'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'канала'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'в'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'случае'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'возникновения'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'нештатных'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'ситуаций'
+      P{}
+        R{font=Corbel;sz=11} 'Длина'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'кабельной'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'разводки'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'от'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'цифрового'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'преобразователя'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'до'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'весовой'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'может'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'составлять'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'до'
+        R{font=PT Sans;sz=11} ' 1000 '
+        R{font=Corbel;sz=11} 'метров'
+      P{}
+        R{font=Corbel;sz=11} 'Возможность'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'определения'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'центра'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'масс'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'груза'
+        R{font=PT Sans;sz=11} ', '
+        R{font=Corbel;sz=11} 'что'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'полезно'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'при'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'взвешивании'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'опломбированного'
+        R{font=PT Sans;sz=11} ' '
+        R{font=Corbel;sz=11} 'автомобиля'
+P{style='heading 1';spacing=before:240}
+  R{} 'Опции'
+TBL{cols=1;grid=9923}
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Центральный настил для ВЕСТА-Ф и –ФЛ, для защиты межплатформенного пространства от загрязнения'
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Т образный профиль для защиты от грязи стыка пандус-платформа'
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Удлинение сигнального кабеля за метр, если необходимо разместить индикатор далее 20 м от весов'
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Преобразователь интерфейса для подключения индикатора в Ethernet'
+P{spacing=line:259/auto,before:120}
+TBL{cols=2;grid=5102,4821}
+  TR{}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11} [DRAWING 2987675x1872315]
+    TC{}
+      P{}
+        R{b} [DRAWING 2987675x1873480]
+  TR{}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b;color=D04514} 'КБТ (рама-основание с пандусами)'
+      P{}
+        R{font=PT Sans;sz=11} 'позволяет установить весы на существующую площадку, бетонную монолитную плиту или плиты.'
+      P{spacing=after:120}
+        R{font=PT Sans;sz=11;b} 'Цена:'
+        R{font=PT Sans;sz=11} '\xa0по запросу'
+        R{font=PT Sans;sz=11;b} ':'
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b;color=D04514} 'Ограждение'
+      P{spacing=after:120}
+        R{font=PT Sans;sz=11} 'Помогает водителю при движении по весам, препятствует съезду автомобиля с весов.'
+      P{spacing=after:120}
+        R{font=PT Sans;sz=11;b} 'Цена:'
+        R{font=PT Sans;sz=11} '\xa0по запросу'
+  TR{}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11} [DRAWING 3095625x1323975]
+    TC{}
+      P{}
+        R{b} [DRAWING 2924175x1314450]
+  TR{}
+    TC{}
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11;b;color=D04514} 'Дублирующее табло ВДТ-320 '
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11} 'Данное табло может быть многострочным, программируется на на 2, 3, 4 строки. Одновременно может отображать числовые данные и короткие текстовые сообщения.'
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11} 'Яркость табло и антибликовое оргстекло позволяет комфортно использовать его даже в яркую солнечную погоду.'
+      P{style='textable';spacing=before:0,after:120}
+        R{font=PT Sans;sz=11;b} 'Цена:'
+        R{font=PT Sans;sz=11} '\xa0по запросу'
+    TC{}
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11;b;color=D04514} 'Дублирующее табло YHL '
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11} 'Предлагаем две модификации дублирующих дисплеев на выбор:'
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11} '-YHL-3" \xa03 дюйма: ВЦ-7.6см, г/р-540х180х55мм;'
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11} '-YHL-5" 5 дюймов: ВЦ-12.7см, г/р-780х260х57мм.'
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11} 'Дублирующее табло YHL для весового оборудования - решение, которое позволяет контролировать процесс взвешивания.'
+      P{style='textable';spacing=before:0,after:120}
+        R{font=PT Sans;sz=11;b} 'Цена:'
+        R{font=PT Sans;sz=11} '\xa0по запросу'
+  TR{}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11} [DRAWING 3092450x1828800]
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b} [DRAWING 2951480x1828800]
+  TR{}
+    TC{}
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11;b} 'Центральный настил\n'
+        R{font=PT Sans;sz=11} 'Актуально для ВЕСТА-Ф и –ФЛ для защиты межплатформенного пространства от загрязнения'
+      P{style='textable';spacing=before:0,after:120}
+        R{font=PT Sans;sz=11;b} 'Цена:'
+        R{font=PT Sans;sz=11} '\xa0по запросу'
+    TC{}
+      P{style='textable';spacing=before:0,after:0}
+        R{font=PT Sans;sz=11;b;color=000000} 'Дополнительные конструкции\n'
+        R{font=PT Sans;sz=11;color=000000} 'для комфортного спуска с платформы: ступени и площадки для водителей'
+      P{style='textable';spacing=before:0,after:120}
+        R{font=PT Sans;sz=11;b} 'Цена:'
+        R{font=PT Sans;sz=11} '\xa0по запросу'
+P{style='heading 1'}
+  R{} 'Фундамент'
+TBL{cols=3;grid=3288,3288,3345}
+  TR{}
+    TC{}
+      P{jc=center}
+        R{font=PT Sans} [DRAWING 1944000x1405756]
+    TC{}
+      P{jc=center}
+        R{font=PT Sans} [DRAWING 1944000x1380548]
+    TC{}
+      P{jc=center}
+        R{font=PT Sans} [DRAWING 1944000x1381263]
+  TR{}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b;color=D04514} 'Наземный вариант'
+        R{font=PT Sans;sz=11;b} ' '
+        R{font=PT Sans;sz=11} 'с бетонными пандусами'
+      P{}
+        R{font=PT Sans;sz=11} 'Установка на монолитный фундамент.'
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b;color=D04514} 'Наземный вариант'
+        R{font=PT Sans;sz=11;b} ' '
+        R{font=PT Sans;sz=11} 'с рамой-основанием и металлическими пандусами'
+      P{}
+        R{font=PT Sans;sz=11} 'При комплектации весов рамой-основанием с пандусами вы можете установить весы на любое ровное твердое покрытие.'
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b;color=D04514} 'Установка в приямок'
+      P{}
+        R{font=PT Sans;sz=11} 'При установке в приямок возможно\xa0изготовление весов 2 в 1:\xa0для общей массы и поосного взвешивания.'
+      P{}
+        R{font=PT Sans;sz=11} 'Установка в приямок, позволяет сэкономить место на площадке.'
+P{spacing=before:120,after:60}
+  R{font=PT Sans;b} 'Варианты строительства фундамента'
+TBL{cols=2;grid=7228,2693}
+  TR{h=auto:340}
+    TC{}
+      P{style='Body Text'}
+        R{b=off} 'Строительство фундамента «под ключ»'
+    TC{}
+      P{style='Body Text';jc=center}
+        R{b=off} 'По запросу'
+  TR{h=auto:340}
+    TC{}
+      P{style='Body Text'}
+        R{b=off} 'Строительство фундамента, только работы'
+    TC{}
+      P{style='Body Text';jc=center}
+        R{} 'По запросу'
+  TR{h=auto:340}
+    TC{}
+      P{style='Body Text'}
+        R{b=off} 'Курирование строительства фундамента'
+    TC{}
+      P{style='Body Text';jc=center}
+        R{} 'По запросу'
+  TR{h=auto:340}
+    TC{}
+      P{style='Body Text'}
+        R{b=off} 'Самостоятельно силами заказчика'
+    TC{}
+      P{style='Body Text';jc=center}
+        R{} 'Предоставим строительное задание'
+P{spacing=before:120}
+  R{font=PT Sans;sz=11} 'Срок строительства фундамента под ключ зависит от региона и времени года.\n'
+P{style='heading 1';spacing=before:240}
+  R{} 'Монтаж'
+P{spacing=before:120,after:60}
+  R{font=PT Sans;b} 'Варианты монтажа'
+TBL{cols=2;grid=7230,2693}
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Квалифицированной монтажной бригадой производителя'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11;b=off} 'По запросу'
+  TR{h=auto:680}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Силами заказчика под контролем квалифицированного специалиста от производителя (шефмонтаж) '
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11} 'По запросу'
+  TR{h=auto:680}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Самостоятельно силами заказчика или сторонней организацией по выбору заказчика'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11} 'Предоставим инструкцию'
+P{spacing=before:120}
+  R{font=PT Sans;sz=11;b;color=D04514} 'Для монтажа потребуется предоставить:'
+P{style='List Paragraph';num=num1.0}
+  R{font=PT Sans;sz=11} 'контрольный лист по фундаменту (если площадку делали самостоятельно или сторонней организацией),'
+P{style='List Paragraph';num=num1.0}
+  R{font=PT Sans;sz=11} 'доступ к сети 220 вольт,'
+P{style='List Paragraph';num=num1.0}
+  R{font=PT Sans;sz=11} 'автокран с крановщиком и стропальщиком,'
+P{style='List Paragraph';num=num1.0}
+  R{font=PT Sans;sz=11} 'подготовленная кабельная трасса,'
+P{style='List Paragraph';num=num1.0}
+  R{font=PT Sans;sz=11} 'телескопический или фронтальный погрузчик для настройки.'
+P{}
+P{}
+  R{font=PT Sans;sz=11;b;color=D04514} 'Организация, осуществляющая монтаж, несет гарантию на весы.'
+P{style='heading 1';spacing=before:240}
+  R{} 'Поверка'
+TBL{cols=2;grid=4819,5136}
+  TR{}
+    TC{}
+      P{}
+        R{font=PT Sans} [DRAWING 2807732x2087880]
+    TC{}
+      P{}
+        R{font=PT Sans;b} [DRAWING 3123843x2088000]
+  TR{}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11} 'Заводская поверка'
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11} 'Поверка после монтажа на территории заказчика.'
+P{spacing=before:120,after:60}
+  R{font=PT Sans;b} 'Варианты поверки'
+TBL{cols=2;grid=7228,2693}
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Поверка на территории завода-изготовителя'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11;b=off} 'По запросу'
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Организация поверки с доставкой эталонов'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11} 'По запросу'
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Организация поверки самостоятельно силами заказчика'
+    TC{}
+      P{jc=center}
+        R{font=PT Sans;sz=11;color=333333} '—'
+P{style='heading 1';spacing=before:240}
+  R{} 'Автоматизация: программно-аппаратный комплекс ОРИОН'
+P{}
+  R{font=PT Sans;sz=11} 'Автоматизированная система управления ПАК ОРИОН обеспечивает детальный весовой контроль и подробный автоматизированный '
+  R{font=Corbel;sz=11} 'учет'
+  R{font=PT Sans;sz=11} '.'
+P{}
+P{spacing=before:120,after:60}
+  R{font=PT Sans;b} 'Особенности системы'
+P{style='List Paragraph';num=num2.0}
+  R{font=PT Sans;sz=11} 'Возможность подключить комплекс к любым весам.'
+P{style='List Paragraph';num=num2.0}
+  R{font=PT Sans;sz=11} 'Неограниченное количество весов в системе.'
+P{style='List Paragraph';num=num2.0}
+  R{font=PT Sans;sz=11} '5 готовых комплектаций для решения стандартных задач.'
+P{style='List Paragraph';num=num2.0}
+  R{font=PT Sans;sz=11} 'Наличие отдела автоматизации для решения нестандартных задач.'
+P{style='List Paragraph';num=num2.0}
+  R{font=PT Sans;sz=11} 'Наличие собственных монтажных бригад для подключения и настройки системы.'
+P{spacing=before:120,after:60}
+  R{font=PT Sans;b} 'Преимущества системы'
+P{style='List Paragraph';num=num2.0}
+  R{font=PT Sans;sz=11} 'Исключение ошибок ведения отчетности'
+P{style='List Paragraph';num=num2.0}
+  R{font=PT Sans;sz=11} 'Защита хозяйственной деятельности'
+P{style='List Paragraph';num=num2.0}
+  R{font=PT Sans;sz=11} 'от некорректных данных, хищений и саботажа'
+P{style='List Paragraph';num=num2.0}
+  R{font=PT Sans;sz=11} 'Снижение расходов на весовщика-оператора и организацию весовой рядом с весами'
+P{}
+  [PAGEBREAK]
+P{style='heading 1';spacing=before:240}
+  R{} 'Доставка'
+TBL{cols=2;grid=4751,5166}
+  TR{}
+    TC{}
+      P{}
+        R{} [DRAWING 2880000x1923884]
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11} 'Конструкция грузоприёмного устройства является сборной.'
+      P{}
+        R{font=PT Sans;sz=11} 'Для транспортировки весов к месту монтажа не требуется специализированного транспорта.'
+      P{}
+        R{font=PT Sans;sz=11} 'Доставка производится обычным полуприцепом или стандартным контейнером.'
+      P{}
+      P{}
+        R{font=PT Sans;sz=11} 'При приемке весов требуется предоставить автокран для разгрузки.'
+P{spacing=before:120,after:60}
+  R{font=PT Sans;b} 'Варианты доставки'
+TBL{cols=2;grid=7230,2693}
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Транспортной компанией до вашего предприятия'
+    TC{}
+      P{jc=center}
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Транспортной компанией до терминала в вашем городе'
+    TC{}
+      P{jc=center}
+  TR{h=auto:340}
+    TC{}
+      P{}
+        R{font=PT Sans;sz=11;b=off} 'Самовывоз со склада производителя'
+    TC{}
+      P{jc=center}
+P{style='Body Text';spacing=before:120}
+  R{b;color=D04514} 'Требования к автомобилю в случае самовывоза:'
+P{style='Body Text';num=num3.0}
+  R{} 'длина полуприцепа должна быть не менее 12 м,'
+P{style='Body Text';num=num3.0}
+  R{} 'тентованная с верхней и боковой шторкой,'
+P{style='Body Text';num=num3.0}
+  R{} 'тентованная с верхней шторкой,'
+P{style='Body Text';num=num3.0}
+  R{} 'с открытыми с бортами.'
+P{spacing=before:120,after:60}
+  R{} '\n'
+  R{font=PT Sans;b} 'Портфолио и отзывы'
+TBL{cols=2;grid=1176,8747}
+  TR{h=auto:340}
+    TC{}
+      P{spacing=before:360,after:360}
+        R{font=PT Sans;sz=11} [DRAWING 600635x600635]
+    TC{}
+      P{spacing=before:360,after:360}
+        R{font=PT Sans;sz=11} 'Проекты и портфолио '
+        R{style='Hyperlink';font=PT Sans;sz=11} 'https://tenzosila.ru/o-kompanii/portfolio'
+        R{font=PT Sans;sz=11} ' '
+  TR{h=auto:340}
+    TC{}
+      P{spacing=before:120,after:360}
+        R{font=PT Sans;sz=11} [DRAWING 609600x609600]
+    TC{}
+      P{spacing=before:120,after:360}
+        R{font=PT Sans;sz=11} 'Отзывы '
+        R{style='Hyperlink';font=PT Sans;sz=11} 'https://tenzosila.ru/o-kompanii/otzyvy'
+        R{font=PT Sans;sz=11} ' '
+  TR{h=auto:340}
+    TC{}
+      P{spacing=before:120,after:360}
+        R{font=PT Sans;sz=11} [DRAWING 609600x609600]
+    TC{}
+      P{spacing=before:120,after:360}
+        R{font=PT Sans;sz=11} 'Другие услуги '
+        R{style='Hyperlink';font=PT Sans;sz=11} 'https://tenzosila.ru/uslugi-i-servis'
+        R{font=PT Sans;sz=11} ' '
+P{spacing=line:259/auto,after:160}
+SECT{pgSz=11906x16838;pgMar=1560,850,1134,1134;hdr=default;ftr=default}
+P{spacing=line:259/auto,after:160}
+  R{b} [DRAWING 1168400x1168400]
+  R{font=PT Sans;sz=11} [PICT]
+SECT{pgSz=16838x11906;pgMar=567,820,850,567;hdr=default;ftr=default}
+
+=== HEADER default (sect 1) ===
+P{style='header'}
+  R{b} [DRAWING 1692275x622935]
+    TXBX
+      P{style='Body Text'}
+        R{sz=10} 'ООО «ТПК «Тензосила»'
+      P{style='Body Text'}
+        R{sz=10} 'ОГРН\t1173668061984'
+      P{style='Body Text'}
+        R{sz=10} 'ИНН\t3662257349'
+  R{b} [DRAWING 7124700x702310]
+  R{b} '\t'
+
+=== FOOTER default (sect 1) ===
+P{style='Body Text'}
+  R{sz=7} [DRAWING 6299835x0]
+TBL{cols=3;grid=4253,5103,709}
+  TR{h=auto:422}
+    TC{}
+      P{ind=left:34}
+        R{font=PT Sans;sz=12;b;color=231F20} 'Макаров Антон\n'
+        R{font=PT Sans;sz=12;color=3B3B3B} 'Менеджер'
+    TC{}
+      P{spacing=line:253/exact;ind=left:20}
+        R{font=PT Sans;sz=12;color=231F20} '+7 903 651-85-77\na.makarov@tenzosila.ru'
+    TC{}
+      P{jc=right}
+        R{font=PT Sans;sz=20;b;color=D9D9D9} [FIELD 'PAGE    \\* MERGEFORMAT'] cached='13'
+P{style='footer'}
+
+=== HEADER default (sect 2) ===
+P{style='header'}
+
+=== FOOTER default (sect 2) ===
+P{style='Body Text'}
+  R{sz=7} [DRAWING 6299835x0]
+TBL{cols=3;grid=4253,5103,709}
+  TR{h=auto:422}
+    TC{}
+      P{ind=left:34}
+    TC{}
+      P{spacing=line:253/exact;ind=left:20}
+    TC{}
+      P{jc=right}
+P{style='footer'}
