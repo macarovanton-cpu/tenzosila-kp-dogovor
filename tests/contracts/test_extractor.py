@@ -142,6 +142,16 @@ class TestEmptyInput:
         mock_ai_client.chat.completions.create.assert_not_called()
 
 
+class TestPromptIsCopyOnly:
+    def test_prompt_forbids_normalization(self):
+        """Промт режима B: LLM только копирует — без пересчёта и достройки (A4)."""
+        from src.contracts.extractor import PROMPT_PATH
+        prompt = PROMPT_PATH.read_text(encoding="utf-8")
+        assert "ДОСЛОВНО" in prompt
+        for forbidden in ("пересчитай", "восстанови по контексту", "прописью — формируй"):
+            assert forbidden not in prompt, f"промт снова разрешает: {forbidden!r}"
+
+
 class TestAllPagesRead:
     def test_legacy_reads_pages_beyond_3_5(self, mock_ai_client, mock_st, minimal_card_docx, tmp_path):
         """Хардкод страниц 3–5 снят: текст 1-й и 6-й страниц КП доходит до LLM."""
