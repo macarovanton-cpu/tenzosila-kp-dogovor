@@ -69,7 +69,7 @@ pytest tests/ -v
 ## Домен
 ВЕСТА — автовесы Тензосилы. Линейки в MVP: С, СЛ, Ф, ФЛ, П.
 Обозначение: ВЕСТА-[линейка]-[max_т]-[длина_м]-[Ц].
-Терминология — `knowledge_base/spravochnik_vesta_fixed.md`.
+Терминология — `knowledge_base/spravochnik_vesta.md`.
 
 ## Streamlit skill
 При правке компонентов в `src/ui/` — сначала свериться с API из
