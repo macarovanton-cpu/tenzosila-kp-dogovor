@@ -347,3 +347,32 @@ class TestSurnameRegression:
         expected = _get_petrovich().lastname(surname, Case.GENITIVE, "male")
         fio_rp, _ = decline_fio(f"{surname} Иван Петрович", "male")
         assert fio_rp.split()[0] == expected
+
+
+# ---------------------------------------------------------------------------
+# fill_missing_derived
+# ---------------------------------------------------------------------------
+
+class TestFillMissingDerived:
+    def test_fills_empty_fields(self):
+        from src.contracts.requisites_transforms import fill_missing_derived
+        fields = {
+            "ЗАКАЗЧИК_ДИРЕКТОР_ФИО": "Фокин Сергей Владимирович",
+            "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ": "Генеральный директор",
+            "ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП": "",
+            "ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ": "",
+        }
+        fill_missing_derived(fields)
+        assert fields["ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП"] == "Фокина Сергея Владимировича"
+        assert fields["ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ"] == "С.В. Фокин"
+        assert fields["ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ_РП"] == "генерального директора"
+
+    def test_does_not_overwrite_extracted(self):
+        from src.contracts.requisites_transforms import fill_missing_derived
+        fields = {
+            "ЗАКАЗЧИК_ДИРЕКТОР_ФИО": "Фокин Сергей Владимирович",
+            "ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП": "Фокина С.В. (из документа)",
+        }
+        fill_missing_derived(fields)
+        # Извлечённое из документа не перетираем
+        assert fields["ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП"] == "Фокина С.В. (из документа)"

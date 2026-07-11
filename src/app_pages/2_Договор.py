@@ -56,9 +56,9 @@ from src.contracts.requisites_extract import (  # noqa: E402
     extract_text,
 )
 from src.contracts.requisites_parser import parse_requisites  # noqa: E402
-from src.contracts.requisites_transforms import derive_requisites  # noqa: E402
+from src.contracts.requisites_transforms import derive_requisites, fill_missing_derived  # noqa: E402
 from src.contracts.requisites_validation import validate_requisites  # noqa: E402
-from src.contracts.utils import format_date_parts, infer_director_gender  # noqa: E402
+from src.contracts.utils import format_date_parts, infer_director_gender, number_to_words  # noqa: E402
 from src.data_loader import load_models, load_payment_terms, load_prices  # noqa: E402
 from src.storage.supabase_client import (  # noqa: E402
     StorageError,
@@ -550,7 +550,12 @@ else:
                 kp_path = _save_uploaded(kp_file)
                 card_path = _save_uploaded(card_file_b)
                 raw = extract_kp_data_legacy(kp_path, card_path)
+                # Падежи/инициалы директора теперь считает код (петрович),
+                # LLM их не заполняет — вписываем только в пустые поля.
+                _dwarns = fill_missing_derived(raw.setdefault("requisites", {}))
                 set_extracted_data(raw)
+                for _dw in _dwarns:
+                    st.warning(_dw)
                 st.success("Данные извлечены")
             except NoTextLayerError as exc:
                 st.error(str(exc))
@@ -1042,6 +1047,12 @@ if not generated:
         nds = data.get("СПЕЦ_НДС", "")
         if not nds or "20" in nds:
             data["СПЕЦ_НДС"] = nds.replace("20", "22") if nds else "22"
+
+        # Итого прописью считает код (LLM больше не формирует, A4). Fallback
+        # только для дыры: в путях с items значение пересчитывается ниже.
+        _itogo_digits = "".join(ch for ch in data.get("СПЕЦ_ИТОГО", "") if ch.isdigit())
+        if _itogo_digits and not data.get("СПЕЦ_ИТОГО_ПРОПИСЬ"):
+            data["СПЕЦ_ИТОГО_ПРОПИСЬ"] = number_to_words(int(_itogo_digits))
 
         safe_name = sanitize_filename(data.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ", ""))
         safe_number = sanitize_filename(contract_number)

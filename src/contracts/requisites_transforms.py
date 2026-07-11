@@ -207,6 +207,19 @@ def decline_fio(fio: str, gender: str) -> tuple[str, bool]:
 # Публичная точка входа
 # ---------------------------------------------------------------------------
 
+def fill_missing_derived(fields: dict[str, str]) -> list[str]:
+    """Вписать производные поля in-place ТОЛЬКО в пустые (извлечённое из
+    документа не перетираем). Возвращает warnings для менеджера.
+
+    Используется в режиме B после LLM-извлечения: промт больше не заполняет
+    падежи/инициалы (A4), их считает код."""
+    derived, warnings = derive_requisites(fields)
+    for key, value in derived.items():
+        if not fields.get(key):
+            fields[key] = value
+    return warnings
+
+
 def derive_requisites(
     fields: dict[str, str],
 ) -> tuple[dict[str, str], list[str]]:
