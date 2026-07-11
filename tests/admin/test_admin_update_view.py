@@ -136,7 +136,7 @@ def test_items_to_dataframe_columns_and_key_last() -> None:
 
 def _admin_app() -> AppTest:
     at = AppTest.from_file(APP_PATH, default_timeout=30).run()
-    return at.switch_page("pages/3_Админка.py").run()
+    return at.switch_page("app_pages/3_Админка.py").run()
 
 
 def test_update_view_renders_without_exception() -> None:
@@ -159,7 +159,7 @@ def test_review_summary_has_no_false_removed(monkeypatch: pytest.MonkeyPatch) ->
     at.session_state["price_update_stage"] = "table"
     at.session_state["price_update_working_items"] = [_option()]
     at.run()
-    at.switch_page("pages/3_Админка.py").run()
+    at.switch_page("app_pages/3_Админка.py").run()
     at.button(key="price_update_check").click().run()
 
     assert not at.exception, f"Review raised: {at.exception}"
@@ -183,7 +183,7 @@ def test_flow_to_apply(monkeypatch: pytest.MonkeyPatch) -> None:
     at.session_state["price_update_stage"] = "table"
     at.session_state["price_update_working_items"] = [_model(), _option()]
     at.run()
-    at.switch_page("pages/3_Админка.py").run()
+    at.switch_page("app_pages/3_Админка.py").run()
 
     at.button(key="price_update_check").click().run()
     at.button(key="price_update_apply").click().run()
@@ -199,7 +199,7 @@ def test_edit_current_enters_table_from_prices_json() -> None:
     at = AppTest.from_file(APP_PATH, default_timeout=30)
     at.session_state["price_update_stage"] = "source"
     at.run()
-    at.switch_page("pages/3_Админка.py").run()
+    at.switch_page("app_pages/3_Админка.py").run()
 
     at.button(key="price_update_pick_current").click().run()
 

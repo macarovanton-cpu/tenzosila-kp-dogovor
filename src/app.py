@@ -3,7 +3,7 @@ from pathlib import Path
 
 import streamlit as st
 
-_pages = Path(__file__).parent / "pages"
+_pages = Path(__file__).parent / "app_pages"
 
 pg = st.navigation(
     [

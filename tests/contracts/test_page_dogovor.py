@@ -31,7 +31,7 @@ def test_mode_b_set_extracted_data_makes_form_ready(mock_st):
 
 
 def test_extract_from_files_legacy_alias_still_importable():
-    """Импорт extract_from_files из extractor работает (для pages/2_Договор.py)."""
+    """Импорт extract_from_files из extractor работает (для app_pages/2_Договор.py)."""
     from src.contracts.extractor import extract_from_files, extract_kp_data_legacy
     assert extract_from_files is extract_kp_data_legacy
 
@@ -104,6 +104,10 @@ class _FakeStreamlitModule:
     def container(self, *args, **kwargs):
         return _FakeContextManager()
 
+    @property
+    def sidebar(self):
+        return self
+
     def markdown(self, *args, **kwargs):
         pass
 
@@ -143,7 +147,7 @@ def _load_dogovor_page(monkeypatch):
     import src.contracts.state as state_module
 
     monkeypatch.setattr(state_module, "st", fake_st)
-    page_path = Path(__file__).parents[2] / "src" / "pages" / "2_Договор.py"
+    page_path = Path(__file__).parents[2] / "src" / "app_pages" / "2_Договор.py"
     spec = importlib.util.spec_from_file_location("dogovor_page_for_test", page_path)
     assert spec is not None
     module = importlib.util.module_from_spec(spec)

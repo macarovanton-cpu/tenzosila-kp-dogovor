@@ -914,6 +914,8 @@ if is_extracted():
 # Секция 3 — Ручной ввод (общая)
 # ---------------------------------------------------------------------------
 
+st.subheader("Параметры договора")
+
 # --- Автовыбор типа документа (с ручным override) ---
 cs = st.session_state["contract"]
 _auto_deal = {
@@ -942,7 +944,6 @@ w_contract_type = st.radio(
     key="w_contract_type",
 )
 
-st.subheader("Параметры договора")
 _manual = st.session_state["contract"]["manual"]
 manual_col1, manual_col2 = st.columns(2)
 with manual_col1:
@@ -998,12 +999,12 @@ if not generated:
         validate_requisites(_req_now) if _req_now else ([], [])
     )
     if _req_errors:
-        with st.container(border=True):
+        with st.sidebar.container(border=True):
             st.markdown(f"**:material/error: Ошибки реквизитов ({len(_req_errors)})**")
             for _e in _req_errors:
                 st.markdown(f"- {_e}")
     if _req_warnings:
-        with st.container(border=True):
+        with st.sidebar.container(border=True):
             st.markdown(
                 f"**:material/warning: Предупреждения по реквизитам "
                 f"({len(_req_warnings)})**"

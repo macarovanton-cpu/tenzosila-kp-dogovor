@@ -20,7 +20,7 @@ def _element_values(elements: list) -> list[str]:
 def test_admin_page_shows_price_diagnostics() -> None:
     at = _fresh_app()
 
-    at.switch_page("pages/3_Админка.py").run()
+    at.switch_page("app_pages/3_Админка.py").run()
 
     assert not at.exception, f"Admin page raised: {at.exception}"
     page_text = [

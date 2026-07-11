@@ -56,7 +56,7 @@ def _parse(at: AppTest, card: str) -> None:
 def test_reparse_preserves_fields_absent_from_new_card():
     """Поля из первой карточки, которых нет во второй, сохраняются (merge)."""
     at = _fresh_app()
-    at.switch_page("pages/2_Договор.py").run()
+    at.switch_page("app_pages/2_Договор.py").run()
     assert not at.exception, f"Page raised: {at.exception}"
 
     _parse(at, _CARD_A)
@@ -76,7 +76,7 @@ def test_reparse_preserves_fields_absent_from_new_card():
 def test_clear_button_resets_all_fields():
     """«Очистить реквизиты» — полный сброс полей, w_-ключей и поля вставки."""
     at = _fresh_app()
-    at.switch_page("pages/2_Договор.py").run()
+    at.switch_page("app_pages/2_Договор.py").run()
 
     _parse(at, _CARD_A)
     assert at.session_state["contract"]["requisites"]["ЗАКАЗЧИК_ИНН"]
@@ -96,7 +96,7 @@ def test_gender_reinferred_on_new_card():
     """Пол директора не залипает, ПОКА не выбран вручную: смена карточки →
     пере-inference из нового ФИО (P1-8: ручной выбор защищён отдельным тестом)."""
     at = _fresh_app()
-    at.switch_page("pages/2_Договор.py").run()
+    at.switch_page("app_pages/2_Договор.py").run()
 
     _parse(at, _CARD_MALE_NOM)  # Иванов Иван Иванович
     req = at.session_state["contract"]["requisites"]
@@ -112,7 +112,7 @@ def test_manual_derived_survives_reparse_of_same_card():
     """Ручная правка производного (ФИО_РП) переживает повторное распознавание
     той же карточки; при смене ФИО производное пересчитывается."""
     at = _fresh_app()
-    at.switch_page("pages/2_Договор.py").run()
+    at.switch_page("app_pages/2_Договор.py").run()
 
     _parse(at, _CARD_MALE_NOM)
     req = at.session_state["contract"]["requisites"]
@@ -139,7 +139,7 @@ def test_manual_primary_field_survives_conflicting_reparse():
     """P1-8: ручная правка первичного поля переживает переразбор текста,
     где для того же поля встретилось ДРУГОЕ значение."""
     at = _fresh_app()
-    at.switch_page("pages/2_Договор.py").run()
+    at.switch_page("app_pages/2_Договор.py").run()
 
     _parse(at, _CARD_A)
     req = at.session_state["contract"]["requisites"]
@@ -164,7 +164,7 @@ def test_derived_not_contaminated_by_rejected_reparse():
     """P1-8: производное поле не переезжает на значение из ОТКЛОНЁННОГО
     (защищённого ручным вводом первичного поля) переразбора."""
     at = _fresh_app()
-    at.switch_page("pages/2_Договор.py").run()
+    at.switch_page("app_pages/2_Договор.py").run()
 
     _parse(at, _CARD_MALE_NOM)
     req = at.session_state["contract"]["requisites"]
@@ -188,7 +188,7 @@ def test_manual_gender_survives_reparse():
     """P1-8: ручной выбор пола директора переживает переразбор — даже той же
     карточки, где авто-инференс дал бы противоположный пол."""
     at = _fresh_app()
-    at.switch_page("pages/2_Договор.py").run()
+    at.switch_page("app_pages/2_Договор.py").run()
 
     _parse(at, _CARD_MALE_NOM)  # Иванов Иван Иванович → авто "male"
     req = at.session_state["contract"]["requisites"]
