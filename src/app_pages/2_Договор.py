@@ -552,6 +552,8 @@ else:
                 raw = extract_kp_data_legacy(kp_path, card_path)
                 set_extracted_data(raw)
                 st.success("Данные извлечены")
+            except NoTextLayerError as exc:
+                st.error(str(exc))
             except Exception as exc:
                 st.error(f"Ошибка извлечения: {exc}")
 

@@ -96,7 +96,8 @@ class TestExtractCardData:
         ]
         pdf_path = tmp_path / "card.pdf"
         pdf_path.write_bytes(b"dummy")
-        with patch("src.contracts.extractor.extract_pdf_text", return_value="карточка текст"):
+        card_text = "ООО Ромашка ИНН 7701234567 КПП 770101001 ОГРН 1234567890123 р/с 40702810000000000001"
+        with patch("src.contracts.extractor.extract_pdf_text", return_value=card_text):
             from src.contracts.extractor import extract_card_data
             result = extract_card_data(str(pdf_path))
         assert "requisites" in result
@@ -107,3 +108,53 @@ class TestLegacyAlias:
         """extract_from_files указывает на ту же функцию что extract_kp_data_legacy."""
         from src.contracts.extractor import extract_from_files, extract_kp_data_legacy
         assert extract_from_files is extract_kp_data_legacy
+
+
+def _make_pdf(path, pages: list[str]) -> str:
+    """PDF с текстовым слоем: одна строка на страницу (pymupdf)."""
+    import fitz
+    doc = fitz.open()
+    for text in pages:
+        page = doc.new_page()
+        page.insert_text((72, 72), text)
+    doc.save(str(path))
+    doc.close()
+    return str(path)
+
+
+class TestEmptyInput:
+    def test_scan_kp_raises_before_ai(self, mock_ai_client, mock_st, minimal_card_docx, tmp_path):
+        """Скан КП (пустой текстовый слой) → NoTextLayerError, LLM не вызывается."""
+        from src.contracts.extractor import extract_kp_data_legacy
+        from src.contracts.requisites_extract import NoTextLayerError
+        kp_path = _make_pdf(tmp_path / "kp.pdf", [""])
+        with pytest.raises(NoTextLayerError, match="КП"):
+            extract_kp_data_legacy(kp_path, minimal_card_docx)
+        mock_ai_client.chat.completions.create.assert_not_called()
+
+    def test_scan_card_pdf_raises_before_ai(self, mock_ai_client, mock_st, tmp_path):
+        """Скан карточки (PDF без текста) → NoTextLayerError, LLM не вызывается."""
+        from src.contracts.extractor import extract_card_data
+        from src.contracts.requisites_extract import NoTextLayerError
+        card_path = _make_pdf(tmp_path / "card.pdf", [""])
+        with pytest.raises(NoTextLayerError, match="Карточка"):
+            extract_card_data(card_path)
+        mock_ai_client.chat.completions.create.assert_not_called()
+
+
+class TestAllPagesRead:
+    def test_legacy_reads_pages_beyond_3_5(self, mock_ai_client, mock_st, minimal_card_docx, tmp_path):
+        """Хардкод страниц 3–5 снят: текст 1-й и 6-й страниц КП доходит до LLM."""
+        mock_ai_client.chat.completions.create.return_value.choices = [
+            MagicMock(message=MagicMock(content=json.dumps(CARD_AI_RESPONSE)))
+        ]
+        filler = "Автомобильные весы ВЕСТА, коммерческое предложение, страница-наполнитель."
+        kp_path = _make_pdf(
+            tmp_path / "kp.pdf",
+            ["MARKER_PAGE_1 " + filler, filler, filler, filler, filler, "MARKER_PAGE_6 " + filler],
+        )
+        from src.contracts.extractor import extract_kp_data_legacy
+        extract_kp_data_legacy(kp_path, minimal_card_docx)
+        user_message = mock_ai_client.chat.completions.create.call_args[1]["messages"][1]["content"]
+        assert "MARKER_PAGE_1" in user_message
+        assert "MARKER_PAGE_6" in user_message

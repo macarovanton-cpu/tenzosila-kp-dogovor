@@ -11,8 +11,24 @@ import streamlit as st
 from docx import Document
 from openai import OpenAI
 
+from src.contracts.requisites_extract import MIN_NONSPACE_CHARS, NoTextLayerError
+
 PROMPT_PATH = Path(__file__).parent / "prompts" / "extract_contract_data.txt"
 CARD_PROMPT_PATH = Path(__file__).parent / "prompts" / "extract_card_data.txt"
+
+
+def _require_text(
+    text: str, doc_name: str, min_nonspace: int = MIN_NONSPACE_CHARS
+) -> None:
+    """Пустой/почти пустой текст (скан без текстового слоя) → громкая ошибка
+    ДО вызова LLM: на пустом входе модель фантазирует правдоподобные данные.
+    Для DOCX передавать min_nonspace=1: текстовый слой там есть по построению,
+    короткий валидный документ легитимен (как в requisites_extract)."""
+    if len("".join(text.split())) < min_nonspace:
+        raise NoTextLayerError(
+            f"{doc_name}: текст не извлечён — пустой документ или скан без "
+            "текстового слоя. Распознавание сканов не поддерживается."
+        )
 
 
 def extract_pdf_text(pdf_path: str, pages: list[int] = None) -> str:
@@ -31,28 +47,6 @@ def extract_pdf_text(pdf_path: str, pages: list[int] = None) -> str:
                 text = pdf.pages[page_num - 1].extract_text()
                 if text:
                     parts.append(f"=== СТРАНИЦА {page_num} ===\n{text}")
-
-        return "\n\n".join(parts)
-
-
-def extract_kp_text(pdf_path: str) -> str:
-    """
-    Извлекает нужные страницы из КП:
-    - Страница 3: технические характеристики
-    - Страница 4: спецификация и условия оплаты
-    - Страница 5: (если есть ОРИОН — третья спецификация)
-    Если страниц меньше — берёт что есть.
-    """
-    with pdfplumber.open(pdf_path) as pdf:
-        total = len(pdf.pages)
-        # Берём страницы 3–5, но не больше чем есть
-        target_pages = [p for p in [3, 4, 5] if p <= total]
-
-        parts = []
-        for page_num in target_pages:
-            text = pdf.pages[page_num - 1].extract_text()
-            if text:
-                parts.append(f"=== СТРАНИЦА {page_num} ===\n{text}")
 
         return "\n\n".join(parts)
 
@@ -129,11 +123,14 @@ def extract_kp_data_legacy(kp_path: str, card_path: str) -> dict:
     с 'requisites' и 'specification'. Используется только в режиме B.
     card_path может быть .docx или .pdf.
     """
-    kp_text = extract_kp_text(kp_path)
+    kp_text = extract_pdf_text(kp_path)
+    _require_text(kp_text, "КП")
     if card_path.lower().endswith('.pdf'):
         card_text = extract_pdf_text(card_path)
+        _require_text(card_text, "Карточка контрагента")
     else:
         card_text = extract_docx_text(card_path)
+        _require_text(card_text, "Карточка контрагента", min_nonspace=1)
     return extract_data_via_ai(kp_text, card_text)
 
 
@@ -146,8 +143,10 @@ def extract_card_data(card_path: str) -> dict:
     """
     if card_path.lower().endswith('.pdf'):
         card_text = extract_pdf_text(card_path)
+        _require_text(card_text, "Карточка контрагента")
     else:
         card_text = extract_docx_text(card_path)
+        _require_text(card_text, "Карточка контрагента", min_nonspace=1)
 
     with open(CARD_PROMPT_PATH, encoding='utf-8') as f:
         system_prompt = f.read()
