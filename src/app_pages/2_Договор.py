@@ -33,7 +33,7 @@ from src.contracts.kp_load import build_kp_payload  # noqa: E402
 from src.contracts.payment_line import format_payment_line, orion_poles_without_foundation  # noqa: E402
 from src.contracts.recommendations import ORION_POLES_WITHOUT_FOUNDATION_TEXT  # noqa: E402
 from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
-from src.contracts.spec_v2_filler import fill_spec_v2  # noqa: E402
+from src.contracts.spec_v2_filler import PaymentLinesLiteError, fill_spec_v2  # noqa: E402
 from src.contracts.supply_filler import build_supply_context, decide_contract_type  # noqa: E402
 from src.contracts.state import (  # noqa: E402
     clear_generated,
@@ -45,6 +45,7 @@ from src.contracts.state import (  # noqa: E402
     is_extracted,
     merge_requisites,
     set_extracted_data,
+    set_payment_lines,
     set_requisites,
     set_spec_items,
     set_specification,
@@ -65,7 +66,10 @@ from src.storage.supabase_client import (  # noqa: E402
     get_kp_by_number,
     list_recent_kps,
 )
-from src.ui.payment_lines_editor import render_payment_lines_editor  # noqa: E402
+from src.ui.payment_lines_editor import (  # noqa: E402
+    default_payment_rows,
+    render_payment_lines_editor,
+)
 from src.utils.format import sanitize_filename  # noqa: E402
 
 CONTRACT_TEMPLATE = Path("templates/contracts/contract.docx")
@@ -524,6 +528,15 @@ if mode == "Из базы (по номеру)":
             set_spec_items(payload["items"])
             st.session_state["contract"]["kp_snapshot"] = payload["snapshot"]
             st.session_state["contract"]["kp_payment_snapshot"] = payload["payment"]
+            # A5: сразу засеваем строки оплаты по пресету КП (эквивалент клика
+            # «Заполнить по умолчанию»), чтобы Спецификация не уходила с КП-lite
+            # строками, если менеджер не открыл редактор оплаты.
+            _snap = payload["snapshot"] or {}
+            set_payment_lines(default_payment_rows(
+                payload["payment"], payload["items"],
+                int((_snap.get("model") or {}).get("qty") or 1),
+                _snap.get("installation_scope"),
+            ))
             st.success(f"КП «{kp_row.get('kp_number', '')}» загружен из базы.")
 
 else:
@@ -1019,11 +1032,21 @@ if not generated:
             for _w in _req_warnings:
                 st.markdown(f"- {_w}")
 
+    # A5: если после автозасева строки оплаты всё равно пусты (пресет не
+    # поддерживает автозаполнение) — блокируем генерацию, чтобы Спецификация не
+    # уходила с КП-lite строками. Ошибка — в том же сайдбар-слое, что реквизиты.
+    _payment_empty = bool(cs.get("specification")) and not get_payment_lines()
+    if _payment_empty:
+        with st.sidebar.container(border=True):
+            st.markdown("**:material/error: Не заполнены условия оплаты**")
+            st.markdown("- Заполните таблицу оплаты (кнопка «Заполнить по умолчанию»).")
+
     generate_disabled = (
         not (bool(cs.get("specification")) and bool(cs.get("requisites")))
         or not contract_number
         or not object_address
         or bool(_req_errors)
+        or _payment_empty
     )
 
     # ⚠️ ЗЕРКАЛО: блок генерации ниже реплицирован в tests/autoverify/runner.py —
@@ -1120,6 +1143,11 @@ if not generated:
                         ]
                     try:
                         fill_spec_v2(str(SPEC_V2_TEMPLATE), data, items_for_docx, _gen_deal, str(spec_path), model_qty=_model_qty)
+                    except PaymentLinesLiteError as exc_lite:
+                        # A5-страж: не деградировать в v1 (он тоже отрендерит
+                        # КП-lite слоты). Файл не отдаём, генерацию рушим явно.
+                        st.error(f"Спецификация не сформирована: {exc_lite}")
+                        st.stop()
                     except Exception as exc_v2:
                         import traceback
                         from datetime import datetime

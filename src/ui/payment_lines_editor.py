@@ -240,6 +240,28 @@ def _validate_rows(rows: list[dict], spec_total: int) -> tuple[str | None, list[
     return error, warnings
 
 
+def default_payment_rows(
+    payment_snapshot: dict,
+    spec_items: list[dict],
+    model_qty: int,
+    installation_scope: str | None,
+) -> list[dict]:
+    """Строки редактора по пресету КП (ядро «Заполнить по умолчанию»).
+
+    Чистая функция без st: используется и кнопкой, и автозасевом при загрузке КП
+    (закрывает A5 — Спецификация не уходит с КП-lite строками оплаты).
+    Пустой список — пресет не поддерживает автозаполнение (custom/неизвестный).
+    """
+    spec_total = sum(int(it.get("total") or 0) for it in spec_items) * int(model_qty or 1)
+    lines = build_lines_from_snapshot(
+        payment_snapshot or {}, spec_items, model_qty,
+        installation_scope=installation_scope,
+    )
+    return _recompute_amounts(
+        _normalize_rows([_line_to_row(line) for line in lines]), spec_total
+    )
+
+
 def render_payment_lines_editor() -> None:
     st.subheader("Условия оплаты")
 
@@ -249,20 +271,16 @@ def render_payment_lines_editor() -> None:
     spec_total = sum(int(item.get("total") or 0) for item in spec_items) * model_qty
 
     if st.button("Заполнить по умолчанию"):
-        payment = st.session_state["contract"].get("kp_payment_snapshot") or {}
         kp_snap = st.session_state["contract"].get("kp_snapshot") or {}
-        lines = build_lines_from_snapshot(
-            payment, spec_items, model_qty,
-            installation_scope=kp_snap.get("installation_scope"),
+        new_rows = default_payment_rows(
+            st.session_state["contract"].get("kp_payment_snapshot") or {},
+            spec_items, model_qty, kp_snap.get("installation_scope"),
         )
-        if not lines:
+        if not new_rows:
             st.warning(
                 "Пресет оплаты из КП не поддерживает автозаполнение. "
                 "Заполните строки вручную."
             )
-        new_rows = _recompute_amounts(
-            _normalize_rows([_line_to_row(line) for line in lines]), spec_total
-        )
         set_payment_lines(new_rows)
         if "payment_editor" in st.session_state:
             del st.session_state["payment_editor"]
