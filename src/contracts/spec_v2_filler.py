@@ -1,6 +1,7 @@
 """spec_v2_filler.py — рендер спецификации v2 с динамическими clauses."""
 import copy
 import logging
+import re
 from datetime import datetime
 
 import streamlit as st
@@ -11,6 +12,24 @@ from docx.oxml.ns import qn
 from src.contracts.filler import _set_cell_text, fill_spec_with_items
 
 _logger = logging.getLogger(__name__)
+
+
+class PaymentLinesLiteError(ValueError):
+    """Строки оплаты — КП-lite (без нумерации 2.N/сумм), брак в Спецификацию."""
+
+
+def _assert_full_payment_lines(lines: list[str]) -> None:
+    """Инвариант-страж: строки оплаты Спецификации должны быть full-формата.
+
+    Full-строки (format_payment_line) всегда начинаются с «2.N.»; lite-строки
+    КП-движка (payment_renderer) — с «— », без нумерации и сумм. Ловим любой
+    не-нумерованный брак, чтобы он не уехал в клиентский документ (A5).
+    """
+    for ln in lines:
+        if not re.match(r"^\s*\d+\.\d", ln):
+            raise PaymentLinesLiteError(
+                f"Строка оплаты без нумерации «2.N» (lite из КП): {ln!r}"
+            )
 
 _CLAUSE_SECTION_ORDER = [
     "obligations_supplier",
@@ -298,8 +317,14 @@ def fill_spec_v2(
     doc = Document(output_path)
 
     # --- Payment ---
-    payment_lines = data.get("_payment_lines") or _payment_lines_from_data(data)
+    override = data.get("_payment_lines")
+    payment_lines = override or _payment_lines_from_data(data)
     if payment_lines:
+        # Страж A5: fallback на СПЕЦ_ОПЛАТА_П* — единственный путь, куда может
+        # протечь КП-lite (тире-строки без нумерации/сумм). Override _payment_lines
+        # строится format_payment_line'ом (всегда «2.N») и доверен по построению.
+        if not override:
+            _assert_full_payment_lines(payment_lines)
         found = _replace_marker_with_paragraphs(doc, "{{PAYMENT_SECTION}}", payment_lines)
     else:
         found = _remove_marker(doc, "{{PAYMENT_SECTION}}")
