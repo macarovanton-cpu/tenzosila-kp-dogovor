@@ -188,13 +188,11 @@ def _render_split(state: dict, preset: dict) -> str:
         "автоматически скрываются (как на КП)."
     )
     active_lines: list[str] = []
-    active_group_ids: list[str] = []
     for group in groups:
         group_id = group["id"]
         active = _split_group_active(group_id, state)
         if not active:
             continue
-        active_group_ids.append(group_id)
         defaults = group["default_percents"]
         if group_id not in split:
             split[group_id] = {k: int(defaults[k]) for k in defaults}
@@ -204,13 +202,21 @@ def _render_split(state: dict, preset: dict) -> str:
             cols = st.columns(2)
             for idx, k in enumerate(group["editable_percent_keys"]):
                 with cols[idx]:
+                    # Доставка платится целиком по факту отгрузки — предоплаты нет.
+                    # delivery.prepay — фантом (build_lines_from_snapshot его не
+                    # читает), любое ненулевое значение молча занижает график.
+                    # Держим read-only 0; пишем 0 в split напрямую, чтобы залипшее
+                    # значение виджета из прошлой сессии не утекло в генерацию.
+                    frozen = group_id == "delivery" and k == "prepay"
                     val = st.number_input(
                         _PCT_LABELS.get(k, f"{k}, %"),
                         min_value=0, max_value=100, step=1,
-                        value=int(split[group_id].get(k, defaults.get(k, 0))),
+                        value=0 if frozen else int(split[group_id].get(k, defaults.get(k, 0))),
+                        disabled=frozen,
+                        help="Доставка оплачивается целиком по факту отгрузки" if frozen else None,
                         key=f"split_{group_id}_{k}",
                     )
-                    split[group_id][k] = int(val)
+                    split[group_id][k] = 0 if frozen else int(val)
             trig = group.get("postpay_trigger", "")
             prepay = int(split[group_id].get("prepay", 0))
             postpay = int(split[group_id].get("postpay", 0))
@@ -219,30 +225,6 @@ def _render_split(state: dict, preset: dict) -> str:
                 f"доплата {postpay}% ({trig})."
             )
             active_lines.append(line)
-
-    # Кнопка «Применить ко всем группам»: копирует scales-проценты в остальные.
-    # Показываем только когда есть что копировать (есть не-scales активная группа).
-    has_other_active = any(gid != "scales" for gid in active_group_ids)
-    if has_other_active and "scales" in split:
-        if st.button(
-            "Применить ко всем группам",
-            help=(
-                "Скопировать проценты предоплаты и постоплаты из «Весы» "
-                "в остальные активные группы. Закрывает кейс ручной правки "
-                "50→30/70 в четырёх местах подряд."
-            ),
-            key="payment_split_apply_all",
-        ):
-            scales_vals = split["scales"]
-            for gid in active_group_ids:
-                if gid == "scales":
-                    continue
-                split[gid] = dict(scales_vals)
-                # Синхронизируем widget-keys, чтобы number_input после rerun
-                # подхватил новые значения (st.number_input управляется ключом).
-                for k, v in scales_vals.items():
-                    st.session_state[f"split_{gid}_{k}"] = int(v)
-            st.rerun()
 
     # Срок авансового платежа
     st.number_input(
