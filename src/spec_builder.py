@@ -244,6 +244,34 @@ _ORION_INSTALL_NAME_FOUNDATION = (
 _ORION_INSTALL_NAME_NO_FOUNDATION = "Монтаж ПАК «ОРИОН»"
 
 
+class MultipleOrionBundlesError(ValueError):
+    """Два+ бандла ОРИОН с шеф-монтажом в одной сделке — невозможная конфигурация.
+
+    UI это состояние не производит (выбор пакета взаимоисключающий, radio-семантика).
+    Страж ловит любой другой путь: старый снапшот, API, ручная правка state.
+    """
+
+
+def _is_orion_bundle(item_key: str, prices: dict) -> bool:
+    """True — опция является бандлом ОРИОН (components.shef_montazh > 0 в прайсе)."""
+    entry = (prices.get("options") or {}).get(item_key, {}) or {}
+    return int((entry.get("components") or {}).get("shef_montazh") or 0) > 0
+
+
+def _assert_single_orion_bundle(item_keys: Any, prices: dict) -> None:
+    """Страж A7-F2: расщепление рассчитано на ОДИН бандл ОРИОН, больше — падаем.
+
+    Второй бандл затёр бы монтажную строку первого (общий ключ orion_install) →
+    договор терял бы montazh_part, инвариант «Σ КП == Σ Договора» рушился.
+    """
+    bundles = [k for k in item_keys if _is_orion_bundle(k, prices)]
+    if len(bundles) > 1:
+        raise MultipleOrionBundlesError(
+            f"Несколько бандлов ОРИОН в одной сделке: {sorted(bundles)}. "
+            "Допустим ровно один пакет ОРИОН."
+        )
+
+
 def split_orion_bundle(
     item_key: str, opt: dict, prices: dict, *, has_foundation: bool
 ) -> list[tuple[str, dict[str, Any]]]:
@@ -335,6 +363,9 @@ def build_spec_items(
     has_foundation = any(
         k.startswith("foundation_") and (options_state.get(k) or {}).get("enabled")
         for k in options_state
+    )
+    _assert_single_orion_bundle(
+        [k for k, o in options_state.items() if o and o.get("enabled")], prices
     )
 
     for block_id in OPTION_BLOCKS_ORDER:

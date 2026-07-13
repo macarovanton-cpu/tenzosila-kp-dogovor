@@ -9,6 +9,7 @@ from typing import Any
 from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
 from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
 from src.spec_builder import (
+    _assert_single_orion_bundle,
     format_platform_size,
     resolve_payment_group,
     split_orion_bundle,
@@ -123,6 +124,7 @@ def _expand_orion_options(
     if "orion_install" in options:  # идемпотентность: уже расщеплено
         return options
     prices = prices or {}
+    _assert_single_orion_bundle(options.keys(), prices)
     has_foundation = any(k.startswith("foundation_") for k in options)
     expanded: dict[str, Any] = {}
     for key, opt in options.items():

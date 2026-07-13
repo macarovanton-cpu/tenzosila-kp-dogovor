@@ -589,6 +589,31 @@ def test_orion_split_preserves_kp_subtotal(prices, models_json):
     assert subtotal == state["model_price"] + 464_900
 
 
+# --- A7-F2: страж на два бандла ОРИОН ---
+
+
+def test_two_orion_bundles_raise(prices, models_json):
+    """Страж: два пакета ОРИОН в одной сделке → MultipleOrionBundlesError."""
+    import pytest
+
+    from src.spec_builder import MultipleOrionBundlesError
+
+    state = _orion_state()
+    state["options"]["orion_auto"] = {
+        "enabled": True, "price": 620_000, "qty": 1, "customer_side": False,
+        "block": "pak_orion",
+    }
+    with pytest.raises(MultipleOrionBundlesError):
+        build_spec_items(state, prices, models_json)
+
+
+def test_single_orion_bundle_does_not_raise(prices, models_json):
+    """Инвариант: один бандл ОРИОН — поведение 1:1, страж не срабатывает."""
+    items = build_spec_items(_orion_state(), prices, models_json)
+    keys = [it["item_key"] for it in items]
+    assert "orion_standard" in keys and "orion_install" in keys
+
+
 # --- build_construction_description ---
 
 
