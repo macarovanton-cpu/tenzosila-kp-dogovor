@@ -149,8 +149,8 @@ _DUE_UNIT_ADJ_GEN: dict[str, tuple[str, str]] = {
 }
 
 
-def due_days_phrase(n: int, unit: str = "банковских") -> str:
-    """«N (словами) <вид> дн[я|ей]» для «в течение N ...» (A9-долг «замок days=5»).
+def due_days_phrase(n: int, unit: str = "банковских", with_words: bool = True) -> str:
+    """«N (словами) <вид> дн[я|ей]» для «в течение N ...» (замок `days=5`, TECH_DEBT).
 
     Предлог «в течение» требует родительного падежа целиком: числительные 2–4
     здесь берут существительное в Р.п. МНОЖЕСТВЕННОГО числа («двух дней»), а не
@@ -158,10 +158,17 @@ def due_days_phrase(n: int, unit: str = "банковских") -> str:
     формы 2-4 и 5+ совпадают («дней») — расходится только форма для чисел на 1
     (кроме 11): «одного дня», «двадцати одного дня». Переиспользует _plural
     (тот же механизм, что и rubles_word) и days_genitive.
+
+    with_words=False — без прописи в скобках («30 банковских дней»): провод КП
+    (payment_renderer.py/payment_section.py) исторически печатал голую цифру,
+    прописи там не было. Провод Договор/Спецификация (payment_line.py) прописью
+    уже пользовался (days_genitive) — дефолт True сохраняет его формат.
     """
     adj_sg, adj_pl = _DUE_UNIT_ADJ_GEN[unit]
     adj = _plural(n, (adj_sg, adj_pl, adj_pl))
     noun = _plural(n, _DAYS_NOUN_GEN)
+    if not with_words:
+        return f"{n} {adj} {noun}"
     return f"{n} ({days_genitive(n)}) {adj} {noun}"
 
 

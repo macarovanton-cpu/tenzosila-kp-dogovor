@@ -149,7 +149,7 @@ def render_v1(state: dict[str, Any], preset: dict) -> str:
     postpay = 100 - prepay
     days = int(state.get("payment_days", preset.get("default_days", 5)))
     return preset.get("body_template", "").format(
-        prepay=prepay, postpay=postpay, days_phrase=due_days_phrase(days)
+        prepay=prepay, postpay=postpay, days_phrase=due_days_phrase(days, with_words=False)
     )
 
 
@@ -161,7 +161,8 @@ def render_v2(state: dict[str, Any], preset: dict) -> str:
     postpay = 100 - prepay - preship
     days = int(state.get("payment_days", preset.get("default_days", 5)))
     return preset.get("body_template", "").format(
-        prepay=prepay, preship=preship, postpay=postpay, days_phrase=due_days_phrase(days)
+        prepay=prepay, preship=preship, postpay=postpay,
+        days_phrase=due_days_phrase(days, with_words=False)
     )
 
 
@@ -177,14 +178,16 @@ def render_v3(state: dict[str, Any], preset: dict) -> str:
         "",
     )
     return preset.get("body_template", "").format(
-        days_phrase=due_days_phrase(days), trigger_text=trigger_text
+        days_phrase=due_days_phrase(days, with_words=False), trigger_text=trigger_text
     )
 
 
 def render_prepay_100(state: dict[str, Any], preset: dict) -> str:
     """100% предоплата — единственное поле: срок."""
     days = int(state.get("payment_days", preset.get("default_days", 5)))
-    return preset.get("body_template", "").format(p1=100, days_phrase=due_days_phrase(days))
+    return preset.get("body_template", "").format(
+        p1=100, days_phrase=due_days_phrase(days, with_words=False)
+    )
 
 
 def render_payment_block(
