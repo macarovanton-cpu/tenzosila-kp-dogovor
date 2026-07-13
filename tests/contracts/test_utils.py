@@ -5,6 +5,7 @@ from datetime import datetime
 import pytest
 
 from src.contracts.utils import (
+    due_days_phrase,
     format_date_parts,
     infer_director_gender,
     number_to_words,
@@ -34,6 +35,38 @@ class TestRublesWord:
         # 11–14 — ловушка: последняя цифра 1–4, но форма «рублей».
         for n in (11, 12, 13, 14, 111, 114):
             assert rubles_word(n) == 'рублей'
+
+
+class TestDueDaysPhrase:
+    """Замок days=5 снят: согласование «день»/«банковский» с числом (B9 — сеть
+    ловит класс, не случай). Родительный падеж после «в течение»: 2-4 и 5+
+    совпадают («дней»), расходится только форма для чисел на 1 (кроме 11)."""
+
+    @pytest.mark.parametrize("n,expected", [
+        (1,  "1 (одного) банковского дня"),
+        (2,  "2 (двух) банковских дней"),
+        (3,  "3 (трёх) банковских дней"),
+        (4,  "4 (четырёх) банковских дней"),
+        (5,  "5 (пяти) банковских дней"),
+        (11, "11 (одиннадцати) банковских дней"),
+        (20, "20 (двадцати) банковских дней"),
+        (21, "21 (двадцати одного) банковского дня"),
+        (22, "22 (двадцати двух) банковских дней"),
+        (25, "25 (двадцати пяти) банковских дней"),
+        (30, "30 (тридцати) банковских дней"),
+    ])
+    def test_with_words(self, n, expected):
+        assert due_days_phrase(n) == expected
+
+    def test_other_unit_adjective_agrees(self):
+        assert due_days_phrase(1, "рабочих") == "1 (одного) рабочего дня"
+        assert due_days_phrase(2, "рабочих") == "2 (двух) рабочих дней"
+
+    def test_without_words_kp_wire(self):
+        # Провод КП (payment_renderer.py) — без прописи в скобках, только
+        # согласованные прилагательное и существительное.
+        assert due_days_phrase(1, with_words=False) == "1 банковского дня"
+        assert due_days_phrase(30, with_words=False) == "30 банковских дней"
 
 
 class TestNumberToWords:

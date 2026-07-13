@@ -145,6 +145,29 @@ def test_a6_ruble_noun_agrees_in_line_and_itogo(generated) -> None:
     assert ") рублей" not in spec_text, "регресс A6 в ИТОГО Спецификации"
 
 
+def test_b9_days_singular_agrees_in_kp_and_spec(generated) -> None:
+    """Замок days=5 снят: days=1 согласуется в ОБОИХ проводах.
+
+    Фикстура days_singular: prepay_100, payment_days=1. До фикса печаталось
+    «1 (одного) банковских дней» (Спецификация/Договор) и «1 банковских дней»
+    (КП) — существительное/прилагательное не согласовывались с числом.
+    """
+    if generated.fixture_id != "days_singular":
+        return
+
+    # Провод Спецификация/Договор (код-путь): format_payment_line.
+    full = "\n".join(_full_lines(generated))
+    assert "в течение 1 (одного) банковского дня" in full, \
+        f"провод Спецификация/Договор не согласовал days=1: {full!r}"
+    assert "банковских дней" not in full, f"регресс в проводе Договор: {full!r}"
+
+    # Провод КП (настоящая генерация документа): render_payment_block.
+    kp = "\n".join(_kp_lines(generated))
+    assert "в течение 1 банковского дня" in kp, \
+        f"провод КП не согласовал days=1: {kp!r}"
+    assert "банковских дней" not in kp, f"регресс в проводе КП: {kp!r}"
+
+
 def test_w_rama_ramps_named_in_both(generated) -> None:
     """Рама/пандусы называются в объекте весов обоих документов (реш. Антона)."""
     if generated.fixture_id != "rama_ploshadka_montazh":
