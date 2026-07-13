@@ -1,6 +1,7 @@
 """Сборка spec_items — списка позиций для раздела спецификации КП."""
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from src.config import (
@@ -13,6 +14,8 @@ from src.data_loader import (
 )
 from src.filters import get_visible_options
 from src.term_days import resolve_term_role
+
+_logger = logging.getLogger(__name__)
 
 # Дженерик-обозначения групп фундаментов в prices.json. Подменяются на
 # конкретную линейку выбранной модели в имени позиции спецификации.
@@ -232,6 +235,92 @@ def resolve_payment_group(item_key: str) -> str:
     return "scales"
 
 
+# Имена строк расщеплённого бандла ОРИОН (FIX_SPEC §A1). Единый источник для
+# КП (build_spec_items) и Договора (from_kp): имена — как сейчас в договоре.
+_ORION_PAK_NAME = "Программно-аппаратный комплекс «ОРИОН»"
+_ORION_INSTALL_NAME_FOUNDATION = (
+    "Монтаж и настройка программно-аппаратного комплекса «ОРИОН»"
+)
+_ORION_INSTALL_NAME_NO_FOUNDATION = "Монтаж ПАК «ОРИОН»"
+
+
+class MultipleOrionBundlesError(ValueError):
+    """Два+ бандла ОРИОН с шеф-монтажом в одной сделке — невозможная конфигурация.
+
+    UI это состояние не производит (выбор пакета взаимоисключающий, radio-семантика).
+    Страж ловит любой другой путь: старый снапшот, API, ручная правка state.
+    """
+
+
+def _is_orion_bundle(item_key: str, prices: dict) -> bool:
+    """True — опция является бандлом ОРИОН (components.shef_montazh > 0 в прайсе)."""
+    entry = (prices.get("options") or {}).get(item_key, {}) or {}
+    return int((entry.get("components") or {}).get("shef_montazh") or 0) > 0
+
+
+def _assert_single_orion_bundle(item_keys: Any, prices: dict) -> None:
+    """Страж A7-F2: расщепление рассчитано на ОДИН бандл ОРИОН, больше — падаем.
+
+    Второй бандл затёр бы монтажную строку первого (общий ключ orion_install) →
+    договор терял бы montazh_part, инвариант «Σ КП == Σ Договора» рушился.
+    """
+    bundles = [k for k in item_keys if _is_orion_bundle(k, prices)]
+    if len(bundles) > 1:
+        raise MultipleOrionBundlesError(
+            f"Несколько бандлов ОРИОН в одной сделке: {sorted(bundles)}. "
+            "Допустим ровно один пакет ОРИОН."
+        )
+
+
+def split_orion_bundle(
+    item_key: str, opt: dict, prices: dict, *, has_foundation: bool
+) -> list[tuple[str, dict[str, Any]]]:
+    """Расщепить бандл ОРИОН на ПАК-оборудование + шеф-монтаж (FIX_SPEC §A1).
+
+    Возвращает `[(item_key, opt_ПАК), ("orion_install", opt_монтаж)]` для бандла
+    (опция с `components.shef_montazh` в прайсе — ровно 5 orion-пакетов), либо
+    `[(item_key, opt)]` без изменений для всех прочих опций.
+
+    Предикат — по components (не по списку id): `canopy_turnkey_*` имеют
+    components, но без `shef_montazh` — не матчатся. Дележ фактической цены КП
+    пропорционально components, округление в ПАК: сумма частей == цене бандла
+    (деньги не теряются). Обе части наследуют qty/customer_side бандла.
+    Нет components (доисторический прайс) → бандл не расщеплён, WARNING.
+    """
+    entry = (prices.get("options") or {}).get(item_key, {}) or {}
+    components = entry.get("components") or {}
+    equipment = int(components.get("equipment") or 0)
+    montazh = int(components.get("shef_montazh") or 0)
+    if montazh <= 0 or equipment + montazh <= 0:
+        # Опция без shef_montazh — не бандл. Бандл по имени, но без components в
+        # прайсе → fallback без расщепления (доисторический снапшот).
+        if item_key.startswith("orion") and item_key not in (
+            "orion_cable_poles", "orion_install"
+        ):
+            _logger.warning(
+                "split_orion_bundle: у %r нет components.shef_montazh — не расщеплён",
+                item_key,
+            )
+        return [(item_key, opt)]
+
+    price = int(opt.get("price") or 0)
+    montazh_part = round(price * montazh / (equipment + montazh))
+    equipment_part = price - montazh_part
+    install_name = (
+        _ORION_INSTALL_NAME_FOUNDATION if has_foundation
+        else _ORION_INSTALL_NAME_NO_FOUNDATION
+    )
+    common = {
+        "enabled": True,
+        "qty": opt.get("qty") or 1,
+        "customer_side": opt.get("customer_side", False),
+    }
+    return [
+        (item_key, {**common, "price": equipment_part, "spec_name": _ORION_PAK_NAME}),
+        ("orion_install", {**common, "price": montazh_part, "spec_name": install_name}),
+    ]
+
+
 def build_spec_items(
     state: dict[str, Any], prices: dict, models_json: dict
 ) -> list[dict]:
@@ -270,33 +359,46 @@ def build_spec_items(
     length = int(state.get("model_length") or 18)
     prices_options = prices.get("options", {})
     options_state = state.get("options", {})
+    # Наличие активного фундамента — влияет на имя монтажа расщеплённого ОРИОНа.
+    has_foundation = any(
+        k.startswith("foundation_") and (options_state.get(k) or {}).get("enabled")
+        for k in options_state
+    )
+    _assert_single_orion_bundle(
+        [k for k, o in options_state.items() if o and o.get("enabled")], prices
+    )
 
     for block_id in OPTION_BLOCKS_ORDER:
         for key, entry in get_visible_options(prices_options, line, length, block_id):
             opt = options_state.get(key)
             if not opt or not opt.get("enabled"):
                 continue
-            computed_qty = int(opt.get("qty", 1))
-            if opt.get("customer_side"):
-                computed_price = 0
-            else:
-                computed_price = int(opt.get("price", 0))
-            qty, price, is_ov = _apply_override(
-                computed_qty, computed_price, overrides.get(key)
-            )
-            items.append({
-                "num": len(items) + 1,
-                "item_key": key,
-                "name": _option_name(entry, opt, key, state),
-                "qty": qty,
-                "unit": UNIT_BY_BLOCK.get(block_id, "шт"),
-                "price": price,
-                "total": price * qty,
-                "is_overridden": is_ov,
-                "customer_side": bool(opt.get("customer_side", False)),
-                "payment_group": resolve_payment_group(key),
-                "term_role": resolve_term_role(key),
-            })
+            # Бандл ОРИОН → две строки (ПАК + шеф-монтаж); прочее — одна строка.
+            for item_key, part in split_orion_bundle(
+                key, opt, prices, has_foundation=has_foundation
+            ):
+                computed_qty = int(part.get("qty", 1))
+                if part.get("customer_side"):
+                    computed_price = 0
+                else:
+                    computed_price = int(part.get("price", 0))
+                qty, price, is_ov = _apply_override(
+                    computed_qty, computed_price, overrides.get(item_key)
+                )
+                items.append({
+                    "num": len(items) + 1,
+                    "item_key": item_key,
+                    "name": part.get("spec_name")
+                    or _option_name(entry, part, item_key, state),
+                    "qty": qty,
+                    "unit": UNIT_BY_BLOCK.get(block_id, "шт"),
+                    "price": price,
+                    "total": price * qty,
+                    "is_overridden": is_ov,
+                    "customer_side": bool(part.get("customer_side", False)),
+                    "payment_group": resolve_payment_group(item_key),
+                    "term_role": resolve_term_role(item_key),
+                })
 
     for custom in _iter_valid_custom_items(state):
         item_key = custom["id"]

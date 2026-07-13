@@ -740,23 +740,26 @@ def test_generated_docx_full_set_with_canopy_and_orion(prices):
     # row 2 = frame (роль None) → continue
     text, vm = col2(trs[2])
     assert vm == "continue" and text == ""
-    # row 3 = orion → отдельная строка "5"
+    # row 3 = orion ПАК → отдельная строка "5" (A7: бандл расщеплён на две строки)
     text, vm = col2(trs[3])
     assert vm == "none" and text == "5"
-    # row 4 = canopy → "25"
+    # row 4 = orion_install (шеф-монтаж) → та же роль orion, "5"
     text, vm = col2(trs[4])
-    assert vm == "none" and text == "25"
-    # row 5 = foundation → "10"
+    assert vm == "none" and text == "5"
+    # row 5 = canopy → "25"
     text, vm = col2(trs[5])
-    assert vm == "none" and text == "10"
-    # row 6 = delivery → "1"
+    assert vm == "none" and text == "25"
+    # row 6 = foundation → "10"
     text, vm = col2(trs[6])
-    assert vm == "none" and text == "1"
-    # row 7 = install → "3"
+    assert vm == "none" and text == "10"
+    # row 7 = delivery → "1"
     text, vm = col2(trs[7])
-    assert vm == "none" and text == "3"
-    # row 8 = verification → "1"
+    assert vm == "none" and text == "1"
+    # row 8 = install → "3"
     text, vm = col2(trs[8])
+    assert vm == "none" and text == "3"
+    # row 9 = verification → "1"
+    text, vm = col2(trs[9])
     assert vm == "none" and text == "1"
 
 

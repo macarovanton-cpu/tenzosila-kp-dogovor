@@ -372,10 +372,20 @@ TBL{cols=3;grid=5670,2127,2126}
   TR{h=auto:71}
     TC{}
       P{style='Default';spacing=line:288/auto}
-        R{font=PT Sans;sz=11;color=000000} 'ПАК ОРИОН Стандарт (оборудование + шеф-монтаж)'
+        R{font=PT Sans;sz=11;color=000000} 'Программно-аппаратный комплекс «ОРИОН»'
     TC{}
       P{jc=center;spacing=line:288/auto}
-        R{font=PT Sans;sz=11;color=000000} '464 900'
+        R{font=PT Sans;sz=11;color=000000} '299 900'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '5'
+  TR{h=auto:71}
+    TC{}
+      P{style='Default';spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} 'Монтаж и настройка программно-аппаратного комплекса «ОРИОН»'
+    TC{}
+      P{jc=center;spacing=line:288/auto}
+        R{font=PT Sans;sz=11;color=000000} '165 000'
     TC{}
       P{jc=center;spacing=line:288/auto}
         R{font=PT Sans;sz=11;color=000000} '5'

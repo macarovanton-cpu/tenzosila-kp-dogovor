@@ -34,6 +34,44 @@ _FOUNDATION_EXECUTION_DEFAULT = "пандусный"
 # но менеджер оставил тип «Прочее» → клаузы монтажа не попадут в договор.
 _LOOKS_LIKE_INSTALL_RE = re.compile(r"монтаж|пусконалад|ПНР|шеф.?монтаж", re.IGNORECASE)
 
+# Пакеты ОРИОН — взаимоисключающие (radio-семантика): в одной сделке допустим
+# ровно один. Движок (spec_builder._assert_single_orion_bundle) — страж на два.
+_ORION_PACKAGE_KEYS: tuple[str, ...] = (
+    "orion_lite",
+    "orion_standard",
+    "orion_standard_plus",
+    "orion_auto",
+    "orion_auto_plus",
+)
+
+
+def _disable_other_orion_packages(
+    session_state: dict, active_key: str, widget_suffix: str
+) -> None:
+    """Активный пакет ОРИОН включён → снять остальные (radio-семантика).
+
+    Мутирует session_state: снимает чекбоксы прочих пакетов и чистит их state и
+    override (включая сиротский orion_install — по образцу чистки в
+    _render_option_row). Чистая функция над dict: вызывается Streamlit-колбэком
+    и напрямую из тестов.
+    """
+    if not session_state.get(f"opt_{active_key}_enabled{widget_suffix}"):
+        return  # активный сняли — остальные не трогаем
+    options = session_state.setdefault("options", {})
+    overrides = session_state.setdefault("spec_items_overrides", {})
+    for other in _ORION_PACKAGE_KEYS:
+        if other == active_key:
+            continue
+        session_state[f"opt_{other}_enabled{widget_suffix}"] = False
+        options.pop(other, None)
+        overrides.pop(other, None)
+    overrides.pop("orion_install", None)
+
+
+def _on_orion_package_toggle(active_key: str, widget_suffix: str) -> None:
+    """Streamlit-колбэк чекбокса пакета ОРИОН (тонкая обёртка над чистой функцией)."""
+    _disable_other_orion_packages(st.session_state, active_key, widget_suffix)
+
 
 def render_options_section(
     state: dict,
@@ -99,10 +137,18 @@ def _render_option_row(
             key=checkbox_key,
         )
     else:
+        # Пакеты ОРИОН — radio-семантика: включение снимает остальные пакеты.
+        orion_kwargs: dict[str, Any] = {}
+        if key in _ORION_PACKAGE_KEYS:
+            orion_kwargs = {
+                "on_change": _on_orion_package_toggle,
+                "args": (key, widget_suffix),
+            }
         enabled = st.checkbox(
             display_label,
             value=state.get("options", {}).get(key, {}).get("enabled", False),
             key=checkbox_key,
+            **orion_kwargs,
         )
 
     # Описание из options_meta
@@ -129,6 +175,10 @@ def _render_option_row(
         # При выключении опции сбросить её override в spec-таблице
         overrides = state.setdefault("spec_items_overrides", {})
         overrides.pop(key, None)
+        # Бандл ОРИОН расщепляется на orion_install — чистим сиротский override
+        # монтажной строки, иначе он переживёт выключение опции.
+        if key.startswith("orion") and key not in ("orion_cable_poles", "orion_install"):
+            overrides.pop("orion_install", None)
         return
 
     if _requires_foundation_execution_choice(key):
@@ -170,6 +220,11 @@ def _render_option_row(
         st.caption("Поверка силами Заказчика — цена 0 ₽.")
     else:
         price_value = _render_price_widget(key, params, widget_suffix)
+        # Бандл ОРИОН печатается в спецификации двумя строками — цена делится.
+        if (entry.get("components") or {}).get("shef_montazh"):
+            st.caption(
+                "В спецификации делится на оборудование + шеф-монтаж (две строки)."
+            )
 
     qty = 1
     if block_id in QTY_ENABLED_BLOCKS:

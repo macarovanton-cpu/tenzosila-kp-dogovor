@@ -506,12 +506,112 @@ def test_resolve_payment_group_rules():
     # монтаж и поверка → installation_and_verification
     assert resolve_payment_group("install_default") == "installation_and_verification"
     assert resolve_payment_group("verification_default") == "installation_and_verification"
+    # шеф-монтаж ОРИОН (расщеплённая доля) → installation_and_verification (A7)
+    assert resolve_payment_group("orion_install") == "installation_and_verification"
     # рамы / пандусы / ограждения / навес / люки / конструкционные → scales
     assert resolve_payment_group("frame_standard") == "scales"
     assert resolve_payment_group("ramp_set_1x350") == "scales"
     assert resolve_payment_group("fence_norma") == "scales"
     assert resolve_payment_group("canopy_turnkey_18") == "scales"
     assert resolve_payment_group("hatches_standard") == "scales"
+
+
+# --- A7: расщепление бандла ОРИОН в build_spec_items ---
+
+
+def _orion_state(with_foundation: bool = False, price: int = 464_900) -> dict:
+    state = _base_state()
+    opts = {
+        "orion_standard": {
+            "enabled": True, "price": price, "qty": 1, "customer_side": False,
+            "block": "pak_orion",
+        },
+    }
+    if with_foundation:
+        opts["foundation_s_f_18"] = {
+            "enabled": True, "price": 1_000_000, "qty": 1, "customer_side": False,
+            "block": "foundations",
+        }
+    state["options"] = opts
+    return state
+
+
+def test_orion_bundle_split_into_two_rows(prices, models_json):
+    """Бандл ОРИОН → две строки: ПАК-оборудование + шеф-монтаж."""
+    items = build_spec_items(_orion_state(), prices, models_json)
+    keys = [it["item_key"] for it in items]
+    assert "orion_standard" in keys
+    assert "orion_install" in keys
+
+
+def test_orion_split_sums_equal_bundle_price(prices, models_json):
+    """Инвариант: equipment_part + montazh_part == цене бандла (копейка в копейку)."""
+    items = build_spec_items(_orion_state(price=464_900), prices, models_json)
+    pak = next(it for it in items if it["item_key"] == "orion_standard")
+    install = next(it for it in items if it["item_key"] == "orion_install")
+    assert pak["price"] + install["price"] == 464_900
+
+
+def test_orion_split_sums_equal_after_slider_override(prices, models_json):
+    """Слайдер бандла (иная цена opt) делится пропорционально, сумма == цене."""
+    items = build_spec_items(_orion_state(price=400_000), prices, models_json)
+    pak = next(it for it in items if it["item_key"] == "orion_standard")
+    install = next(it for it in items if it["item_key"] == "orion_install")
+    assert pak["price"] + install["price"] == 400_000
+
+
+def test_orion_install_payment_group_and_role(prices, models_json):
+    """Шеф-монтаж ОРИОН уходит в iv-бакет, роль срока — orion (дедуп срока)."""
+    items = build_spec_items(_orion_state(), prices, models_json)
+    install = next(it for it in items if it["item_key"] == "orion_install")
+    assert install["payment_group"] == "installation_and_verification"
+    assert install["term_role"] == "orion"
+
+
+def test_orion_install_name_depends_on_foundation(prices, models_json):
+    """Имя монтажа ОРИОН: с фундаментом — «Монтаж и настройка…», без — «Монтаж ПАК…»."""
+    with_f = build_spec_items(_orion_state(with_foundation=True), prices, models_json)
+    no_f = build_spec_items(_orion_state(with_foundation=False), prices, models_json)
+    name_with = next(it["name"] for it in with_f if it["item_key"] == "orion_install")
+    name_without = next(it["name"] for it in no_f if it["item_key"] == "orion_install")
+    assert name_with == "Монтаж и настройка программно-аппаратного комплекса «ОРИОН»"
+    assert name_without == "Монтаж ПАК «ОРИОН»"
+    # ПАК-строка — каноническое имя спецификации (как в договоре, ноль переименований)
+    pak_name = next(it["name"] for it in no_f if it["item_key"] == "orion_standard")
+    assert pak_name == "Программно-аппаратный комплекс «ОРИОН»"
+
+
+def test_orion_split_preserves_kp_subtotal(prices, models_json):
+    """КП-итог не изменился: Σtotal позиций = модель + полная цена бандла."""
+    state = _orion_state(price=464_900)
+    items = build_spec_items(state, prices, models_json)
+    subtotal = sum(it["total"] for it in items)
+    assert subtotal == state["model_price"] + 464_900
+
+
+# --- A7-F2: страж на два бандла ОРИОН ---
+
+
+def test_two_orion_bundles_raise(prices, models_json):
+    """Страж: два пакета ОРИОН в одной сделке → MultipleOrionBundlesError."""
+    import pytest
+
+    from src.spec_builder import MultipleOrionBundlesError
+
+    state = _orion_state()
+    state["options"]["orion_auto"] = {
+        "enabled": True, "price": 620_000, "qty": 1, "customer_side": False,
+        "block": "pak_orion",
+    }
+    with pytest.raises(MultipleOrionBundlesError):
+        build_spec_items(state, prices, models_json)
+
+
+def test_single_orion_bundle_does_not_raise(prices, models_json):
+    """Инвариант: один бандл ОРИОН — поведение 1:1, страж не срабатывает."""
+    items = build_spec_items(_orion_state(), prices, models_json)
+    keys = [it["item_key"] for it in items]
+    assert "orion_standard" in keys and "orion_install" in keys
 
 
 # --- build_construction_description ---
