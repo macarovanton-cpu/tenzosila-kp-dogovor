@@ -11,7 +11,6 @@
 [STYLE] 'heading 2' based='Normal' pPr{spacing=before:240,after:60} rPr{font=Arial;sz=14;b;i}
 [STYLE] 'heading 3' based='Normal' pPr{jc=both} rPr{sz=11;b}
 [STYLE] 'page number' based='Default Paragraph Font' pPr{} rPr{}
-[NUM] num1 = L0:decimal'%1.' L1:decimal'%1.%2.' L2:decimal'%1.%2.%3.' L3:decimal'%1.%2.%3.%4.' L4:decimal'%1.%2.%3.%4.%5.' L5:decimal'%1.%2.%3.%4.%5.%6.' L6:decimal'%1.%2.%3.%4.%5.%6.%7.' L7:decimal'%1.%2.%3.%4.%5.%6.%7.%8.' L8:decimal'%1.%2.%3.%4.%5.%6.%7.%8.%9.'
 [MEDIA] word/media/image1.png sha1=eda7b8b7aa93
 [MEDIA] word/media/image2.png sha1=f91ccd73a8d9
 [MEDIA] word/media/image3.png sha1=f030bbb3b58a
@@ -96,7 +95,7 @@ P{}
 P{style='List Paragraph';jc=both;ind=left:0}
   R{} 'Итого по спецификации: 3 455 972 (три миллиона четыреста пятьдесят пять тысяч девятьсот семьдесят два) рубля, в т.ч. НДС 22%.'
 P{style='List Paragraph';jc=both;ind=left:0}
-P{style='List Paragraph';num=num1.0}
+P{style='List Paragraph'}
   R{} '2. Порядок оплаты: '
 P{}
   R{} '2.1. Предоплата 50% от стоимости Весов и фундамента Весов в размере 1 577 986 (один миллион пятьсот семьдесят семь тысяч девятьсот восемьдесят шесть) рублей, в т.ч. НДС 22%, в течение 5 (пяти) банковских дней с момента подписания настоящей Спецификации.'
@@ -109,7 +108,7 @@ P{}
 P{}
   R{} '2.5. Доплата 50% от стоимости монтажных работ и поверки в размере 120 000 (сто двадцать тысяч) рублей, в т.ч. НДС 22%, в течение 5 (пяти) банковских дней с момента подписания Акта выполненных работ по настоящей Спецификации.'
 P{style='List Paragraph';ind=left:0}
-P{style='List Paragraph';jc=both;num=num1.0}
+P{style='List Paragraph';jc=both}
   R{} '3. Срок поставки Весов и выполнения Работ:'
 P{}
   R{} '- строительство фундамента Весов: в течение 10 (десяти) рабочих дней с момента поступления предоплаты. Работы по строительству фундамента Весов проводятся при условии среднесуточной температуры выше +5 °С.'
