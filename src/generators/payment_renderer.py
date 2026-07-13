@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.contracts.utils import due_days_phrase
 from src.payment_wording import (
     TRIGGER_WORDING,
     default_preset_percents,
@@ -148,7 +149,7 @@ def render_v1(state: dict[str, Any], preset: dict) -> str:
     postpay = 100 - prepay
     days = int(state.get("payment_days", preset.get("default_days", 5)))
     return preset.get("body_template", "").format(
-        prepay=prepay, postpay=postpay, days=days
+        prepay=prepay, postpay=postpay, days_phrase=due_days_phrase(days)
     )
 
 
@@ -160,7 +161,7 @@ def render_v2(state: dict[str, Any], preset: dict) -> str:
     postpay = 100 - prepay - preship
     days = int(state.get("payment_days", preset.get("default_days", 5)))
     return preset.get("body_template", "").format(
-        prepay=prepay, preship=preship, postpay=postpay, days=days
+        prepay=prepay, preship=preship, postpay=postpay, days_phrase=due_days_phrase(days)
     )
 
 
@@ -176,14 +177,14 @@ def render_v3(state: dict[str, Any], preset: dict) -> str:
         "",
     )
     return preset.get("body_template", "").format(
-        days=days, trigger_text=trigger_text
+        days_phrase=due_days_phrase(days), trigger_text=trigger_text
     )
 
 
 def render_prepay_100(state: dict[str, Any], preset: dict) -> str:
     """100% предоплата — единственное поле: срок."""
     days = int(state.get("payment_days", preset.get("default_days", 5)))
-    return preset.get("body_template", "").format(p1=100, days=days)
+    return preset.get("body_template", "").format(p1=100, days_phrase=due_days_phrase(days))
 
 
 def render_payment_block(
