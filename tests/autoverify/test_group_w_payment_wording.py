@@ -13,6 +13,7 @@ import re
 from src.contracts.payment_line import format_payment_line
 from src.contracts.supply_filler import SUPPLY_TRIGGER_TEXTS
 from src.ui.payment_lines_editor import _row_to_line
+from tests.autoverify.docx_text import extract_text
 
 # Пропись суммы с заглавной буквы — регресс W4 («(Один миллион …) рублей»)
 _CAPITALIZED_WORDS_RE = re.compile(r"\([А-ЯЁ][^)]*\) рублей")
@@ -115,6 +116,33 @@ def test_w9_orion_poles_named_in_both(generated) -> None:
         "Акт по строительству фундамента "
         "и установке опор и кабель-трасс" in kp
     )
+
+
+def test_a6_ruble_noun_agrees_in_line_and_itogo(generated) -> None:
+    """A6/B9: существительное «рубль» согласуется с числом сквозь весь путь.
+
+    Фикстура ruble_declension: сумма 3 455 971 (кончается на …1) → «рубль»
+    (единственное). До фикста печаталось «рублей» и в строке оплаты (код,
+    payment_line), и в ИТОГО (шаблон+филлер). Пятно B9: все прежние фикстуры
+    кончались на «тысяч»/«сотен», declension никогда не стрелял.
+    """
+    if generated.fixture_id != "ruble_declension":
+        return
+
+    # Строка оплаты (код-путь): единственная prepay_100 = ИТОГО.
+    lines = _full_lines(generated)
+    assert len(lines) == 1, f"prepay_100 → ожидалась 1 строка, {len(lines)}: {lines}"
+    line = lines[0]
+    assert "3 455 971 (" in line, line
+    assert "семьдесят один) рубль," in line, f"строка оплаты не согласовала: {line!r}"
+    assert "рублей" not in line, f"регресс A6 в строке оплаты: {line!r}"
+
+    # Строка ИТОГО (шаблон+филлер): рендер реальной Спецификации.
+    spec_text = extract_text(generated.docx_paths["spec"])
+    assert "3 455 971 (" in spec_text
+    assert "семьдесят один) рубль," in spec_text, \
+        "ИТОГО в Спецификации не согласовал «рубль» (плейсхолдер СПЕЦ_ИТОГО_РУБ?)"
+    assert ") рублей" not in spec_text, "регресс A6 в ИТОГО Спецификации"
 
 
 def test_w_rama_ramps_named_in_both(generated) -> None:

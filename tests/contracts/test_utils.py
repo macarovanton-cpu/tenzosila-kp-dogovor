@@ -4,7 +4,36 @@ from datetime import datetime
 
 import pytest
 
-from src.contracts.utils import format_date_parts, infer_director_gender, number_to_words
+from src.contracts.utils import (
+    format_date_parts,
+    infer_director_gender,
+    number_to_words,
+    rubles_word,
+)
+
+
+class TestRublesWord:
+    """A6: согласование «рубль» с числом (B9 — сеть ловит класс, не случай)."""
+
+    @pytest.mark.parametrize("n,expected", [
+        (1, 'рубль'),
+        (2, 'рубля'),
+        (4, 'рубля'),
+        (5, 'рублей'),
+        (11, 'рублей'),
+        (21, 'рубль'),
+        (22, 'рубля'),
+        (100, 'рублей'),
+        (1000, 'рублей'),
+        (1_000_001, 'рубль'),
+    ])
+    def test_forms(self, n, expected):
+        assert rubles_word(n) == expected
+
+    def test_teens_are_genitive_plural(self):
+        # 11–14 — ловушка: последняя цифра 1–4, но форма «рублей».
+        for n in (11, 12, 13, 14, 111, 114):
+            assert rubles_word(n) == 'рублей'
 
 
 class TestNumberToWords:
