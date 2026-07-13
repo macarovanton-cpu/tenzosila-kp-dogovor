@@ -30,7 +30,7 @@ from src.contracts.fundament_lookup import (  # noqa: E402
     resolve_control_sheet,
 )
 from src.contracts.kp_load import build_kp_payload  # noqa: E402
-from src.contracts.payment_line import format_payment_line, orion_poles_without_foundation  # noqa: E402
+from src.contracts.payment_line import PaymentCoverageError, format_payment_line, orion_poles_without_foundation  # noqa: E402
 from src.contracts.recommendations import ORION_POLES_WITHOUT_FOUNDATION_TEXT  # noqa: E402
 from src.contracts.spec_items import make_custom_item, recalculate_totals  # noqa: E402
 from src.contracts.spec_v2_filler import PaymentLinesLiteError, fill_spec_v2  # noqa: E402
@@ -532,11 +532,23 @@ if mode == "Из базы (по номеру)":
             # «Заполнить по умолчанию»), чтобы Спецификация не уходила с КП-lite
             # строками, если менеджер не открыл редактор оплаты.
             _snap = payload["snapshot"] or {}
-            set_payment_lines(default_payment_rows(
-                payload["payment"], payload["items"],
-                int((_snap.get("model") or {}).get("qty") or 1),
-                _snap.get("installation_scope"),
-            ))
+            try:
+                _default_rows = default_payment_rows(
+                    payload["payment"], payload["items"],
+                    int((_snap.get("model") or {}).get("qty") or 1),
+                    _snap.get("installation_scope"),
+                )
+            except PaymentCoverageError as exc_cov:
+                # Страж A9 — фантомный процент занижает график. Fail-loud
+                # сохраняем (генерация останется заблокирована, см. _payment_empty
+                # ниже), меняем только форму подачи: без traceback на всю страницу.
+                st.error(
+                    f"Условия оплаты КП «{kp_row.get('kp_number', '')}» не "
+                    f"заполнены автоматически: {exc_cov}. Заполните таблицу "
+                    "оплаты вручную в редакторе."
+                )
+            else:
+                set_payment_lines(_default_rows)
             st.success(f"КП «{kp_row.get('kp_number', '')}» загружен из базы.")
 
 else:
