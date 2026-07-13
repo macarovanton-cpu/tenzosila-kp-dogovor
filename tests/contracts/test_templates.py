@@ -129,6 +129,27 @@ def test_spec_v2_tth_and_kit_headings_are_placeholders_without_numbering():
     assert not _has_para_prop(kit, "w:numPr"), "kit_heading не должен иметь numPr"
 
 
+def test_spec_v2_payment_and_terms_headings_have_no_numpr():
+    """A8/B9: заголовки «2. Порядок оплаты» и «3. Срок поставки» несут номер
+    только литеральным текстом, без Word-numPr.
+
+    Двойная нумерация «2. 2.» рисуется Word при рендере — ниже уровня golden-
+    дампа. Проверка структурная (на шаблоне), не на дампе (см. B9).
+    """
+    doc = Document(CONTRACTS / "spec_v2.docx")
+    payment = _find_body_para(doc, "Порядок оплаты")
+    terms = _find_body_para(doc, "Срок поставки")
+
+    assert payment is not None, "заголовок 'Порядок оплаты' не найден"
+    assert terms is not None, "заголовок 'Срок поставки' не найден"
+    assert not _has_para_prop(payment, "w:numPr"), (
+        "заголовок оплаты не должен иметь numPr (иначе Word печатает «2. 2.»)"
+    )
+    assert not _has_para_prop(terms, "w:numPr"), (
+        "заголовок срока не должен иметь numPr (иначе Word печатает «3. 3.»)"
+    )
+
+
 def test_spec_table2_rows_have_cant_split():
     """Все строки TABLE[2] (Комплект поставки) имеют cantSplit."""
     doc = Document(CONTRACTS / "spec_foundation_install.docx")
