@@ -129,6 +129,10 @@ def _render_option_row(
         # При выключении опции сбросить её override в spec-таблице
         overrides = state.setdefault("spec_items_overrides", {})
         overrides.pop(key, None)
+        # Бандл ОРИОН расщепляется на orion_install — чистим сиротский override
+        # монтажной строки, иначе он переживёт выключение опции.
+        if key.startswith("orion") and key not in ("orion_cable_poles", "orion_install"):
+            overrides.pop("orion_install", None)
         return
 
     if _requires_foundation_execution_choice(key):
@@ -170,6 +174,11 @@ def _render_option_row(
         st.caption("Поверка силами Заказчика — цена 0 ₽.")
     else:
         price_value = _render_price_widget(key, params, widget_suffix)
+        # Бандл ОРИОН печатается в спецификации двумя строками — цена делится.
+        if (entry.get("components") or {}).get("shef_montazh"):
+            st.caption(
+                "В спецификации делится на оборудование + шеф-монтаж (две строки)."
+            )
 
     qty = 1
     if block_id in QTY_ENABLED_BLOCKS:

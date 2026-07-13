@@ -331,33 +331,43 @@ def build_spec_items(
     length = int(state.get("model_length") or 18)
     prices_options = prices.get("options", {})
     options_state = state.get("options", {})
+    # Наличие активного фундамента — влияет на имя монтажа расщеплённого ОРИОНа.
+    has_foundation = any(
+        k.startswith("foundation_") and (options_state.get(k) or {}).get("enabled")
+        for k in options_state
+    )
 
     for block_id in OPTION_BLOCKS_ORDER:
         for key, entry in get_visible_options(prices_options, line, length, block_id):
             opt = options_state.get(key)
             if not opt or not opt.get("enabled"):
                 continue
-            computed_qty = int(opt.get("qty", 1))
-            if opt.get("customer_side"):
-                computed_price = 0
-            else:
-                computed_price = int(opt.get("price", 0))
-            qty, price, is_ov = _apply_override(
-                computed_qty, computed_price, overrides.get(key)
-            )
-            items.append({
-                "num": len(items) + 1,
-                "item_key": key,
-                "name": _option_name(entry, opt, key, state),
-                "qty": qty,
-                "unit": UNIT_BY_BLOCK.get(block_id, "шт"),
-                "price": price,
-                "total": price * qty,
-                "is_overridden": is_ov,
-                "customer_side": bool(opt.get("customer_side", False)),
-                "payment_group": resolve_payment_group(key),
-                "term_role": resolve_term_role(key),
-            })
+            # Бандл ОРИОН → две строки (ПАК + шеф-монтаж); прочее — одна строка.
+            for item_key, part in split_orion_bundle(
+                key, opt, prices, has_foundation=has_foundation
+            ):
+                computed_qty = int(part.get("qty", 1))
+                if part.get("customer_side"):
+                    computed_price = 0
+                else:
+                    computed_price = int(part.get("price", 0))
+                qty, price, is_ov = _apply_override(
+                    computed_qty, computed_price, overrides.get(item_key)
+                )
+                items.append({
+                    "num": len(items) + 1,
+                    "item_key": item_key,
+                    "name": part.get("spec_name")
+                    or _option_name(entry, part, item_key, state),
+                    "qty": qty,
+                    "unit": UNIT_BY_BLOCK.get(block_id, "шт"),
+                    "price": price,
+                    "total": price * qty,
+                    "is_overridden": is_ov,
+                    "customer_side": bool(part.get("customer_side", False)),
+                    "payment_group": resolve_payment_group(item_key),
+                    "term_role": resolve_term_role(item_key),
+                })
 
     for custom in _iter_valid_custom_items(state):
         item_key = custom["id"]
