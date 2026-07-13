@@ -59,7 +59,7 @@ from src.contracts.requisites_extract import (  # noqa: E402
 from src.contracts.requisites_parser import parse_requisites  # noqa: E402
 from src.contracts.requisites_transforms import derive_requisites, fill_missing_derived  # noqa: E402
 from src.contracts.requisites_validation import validate_requisites  # noqa: E402
-from src.contracts.utils import format_date_parts, infer_director_gender, number_to_words  # noqa: E402
+from src.contracts.utils import format_date_parts, infer_director_gender, number_to_words, rubles_word  # noqa: E402
 from src.data_loader import load_models, load_payment_terms, load_prices  # noqa: E402
 from src.storage.supabase_client import (  # noqa: E402
     StorageError,
@@ -1076,6 +1076,10 @@ if not generated:
         _itogo_digits = "".join(ch for ch in data.get("СПЕЦ_ИТОГО", "") if ch.isdigit())
         if _itogo_digits and not data.get("СПЕЦ_ИТОГО_ПРОПИСЬ"):
             data["СПЕЦ_ИТОГО_ПРОПИСЬ"] = number_to_words(int(_itogo_digits))
+        # РУБ — co-located с ПРОПИСЬ: путь без items (fill_template SPEC_TEMPLATE)
+        # рендерит {{СПЕЦ_ИТОГО_РУБ}} только из data, филлер его не пересчитывает.
+        if _itogo_digits and not data.get("СПЕЦ_ИТОГО_РУБ"):
+            data["СПЕЦ_ИТОГО_РУБ"] = rubles_word(int(_itogo_digits))
 
         safe_name = sanitize_filename(data.get("ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ", ""))
         safe_number = sanitize_filename(contract_number)

@@ -297,7 +297,7 @@ def fill_spec_with_items(
     Итого вычисляется из items (per-unit) и передаётся в fill_template.
     При model_qty > 1 строка ИТОГО делится на «за 1 весы» + «за N весов».
     """
-    from src.contracts.utils import number_to_words
+    from src.contracts.utils import number_to_words, rubles_word
 
     qty_scales = int(model_qty or 1)
     grand_total = sum(
@@ -310,6 +310,7 @@ def fill_spec_with_items(
     fill_data = dict(data)
     fill_data["СПЕЦ_ИТОГО"] = _fmt(grand_total_n)
     fill_data["СПЕЦ_ИТОГО_ПРОПИСЬ"] = number_to_words(grand_total_n)
+    fill_data["СПЕЦ_ИТОГО_РУБ"] = rubles_word(grand_total_n)
     for i in range(1, 6):
         fill_data.setdefault(f"СПЕЦ_П{i}_НАИМЕНОВАНИЕ", "")
         fill_data.setdefault(f"СПЕЦ_П{i}_СУММА", "")

@@ -276,7 +276,7 @@ def build_specification_from_kp_snapshot(
     формулировки, отдельные монтаж и поверка). Платёжные строки и сроки —
     через старый пайплайн spec_items.
     """
-    from src.contracts.utils import number_to_words
+    from src.contracts.utils import number_to_words, rubles_word
     from src.generators.payment_renderer import render_payment_block
     from src.spec_builder import build_spec_items
 
@@ -341,6 +341,7 @@ def build_specification_from_kp_snapshot(
         "СПЕЦ_МАКС_НАГРУЗКА": str(max_t),
         "СПЕЦ_ИТОГО": _fmt(grand_total),
         "СПЕЦ_ИТОГО_ПРОПИСЬ": number_to_words(grand_total),
+        "СПЕЦ_ИТОГО_РУБ": rubles_word(grand_total),
         "СПЕЦ_ОПЛАТА_П1": slots[0],
         "СПЕЦ_ОПЛАТА_П2": slots[1],
         "СПЕЦ_ОПЛАТА_П3": slots[2],

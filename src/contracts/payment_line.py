@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
-from src.contracts.utils import days_genitive, number_to_words
+from src.contracts.utils import days_genitive, number_to_words, rubles_word
 from src.payment_wording import (
     TRIGGER_WORDING,
     default_days,
@@ -74,14 +74,14 @@ def format_payment_line(
         share = f"{pct}% {line.share_prep} {line.share_object}"
         return (
             f"{index}. {kind_cap} {share} в размере "
-            f"{amount_fmt} ({words}) рублей, в т.ч. НДС 22%, "
+            f"{amount_fmt} ({words}) {rubles_word(line.amount)}, в т.ч. НДС 22%, "
             f"в течение {line.due} ({due_words}) {line.due_unit} дней "
             f"с момента {trigger_txt}."
         )
     else:
         return (
             f"{index}. {kind_cap} в размере "
-            f"{amount_fmt} ({words}) рублей, в т.ч. НДС 22%, "
+            f"{amount_fmt} ({words}) {rubles_word(line.amount)}, в т.ч. НДС 22%, "
             f"в течение {line.due} ({due_words}) {line.due_unit} дней "
             f"с момента {trigger_txt}."
         )

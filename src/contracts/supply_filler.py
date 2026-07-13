@@ -31,6 +31,7 @@ from src.contracts.utils import (
     named_form,
     normalize_quotes,
     number_to_words,
+    rubles_word,
 )
 from src.payment_wording import SUPPLY_TRIGGER_OVERRIDES
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item, resolve_term_role
@@ -341,6 +342,7 @@ def build_supply_context(
         "ТОВАР_НАИМЕНОВАНИЕ_КОЛВО": товар_колво,  # с количеством (§1.1 договора)
         "СУММА_ЦИФРАМИ":        сумма_цифрами,
         "СУММА_ПРОПИСЬЮ":       сумма_прописью,
+        "СУММА_РУБ":            rubles_word(total) if total else "",
         "СРОК_ПРОИЗВОДСТВА_ДН": _fmt_days(prod_days),
         "СРОК_ДОСТАВКИ_ДН":    _fmt_days(deliv_days),
         "АДРЕС_ПОСТАВКИ":       manual.get("object_address", "").rstrip(" ."),
