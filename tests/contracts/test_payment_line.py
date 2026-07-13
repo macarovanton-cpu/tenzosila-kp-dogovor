@@ -3,6 +3,7 @@
 import pytest
 
 from src.contracts.payment_line import (
+    PaymentCoverageError,
     PaymentLine,
     PaymentTrigger,
     build_lines_from_snapshot,
@@ -608,7 +609,7 @@ def test_bridge_rama_ramps_named_in_scales_object():
     payment = {
         "preset_id": "split_by_items",
         "days": 5,
-        "split_state": _split(delivery=(50, 50)),
+        "split_state": _split(delivery=(0, 100)),  # доставка целиком по факту (страж A9)
     }
     lines = build_lines_from_snapshot(payment, spec_items)
     l1 = next(ln for ln in lines if ln.trigger == PaymentTrigger.SPEC_SIGNED)
@@ -676,8 +677,15 @@ def test_bridge_w6_default_scope_keeps_montazh():
 # P1 — процент в составных строках
 # ---------------------------------------------------------------------------
 
-def test_bridge_delivery_equal_pct_keeps_percent():
-    """delivery 50/50 == scales 50/50 → L3 share_pct=50.0 (процент сохраняется)."""
+def test_bridge_delivery_prepay_undershoots_raises():
+    """A9: delivery 50/50 — фантомный prepay. Бакет доставки недобирается (движок
+    читает только postpay), Σ строк не покрывает Σ бакетов → страж падает.
+
+    Раньше тест `test_bridge_delivery_equal_pct_keeps_percent` ЗАКРЕПЛЯЛ баг:
+    ассертил amount 1 100 000 (50%·2млн + 50%·200к) как норму. Теперь это
+    нелегальное состояние: доставка платится целиком по факту, prepay у неё
+    фантом (см. Слой 1 — поле read-only в UI).
+    """
     spec_items = [
         _item("vesta-c-60-18", "scales", 2_000_000),
         _item("delivery_default", "delivery", 200_000),
@@ -687,12 +695,24 @@ def test_bridge_delivery_equal_pct_keeps_percent():
         "days": 5,
         "split_state": _split(delivery=(50, 50)),
     }
+    with pytest.raises(PaymentCoverageError):
+        build_lines_from_snapshot(payment, spec_items)
+
+
+def test_bridge_delivery_default_covers_total():
+    """Компаньон стража: delivery дефолт 0/100 → строки покрывают Σ бакетов,
+    страж молчит. Защита от ложного срабатывания."""
+    spec_items = [
+        _item("vesta-c-60-18", "scales", 2_000_000),
+        _item("delivery_default", "delivery", 200_000),
+    ]
+    payment = {
+        "preset_id": "split_by_items",
+        "days": 5,
+        "split_state": _split(),  # delivery 0/100
+    }
     lines = build_lines_from_snapshot(payment, spec_items)
-    l3 = next(ln for ln in lines if ln.trigger == PaymentTrigger.SHIPMENT_READY)
-    assert l3.share_pct == 50.0
-    assert l3.share_prep == "от стоимости"
-    assert l3.share_object == "Весов и доставки"
-    assert l3.amount == 1_100_000  # 50% от 2млн + 50% от 200к
+    assert sum(ln.amount for ln in lines) == 2_200_000  # 2млн весы + 200к доставка
 
 
 def test_bridge_foundation_diff_pct_drops_percent():

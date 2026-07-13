@@ -19,6 +19,14 @@ from src.payment_wording import (
 )
 
 
+class PaymentCoverageError(ValueError):
+    """Строки оплаты не покрывают сумму, которую движок обязан выставить.
+
+    Инвариант-страж A9 (по образцу A5): фантомный процент (delivery.prepay)
+    молча занижает график — недобор ловим на выходе build_lines_from_snapshot.
+    """
+
+
 class PaymentTrigger(str, Enum):
     SPEC_SIGNED         = "SPEC_SIGNED"
     SPEC_SIGNED_INVOICE = "SPEC_SIGNED_INVOICE"    # W7: prepay_100, основание «счёт»
@@ -255,6 +263,30 @@ def _amount(total: int, pct: int) -> int:
     return round(total * pct / 100)
 
 
+def _assert_payment_covers(lines: list[PaymentLine], expected: int) -> None:
+    """Инвариант-страж A9 (по образцу A5): Σ amount строк оплаты покрывает то,
+    что движок обязан выставить на этой ветке (split — Σ 4 бакетов; non-split —
+    _spec_total×qty). Фантомный процент (delivery.prepay) роняет здесь.
+
+    Суммируем реальные amount строк, НЕ реконструируем %×база — иначе споткнулись
+    бы о ту же мину составной строки, из-за которой отложена W1.
+
+    Допуск: каждая amount = round(...) округляется независимо (≤0,5 ₽), суммарный
+    дрейф < числа строк. max(len, 1) ₽ — та же граница, что в редакторе
+    (payment_lines_editor._validate_rows). Пустой график (custom) — расчёта нет.
+    """
+    if not lines:
+        return
+    covered = sum(ln.amount for ln in lines)
+    tol = max(len(lines), 1)
+    if abs(expected - covered) > tol:
+        raise PaymentCoverageError(
+            f"Строки оплаты покрывают {covered} из {expected} "
+            f"(недобор {expected - covered}); проверь фантомные проценты "
+            f"(delivery.prepay)."
+        )
+
+
 def build_lines_from_snapshot(
     payment: dict,
     spec_items: list[dict],
@@ -275,7 +307,11 @@ def build_lines_from_snapshot(
     payment = payment or {}
     qty = int(model_qty or 1)
     if payment.get("preset_id") != "split_by_items":
-        return _build_non_split_lines(payment, spec_items, qty)
+        lines = _build_non_split_lines(payment, spec_items, qty)
+        # non-split бьёт весь _spec_total (остаток добирается последней фазой);
+        # позиции без бакета там тоже выставлены → сверяем с полным ИТОГО.
+        _assert_payment_covers(lines, _spec_total(spec_items) * qty)
+        return lines
 
     split_state = payment.get("split_state") or {}
     days = int(payment.get("days") or default_days())
@@ -387,4 +423,10 @@ def build_lines_from_snapshot(
                 base_amount=iv_total,
             ))
 
+    # Страж покрытия: строки должны выставить всю сумму 4 бакетов. Фантом
+    # delivery.prepay недобирает бакет доставки → падаем. Позиция без бакета
+    # (payment_group=None) исключена из обеих частей — её ловит UI (st.error).
+    _assert_payment_covers(
+        lines, scales_total + foundation_total + delivery_total + iv_total
+    )
     return lines
