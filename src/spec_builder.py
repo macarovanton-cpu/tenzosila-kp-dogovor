@@ -4,8 +4,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-_logger = logging.getLogger(__name__)
-
 from src.config import (
     OPTION_BLOCKS_ORDER,
     UNIT_BY_BLOCK,
@@ -16,6 +14,8 @@ from src.data_loader import (
 )
 from src.filters import get_visible_options
 from src.term_days import resolve_term_role
+
+_logger = logging.getLogger(__name__)
 
 # Дженерик-обозначения групп фундаментов в prices.json. Подменяются на
 # конкретную линейку выбранной модели в имени позиции спецификации.
