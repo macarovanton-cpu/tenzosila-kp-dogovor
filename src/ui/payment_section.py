@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.contracts.utils import due_days_phrase
 from src.validation import _split_group_active
 
 
@@ -79,11 +80,12 @@ def _render_v1(state: dict, preset: dict) -> str:
     with cols[2]:
         st.number_input(
             "Срок аванса, банк. дней",
-            min_value=1, max_value=90, step=1,
+            min_value=1, max_value=30, step=1,
             key="payment_days",
         )
     return preset.get("body_template", "").format(
-        prepay=int(prepay), postpay=postpay, days=int(state["payment_days"])
+        prepay=int(prepay), postpay=postpay,
+        days_phrase=due_days_phrase(int(state["payment_days"]), with_words=False),
     )
 
 
@@ -110,7 +112,7 @@ def _render_v2(state: dict, preset: dict) -> str:
     with cols[3]:
         st.number_input(
             "Срок аванса, банк. дней",
-            min_value=1, max_value=90, step=1,
+            min_value=1, max_value=30, step=1,
             key="payment_days",
         )
     if postpay < 1:
@@ -120,7 +122,7 @@ def _render_v2(state: dict, preset: dict) -> str:
         )
     return preset.get("body_template", "").format(
         prepay=int(prepay), preship=int(preship), postpay=postpay,
-        days=int(state["payment_days"]),
+        days_phrase=due_days_phrase(int(state["payment_days"]), with_words=False),
     )
 
 
@@ -154,7 +156,7 @@ def _render_v3(state: dict, preset: dict) -> str:
         (t["text"] for t in triggers if t["id"] == trigger_id), ""
     )
     return preset.get("body_template", "").format(
-        days=int(days), trigger_text=trigger_text
+        days_phrase=due_days_phrase(int(days), with_words=False), trigger_text=trigger_text
     )
 
 
@@ -166,11 +168,11 @@ def _render_prepay_100(state: dict, preset: dict) -> str:
     with cols[1]:
         st.number_input(
             "Срок, банк. дней",
-            min_value=1, max_value=90, step=1,
+            min_value=1, max_value=30, step=1,
             key="payment_days",
         )
     return preset.get("body_template", "").format(
-        p1=100, days=int(state["payment_days"])
+        p1=100, days_phrase=due_days_phrase(int(state["payment_days"]), with_words=False)
     )
 
 
@@ -228,12 +230,13 @@ def _render_split(state: dict, preset: dict) -> str:
 
     # Срок авансового платежа
     st.number_input(
-        "Срок предоплаты, банк. дней", min_value=0, max_value=90,
+        "Срок предоплаты, банк. дней", min_value=1, max_value=30,
         step=1, key="payment_days",
     )
     active_lines.append(
-        f"— Предоплата перечисляется в течение {state['payment_days']} "
-        "банковских дней с момента подписания договора."
+        f"— Предоплата перечисляется в течение "
+        f"{due_days_phrase(int(state['payment_days']), with_words=False)} "
+        "с момента подписания договора."
     )
     return "\n\n".join(active_lines)
 
