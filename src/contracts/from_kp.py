@@ -8,7 +8,11 @@ from typing import Any
 
 from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
 from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
-from src.spec_builder import format_platform_size, resolve_payment_group
+from src.spec_builder import (
+    format_platform_size,
+    resolve_payment_group,
+    split_orion_bundle,
+)
 from src.term_days import TERM_DAYS_DEFAULTS, calculate_term_days_per_item
 
 _logger = logging.getLogger(__name__)
@@ -40,12 +44,6 @@ _SPEC_ONLY_NAMES: dict[str, str] = {
         "Установка опор и кабель-трасс для программно-аппаратного комплекса «ОРИОН»"
     ),
 }
-
-# FIX_SPEC §A1: наименование монтажа ОРИОН зависит от сценария
-_ORION_INSTALL_NAME_FOUNDATION = (
-    "Монтаж и настройка программно-аппаратного комплекса «ОРИОН»"
-)
-_ORION_INSTALL_NAME_NO_FOUNDATION = "Монтаж ПАК «ОРИОН»"
 
 _FRAME_RE = re.compile(r"^frame_(\d+)$")
 
@@ -116,59 +114,22 @@ def _expand_orion_options(
 ) -> dict[str, Any]:
     """FIX_SPEC §A1: расщепить бандл ОРИОН на отдельные позиции спецификации.
 
-    Бандл «оборудование + шеф-монтаж» (orion_lite/…/auto_plus) заменяется на:
-    - тот же ключ с ценой доли оборудования (позиция ПАК, spec_id «orion»);
-    - orion_install с ценой доли монтажа (имя зависит от сценария).
-    Опоры (orion_cable_poles) НЕ добавляются авто: это обычная опция, менеджер
-    включает её в КП явно, и в договор она приходит из снапшота КП как любая
-    другая опция.
-    Дележ фактической цены КП — пропорционально components из прайса,
-    округление в ПАК: сумма частей == цене бандла (деньги не теряются).
+    Тонкая обёртка dict→dict над `spec_builder.split_orion_bundle` (единое ядро
+    расщепления — то же, что кормит КП-таблицу). Бандл «оборудование + шеф-монтаж»
+    (orion_lite/…/auto_plus) заменяется на ПАК-строку (spec_id «orion») + строку
+    orion_install; имя монтажа зависит от наличия фундамента. Опоры
+    (orion_cable_poles) остаются обычной опцией.
     """
-    bundle_key = next(
-        (k for k in options
-         if k.startswith("orion") and k not in ("orion_cable_poles", "orion_install")),
-        None,
-    )
-    if bundle_key is None:
+    if "orion_install" in options:  # идемпотентность: уже расщеплено
         return options
-
-    entry = (prices or {}).get("options", {}).get(bundle_key, {})
-    components = entry.get("components") or {}
-    equipment = int(components.get("equipment") or 0)
-    montazh = int(components.get("shef_montazh") or 0)
-    if equipment + montazh <= 0:
-        _logger.warning(
-            "_expand_orion_options: у %r нет components в прайсе — бандл не расщеплён",
-            bundle_key,
-        )
-        return options
-
-    bundle = options[bundle_key]
-    price = int(bundle.get("price") or 0)
-    montazh_part = round(price * montazh / (equipment + montazh))
-    equipment_part = price - montazh_part
-
+    prices = prices or {}
     has_foundation = any(k.startswith("foundation_") for k in options)
-    install_name = (
-        _ORION_INSTALL_NAME_FOUNDATION if has_foundation
-        else _ORION_INSTALL_NAME_NO_FOUNDATION
-    )
-
     expanded: dict[str, Any] = {}
     for key, opt in options.items():
-        if key != bundle_key:
-            expanded[key] = opt
-            continue
-        common = {
-            "enabled": True,
-            "qty": bundle.get("qty") or 1,
-            "customer_side": bundle.get("customer_side", False),
-        }
-        expanded[bundle_key] = {**common, "price": equipment_part}
-        expanded["orion_install"] = {
-            **common, "price": montazh_part, "spec_name": install_name,
-        }
+        for new_key, new_opt in split_orion_bundle(
+            key, opt, prices, has_foundation=has_foundation
+        ):
+            expanded[new_key] = new_opt
     return expanded
 
 

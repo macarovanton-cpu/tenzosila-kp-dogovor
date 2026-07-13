@@ -1,7 +1,10 @@
 """Сборка spec_items — списка позиций для раздела спецификации КП."""
 from __future__ import annotations
 
+import logging
 from typing import Any
+
+_logger = logging.getLogger(__name__)
 
 from src.config import (
     OPTION_BLOCKS_ORDER,
@@ -230,6 +233,64 @@ def resolve_payment_group(item_key: str) -> str:
     if item_key == "orion_cable_poles":
         return "foundation"
     return "scales"
+
+
+# Имена строк расщеплённого бандла ОРИОН (FIX_SPEC §A1). Единый источник для
+# КП (build_spec_items) и Договора (from_kp): имена — как сейчас в договоре.
+_ORION_PAK_NAME = "Программно-аппаратный комплекс «ОРИОН»"
+_ORION_INSTALL_NAME_FOUNDATION = (
+    "Монтаж и настройка программно-аппаратного комплекса «ОРИОН»"
+)
+_ORION_INSTALL_NAME_NO_FOUNDATION = "Монтаж ПАК «ОРИОН»"
+
+
+def split_orion_bundle(
+    item_key: str, opt: dict, prices: dict, *, has_foundation: bool
+) -> list[tuple[str, dict[str, Any]]]:
+    """Расщепить бандл ОРИОН на ПАК-оборудование + шеф-монтаж (FIX_SPEC §A1).
+
+    Возвращает `[(item_key, opt_ПАК), ("orion_install", opt_монтаж)]` для бандла
+    (опция с `components.shef_montazh` в прайсе — ровно 5 orion-пакетов), либо
+    `[(item_key, opt)]` без изменений для всех прочих опций.
+
+    Предикат — по components (не по списку id): `canopy_turnkey_*` имеют
+    components, но без `shef_montazh` — не матчатся. Дележ фактической цены КП
+    пропорционально components, округление в ПАК: сумма частей == цене бандла
+    (деньги не теряются). Обе части наследуют qty/customer_side бандла.
+    Нет components (доисторический прайс) → бандл не расщеплён, WARNING.
+    """
+    entry = (prices.get("options") or {}).get(item_key, {}) or {}
+    components = entry.get("components") or {}
+    equipment = int(components.get("equipment") or 0)
+    montazh = int(components.get("shef_montazh") or 0)
+    if montazh <= 0 or equipment + montazh <= 0:
+        # Опция без shef_montazh — не бандл. Бандл по имени, но без components в
+        # прайсе → fallback без расщепления (доисторический снапшот).
+        if item_key.startswith("orion") and item_key not in (
+            "orion_cable_poles", "orion_install"
+        ):
+            _logger.warning(
+                "split_orion_bundle: у %r нет components.shef_montazh — не расщеплён",
+                item_key,
+            )
+        return [(item_key, opt)]
+
+    price = int(opt.get("price") or 0)
+    montazh_part = round(price * montazh / (equipment + montazh))
+    equipment_part = price - montazh_part
+    install_name = (
+        _ORION_INSTALL_NAME_FOUNDATION if has_foundation
+        else _ORION_INSTALL_NAME_NO_FOUNDATION
+    )
+    common = {
+        "enabled": True,
+        "qty": opt.get("qty") or 1,
+        "customer_side": opt.get("customer_side", False),
+    }
+    return [
+        (item_key, {**common, "price": equipment_part, "spec_name": _ORION_PAK_NAME}),
+        ("orion_install", {**common, "price": montazh_part, "spec_name": install_name}),
+    ]
 
 
 def build_spec_items(
