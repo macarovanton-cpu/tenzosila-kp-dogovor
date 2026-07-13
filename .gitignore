@@ -76,3 +76,6 @@ scripts/spike_data/
 outputs/
 
 docs/source/*.txt
+
+# Локальные бэкапы шаблонов от patch-скриптов (пересобираются из скрипта)
+templates/contracts/backup/
