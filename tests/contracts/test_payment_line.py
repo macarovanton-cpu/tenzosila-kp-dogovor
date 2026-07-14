@@ -575,8 +575,9 @@ def test_bridge_w9_orion_poles_object_and_trigger():
     l2 = next(ln for ln in lines if ln.trigger in
               (PaymentTrigger.FOUNDATION_ACT, PaymentTrigger.FOUNDATION_ACT_POLES))
     assert l2.trigger == PaymentTrigger.FOUNDATION_ACT_POLES
+    # Род. падеж после «от стоимости» (эталон PAYMENT_SPEC; до фикса — «и установку»).
     assert l2.share_object == (
-        "фундамента Весов и установку опор и кабель-трасс для ПАК ОРИОН"
+        "фундамента Весов и установки опор и кабель-трасс для ПАК ОРИОН"
     )
     assert l2.amount == 562_500  # 50% от (1 000 000 + 125 000)
     text = format_payment_line(l2, 2)

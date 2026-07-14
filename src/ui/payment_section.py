@@ -4,6 +4,7 @@ from __future__ import annotations
 import streamlit as st
 
 from src.contracts.utils import due_days_phrase
+from src.payment_wording import days_brief
 from src.validation import _split_group_active
 
 
@@ -85,7 +86,7 @@ def _render_v1(state: dict, preset: dict) -> str:
         )
     return preset.get("body_template", "").format(
         prepay=int(prepay), postpay=postpay,
-        days_phrase=due_days_phrase(int(state["payment_days"]), with_words=False),
+        days_phrase=days_brief(int(state["payment_days"])),
     )
 
 
@@ -122,7 +123,7 @@ def _render_v2(state: dict, preset: dict) -> str:
         )
     return preset.get("body_template", "").format(
         prepay=int(prepay), preship=int(preship), postpay=postpay,
-        days_phrase=due_days_phrase(int(state["payment_days"]), with_words=False),
+        days_phrase=days_brief(int(state["payment_days"])),
     )
 
 
@@ -156,7 +157,7 @@ def _render_v3(state: dict, preset: dict) -> str:
         (t["text"] for t in triggers if t["id"] == trigger_id), ""
     )
     return preset.get("body_template", "").format(
-        days_phrase=due_days_phrase(int(days), with_words=False), trigger_text=trigger_text
+        days_phrase=days_brief(int(days)), trigger_text=trigger_text
     )
 
 
@@ -172,7 +173,7 @@ def _render_prepay_100(state: dict, preset: dict) -> str:
             key="payment_days",
         )
     return preset.get("body_template", "").format(
-        p1=100, days_phrase=due_days_phrase(int(state["payment_days"]), with_words=False)
+        p1=100, days_phrase=days_brief(int(state["payment_days"]))
     )
 
 

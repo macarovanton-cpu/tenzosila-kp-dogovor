@@ -9,9 +9,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.contracts.utils import due_days_phrase
 from src.payment_wording import (
     TRIGGER_WORDING,
+    days_brief,
+    default_days,
     default_preset_percents,
     foundation_object,
     installation_object,
@@ -20,6 +21,9 @@ from src.payment_wording import (
     scales_object_parts,
     wording_flags,
 )
+
+# Сноска под блоком (эталон PAYMENT_SPEC): единица срока вынесена из строк.
+FOOTNOTE = "Сроки указаны в банковских днях."
 
 
 def get_active_payment_groups(spec_items: list[dict]) -> dict:
@@ -45,11 +49,13 @@ def _split_pct(state: dict, group_id: str, key: str, groups_by_id: dict) -> int:
 def render_split_by_items(
     state: dict[str, Any], spec_items: list[dict], preset: dict
 ) -> str:
-    """Динамическая сборка для пресета split_by_items (lite-регистр FIX_SPEC).
+    """Динамическая сборка для пресета split_by_items (lite-регистр, эталон
+    PAYMENT_SPEC).
 
-    Состав строк зависит от того, какие группы активны в spec_items.
-    Триггеры/слова-типы — из общего словаря payment_wording; срок в КП НЕ
-    печатается (F1). Строка/фаза с процентом 0 не печатается (W3, реш. 7).
+    Формула строки: «— <Название> <%> <база> <предлог+событие> (<N дней>).»
+    Порядок строк — хронология сделки: подписание → Акт фундамента →
+    готовность к отгрузке → монтаж/поверка. База — в каждой строке, род.
+    падеж («стоимости …»). Строка/фаза с процентом 0 не печатается (W3, реш. 7).
     """
     active = get_active_payment_groups(spec_items)
     g = active["groups"]
@@ -58,26 +64,22 @@ def render_split_by_items(
 
     groups_by_id = {grp["id"]: grp for grp in preset.get("groups", [])}
     pct = lambda gid, k: _split_pct(state, gid, k, groups_by_id)  # noqa: E731
+    days = days_brief(int(state.get("payment_days") or default_days()))
 
     def event(trigger_key: str) -> str:
-        """Краткое событие lite-регистра (без срока — реш. F1: срок в КП убран)."""
+        """Событие lite-регистра с предлогом («при подписании…», «по Акту…»)."""
         return TRIGGER_WORDING[trigger_key]["lite"]
 
-    only_scales = not (g["foundation"] or g["delivery"] or g["installation_and_verification"])
     s_prepay, s_post = pct("scales", "prepay"), pct("scales", "postpay")
     f_prepay = pct("foundation", "prepay") if g["foundation"] else 0
+    scales_gen = join_ru(scales_object_parts(
+        "lite_gen", has_orion, flags["has_ramps"], flags["has_frame"]
+    ))
     lines: list[str] = []
 
     # --- Строка 1: предоплата (весы [+ ОРИОН/рама/пандусы] [+ фундамент]) ---
     # Слияние равных % (F1): весы и фундамент с одинаковым % — процент один раз,
     # объекты через «и»; разные % — раздельно через « + ».
-    if only_scales and not has_orion:
-        scales_label = "стоимости проекта"
-    else:
-        scales_gen = join_ru(scales_object_parts(
-            "lite_gen", has_orion, flags["has_ramps"], flags["has_frame"]
-        ))
-        scales_label = f"стоимости {scales_gen}"
     prepay_parts: list[str] = []
     if s_prepay > 0 and f_prepay > 0 and s_prepay == f_prepay:
         gen_parts = scales_object_parts(
@@ -87,7 +89,7 @@ def render_split_by_items(
         prepay_parts.append(f"{s_prepay}% стоимости {join_ru(gen_parts)}")
     else:
         if s_prepay > 0:
-            prepay_parts.append(f"{s_prepay}% {scales_label}")
+            prepay_parts.append(f"{s_prepay}% стоимости {scales_gen}")
         if f_prepay > 0:
             prepay_parts.append(f"{f_prepay}% стоимости фундамента")
     if prepay_parts:
@@ -96,31 +98,32 @@ def render_split_by_items(
         else:
             word = kind_word(f_prepay, pct("foundation", "postpay"), "prepay")
         lines.append(
-            f"— {word.capitalize()} {' + '.join(prepay_parts)} — {event('SPEC_SIGNED')}."
+            f"— {word.capitalize()} {' + '.join(prepay_parts)} "
+            f"{event('SPEC_SIGNED')} ({days})."
         )
 
-    # --- Строка 2: доплата за весы [и доставку] (W1-lite: % весов, доставка тем же) ---
-    if s_post > 0:
-        word = kind_word(s_prepay, s_post, "postpay").capitalize()
-        if only_scales:
-            label = f"{word} {s_post}%"
-        else:
-            obj_parts = scales_object_parts(
-                "lite_acc", has_orion, flags["has_ramps"], flags["has_frame"]
-            )
-            if g["delivery"]:
-                obj_parts.append("доставку")
-            label = f"{word} {s_post}% за {join_ru(obj_parts)}"
-        lines.append(f"— {label} — {event('SHIPMENT_READY')}.")
-
-    # --- Строка 3: доплата за фундамент (W9: опоры ОРИОН — объект и триггер) ---
+    # --- Строка 2: доплата за фундамент (хронология: Акт фундамента раньше
+    # отгрузки; W9: опоры ОРИОН — объект и триггер) ---
     if g["foundation"]:
         f_post = pct("foundation", "postpay")
         if f_post > 0:
             word = kind_word(f_prepay, f_post, "postpay").capitalize()
             f_obj = foundation_object("lite", flags["has_poles"])
             f_event = event("FOUNDATION_ACT_POLES" if flags["has_poles"] else "FOUNDATION_ACT")
-            lines.append(f"— {word} {f_post}% за {f_obj} — {f_event}.")
+            lines.append(f"— {word} {f_post}% стоимости {f_obj} {f_event} ({days}).")
+
+    # --- Строка 3: доплата за весы [и доставку] (W1-lite: % весов, доставка тем же) ---
+    if s_post > 0:
+        word = kind_word(s_prepay, s_post, "postpay").capitalize()
+        obj_parts = scales_object_parts(
+            "lite_gen", has_orion, flags["has_ramps"], flags["has_frame"]
+        )
+        if g["delivery"]:
+            obj_parts.append("доставки")
+        lines.append(
+            f"— {word} {s_post}% стоимости {join_ru(obj_parts)} "
+            f"{event('SHIPMENT_READY')} ({days})."
+        )
 
     # --- Строка 4: монтаж и поверка (обе фазы одной строкой; W6/B11 — состав бакета) ---
     if g["installation_and_verification"]:
@@ -134,14 +137,14 @@ def render_split_by_items(
         phases: list[str] = []
         if iv_prepay > 0:
             phases.append(
-                f"{iv_prepay}% {kind_word(iv_prepay, iv_post, 'prepay')} — {event('BRIGADE_READY')}"
+                f"{kind_word(iv_prepay, iv_post, 'prepay')} {iv_prepay}% {event('BRIGADE_READY')}"
             )
         if iv_post > 0:
             phases.append(
-                f"{iv_post}% {kind_word(iv_prepay, iv_post, 'postpay')} — {event('WORK_ACT')}"
+                f"{kind_word(iv_prepay, iv_post, 'postpay')} {iv_post}% {event('WORK_ACT')}"
             )
         if phases:
-            lines.append(f"— {iv_label}: {'; '.join(phases)}.")
+            lines.append(f"— {iv_label}: {', '.join(phases)} ({days}).")
 
     return "\n".join(lines)
 
@@ -153,7 +156,7 @@ def render_v1(state: dict[str, Any], preset: dict) -> str:
     postpay = 100 - prepay
     days = int(state.get("payment_days", preset.get("default_days", 5)))
     return preset.get("body_template", "").format(
-        prepay=prepay, postpay=postpay, days_phrase=due_days_phrase(days, with_words=False)
+        prepay=prepay, postpay=postpay, days_phrase=days_brief(days)
     )
 
 
@@ -166,7 +169,7 @@ def render_v2(state: dict[str, Any], preset: dict) -> str:
     days = int(state.get("payment_days", preset.get("default_days", 5)))
     return preset.get("body_template", "").format(
         prepay=prepay, preship=preship, postpay=postpay,
-        days_phrase=due_days_phrase(days, with_words=False)
+        days_phrase=days_brief(days)
     )
 
 
@@ -182,7 +185,7 @@ def render_v3(state: dict[str, Any], preset: dict) -> str:
         "",
     )
     return preset.get("body_template", "").format(
-        days_phrase=due_days_phrase(days, with_words=False), trigger_text=trigger_text
+        days_phrase=days_brief(days), trigger_text=trigger_text
     )
 
 
@@ -190,7 +193,7 @@ def render_prepay_100(state: dict[str, Any], preset: dict) -> str:
     """100% предоплата — единственное поле: срок."""
     days = int(state.get("payment_days", preset.get("default_days", 5)))
     return preset.get("body_template", "").format(
-        p1=100, days_phrase=due_days_phrase(days, with_words=False)
+        p1=100, days_phrase=days_brief(days)
     )
 
 
@@ -207,18 +210,20 @@ def render_payment_block(
     if preset.get("is_freeform"):
         return (state.get("payment_custom_text", "") or "").strip() or "—"
 
-    if preset.get("is_split"):
-        return render_split_by_items(state, spec_items, preset)
-
     variant = preset.get("variant")
-    if variant == "v1":
-        return render_v1(state, preset)
-    if variant == "v2":
-        return render_v2(state, preset)
-    if variant == "v3":
-        return render_v3(state, preset)
+    if preset.get("is_split"):
+        text = render_split_by_items(state, spec_items, preset)
+    elif variant == "v1":
+        text = render_v1(state, preset)
+    elif variant == "v2":
+        text = render_v2(state, preset)
+    elif variant == "v3":
+        text = render_v3(state, preset)
+    elif preset_id == "prepay_100":
+        text = render_prepay_100(state, preset)
+    else:
+        text = preset.get("body_template", "—")
 
-    if preset_id == "prepay_100":
-        return render_prepay_100(state, preset)
-
-    return preset.get("body_template", "—")
+    if text and text != "—":
+        text += f"\n\n{FOOTNOTE}"
+    return text

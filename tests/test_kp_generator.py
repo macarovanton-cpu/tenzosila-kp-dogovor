@@ -401,7 +401,7 @@ def test_generate_kp_payment_block_contains_split_lines(prices):
     text = " ".join(
         "".join(r.text or "" for r in p.runs) for p in doc.paragraphs
     )
-    assert "готовность Весов к отгрузке" in text
+    assert "по готовности весов к отгрузке" in text
     assert "фундамент" in text
 
 
@@ -875,7 +875,8 @@ def test_temperature_cell_uses_pt_sans_11pt(prices):
 
 def test_v1_block_renders_in_docx(prices):
     """V1 (Аванс+Постоплата) с prepay=30 → в DOCX блок условий поставки
-    содержит «Предоплата: 30%» и «Доплата: 70%»."""
+    по форме 3 эталона: «Предоплата 30% …», «Доплата 70% …», срок «(5 дней)»,
+    сноска про банковские дни."""
     state = _state(
         payment_preset_id="v1_prepay_postpay",
         payment_v1_prepay=30,
@@ -886,13 +887,13 @@ def test_v1_block_renders_in_docx(prices):
     text = " ".join(
         "".join(r.text or "" for r in p.runs) for p in doc.paragraphs
     )
-    assert "Предоплата: 30%" in text
-    assert "Доплата: 70%" in text
-    assert "5 банковских дней" in text
+    assert "Предоплата 30% общей стоимости при подписании Договора (5 дней)." in text
+    assert "Доплата 70% общей стоимости по Акту выполненных работ (5 дней)." in text
+    assert "Сроки указаны в банковских днях." in text
 
 
 def test_v3_block_renders_in_docx(prices):
-    """V3 (100% постоплата) — 30 дней после акта приёмки."""
+    """V3 (100% постоплата) — 30 дней от Акта выполненных работ (форма 5)."""
     state = _state(
         payment_preset_id="v3_postpay_only",
         payment_v3_days=30,
@@ -903,6 +904,5 @@ def test_v3_block_renders_in_docx(prices):
     text = " ".join(
         "".join(r.text or "" for r in p.runs) for p in doc.paragraphs
     )
-    assert "100% оплаты" in text
-    assert "30 банковских дней" in text
-    assert "после подписания акта приёмки" in text
+    assert "Оплата 100% общей стоимости по Акту выполненных работ (30 дней)." in text
+    assert "Сроки указаны в банковских днях." in text

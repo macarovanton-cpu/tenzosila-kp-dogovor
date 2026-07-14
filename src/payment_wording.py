@@ -18,6 +18,7 @@ from functools import lru_cache
 from typing import Literal
 
 from src.config import PAYMENT_TERMS_JSON
+from src.utils.format import pluralize
 
 _logger = logging.getLogger(__name__)
 
@@ -53,6 +54,14 @@ def default_split_percents() -> dict[str, dict[str, int]]:
 def default_days() -> int:
     """Срок по умолчанию (банковских дней) пресета split_by_items."""
     return int(_preset(_SPLIT_PRESET_ID).get("default_days") or 5)
+
+
+def days_brief(n: int) -> str:
+    """«5 дней»/«1 день» — срок КП в скобках «(N дней)» (эталон PAYMENT_SPEC).
+
+    Единица «банковских» в строку КП не пишется — она в сноске под блоком.
+    """
+    return pluralize(n, ("день", "дня", "дней"))
 
 
 def default_preset_percents(preset_id: str) -> dict[str, int]:
@@ -115,19 +124,18 @@ def wording_flags(spec_items: list[dict]) -> dict[str, bool]:
 
 
 # Словоформы объекта «весы» по регистрам: full — род. падеж Спец,
-# lite_gen — род. падеж КП («стоимости …»), lite_acc — вин. падеж КП («за …»).
+# lite_gen — род. падеж КП («стоимости …»; вин. регистр lite_acc умер
+# вместе с базой «за …» — эталон PAYMENT_SPEC, база везде родительная).
 _SCALES_WORDS: dict[str, dict[str, str]] = {
     "full":     {"scales": "Весов", "orion": "Весов (включая ПАК ОРИОН)",
                  "ramps": "комплекта пандусов", "frame": "рамы"},
     "lite_gen": {"scales": "весов", "orion": "весов (включая ПАК ОРИОН)",
                  "ramps": "комплекта пандусов", "frame": "рамы"},
-    "lite_acc": {"scales": "весы", "orion": "весы (включая ПАК ОРИОН)",
-                 "ramps": "комплект пандусов", "frame": "раму"},
 }
 
 
 def scales_object_parts(
-    register: Literal["full", "lite_gen", "lite_acc"],
+    register: Literal["full", "lite_gen"],
     has_orion: bool, has_ramps: bool, has_frame: bool,
 ) -> list[str]:
     """Части объекта «весы» для join_ru: рама/пандусы называются в объекте
@@ -141,12 +149,14 @@ def scales_object_parts(
     return parts
 
 
-_POLES_SUFFIX = " и установку опор и кабель-трасс для ПАК ОРИОН"
+# Родительный падеж в ОБОИХ регистрах: база везде «(от) стоимости …»
+# (эталон PAYMENT_SPEC; суффикс синхронизирован с предлогом, не с регистром).
+_POLES_SUFFIX = " и установки опор и кабель-трасс для ПАК ОРИОН"
 
 
 def foundation_object(register: Literal["full", "lite"], has_poles: bool) -> str:
     """Объект доплаты за фундамент; W9 — опоры/кабель-трассы ОРИОН называются."""
-    base = "фундамента Весов" if register == "full" else "фундамент"
+    base = "фундамента Весов" if register == "full" else "фундамента"
     return base + _POLES_SUFFIX if has_poles else base
 
 
@@ -245,7 +255,7 @@ def installation_object(
 
 TRIGGER_WORDING: dict[str, dict[str, str]] = {
     "SPEC_SIGNED":    {"full": "подписания настоящей Спецификации",
-                       "lite": "подписание Договора"},
+                       "lite": "при подписании Договора"},
     # W7: prepay_100 — основание «счёт». Только full-регистр (Спец/Договор
     # поставки); в lite (КП) фраза про счёт не печатается (КП рендерит
     # prepay_100 из body_template JSON).
@@ -255,19 +265,19 @@ TRIGGER_WORDING: dict[str, dict[str, str]] = {
         "lite": "с момента подписания Договора",
     },
     "FOUNDATION_ACT": {"full": "подписания Акта выполненных работ по строительству фундамента",
-                       "lite": "Акт по строительству фундамента"},
+                       "lite": "по Акту строительства фундамента"},
     # W9: расширенный триггер акта фундамента при опорах/кабель-трассах ОРИОН.
     "FOUNDATION_ACT_POLES": {
         "full": "подписания Акта выполненных работ по строительству фундамента "
                 "и установке опор и кабель-трасс",
-        "lite": "Акт по строительству фундамента и установке опор и кабель-трасс",
+        "lite": "по Акту строительства фундамента и установки опор",
     },
     "SHIPMENT_READY": {"full": "получения уведомления о готовности Весов к отгрузке",
-                       "lite": "готовность Весов к отгрузке"},
+                       "lite": "по готовности весов к отгрузке"},
     "BRIGADE_READY":  {"full": "уведомления о готовности принять монтажную бригаду на месте монтажа",
-                       "lite": "готовность к монтажу"},
+                       "lite": "по готовности к монтажу"},
     "WORK_ACT":       {"full": "подписания Акта выполненных работ по настоящей Спецификации",
-                       "lite": "Акт выполненных работ"},
+                       "lite": "по Акту выполненных работ"},
     "DELIVERED":      {"full": "поставки Весов Заказчику",
                        "lite": "после поставки Весов"},
 }
