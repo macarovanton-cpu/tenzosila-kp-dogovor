@@ -196,6 +196,17 @@ def _iv_compose(
     return " и ".join(parts)
 
 
+def iv_guard_triggered(iv_items: list[dict]) -> bool:
+    """Гвард-по-остатку (B11): бакет не опознан целиком → generic-фолбэк.
+
+    Публичная обёртка над формулой installation_object — переиспользуется
+    вне модуля для наблюдаемости (tests/golden/dump_buckets.py), без
+    дублирования формулы.
+    """
+    kinds = [_iv_kind(it) for it in iv_items]
+    return not kinds or any(not any(k) for k in kinds)
+
+
 def installation_object(
     register: Literal["full", "lite"],
     iv_items: list[dict],
@@ -210,8 +221,7 @@ def installation_object(
     Флаг shef оба пути берут из одного поля снапшота installation_scope: КП —
     state["is_shefmontazh"] (⟺ scope == "shefmontazh"), Спец — installation_scope.
     """
-    kinds = [_iv_kind(it) for it in iv_items]
-    if not kinds or any(not any(k) for k in kinds):
+    if iv_guard_triggered(iv_items):
         for it in iv_items:
             if not any(_iv_kind(it)):
                 _logger.warning(
@@ -220,6 +230,7 @@ def installation_object(
                     it.get("item_key") or it.get("id"), it.get("name"),
                 )
         return _iv_generic(register, shef)
+    kinds = [_iv_kind(it) for it in iv_items]
     has_install = any(k[0] for k in kinds)
     has_verification = any(k[1] for k in kinds)
     has_orion = any(k[2] for k in kinds)
