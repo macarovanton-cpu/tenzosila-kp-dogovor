@@ -399,6 +399,23 @@ def test_build_spec_items_adds_custom_items_as_equipment(prices, models_json):
     assert "custom_3" not in {i["item_key"] for i in items}
 
 
+def test_build_spec_items_custom_scope_routes_payment_group(prices, models_json):
+    """Тег типа работ и fallback по имени кладут custom-позицию в верный бакет (B12)."""
+    state = _base_state()
+    state["custom_items"] = [
+        {"id": "custom_1", "name": "Монтаж навеса", "price": 90_000,
+         "scope": "installation"},
+        {"id": "custom_2", "name": "Доставка до объекта", "price": 40_000},
+    ]
+
+    items = build_spec_items(state, prices, models_json)
+
+    scoped = next(i for i in items if i["item_key"] == "custom_1")
+    assert scoped["payment_group"] == "installation_and_verification"
+    by_name = next(i for i in items if i["item_key"] == "custom_2")
+    assert by_name["payment_group"] == "delivery"
+
+
 def test_build_spec_items_shefmontazh_changes_install_name_only(prices, models_json):
     """Шеф-монтаж меняет наименование монтажа, но не цену."""
     state = _base_state()
