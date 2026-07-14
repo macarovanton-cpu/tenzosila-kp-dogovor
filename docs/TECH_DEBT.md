@@ -922,6 +922,10 @@ Golden `G-09` перезаморожен осознанно (клаузы мон
 - Зимний режим фундамента (+обогрев) и «материал заказчика» — проверить охват.
 
 ### Инфраструктура / хозяйство
+- 🔲 Протухший `.venv/` в корне репо: без `docxcompose` — `.venv\Scripts\python -m pytest`
+  падает на сборе тестов (compose/autoverify/golden). Рабочий интерпретатор —
+  системный `python`. Либо `pip install -r requirements.txt` в `.venv`, либо
+  удалить `.venv`. Проверка: `.venv\Scripts\python -m pip show docxcompose`.
 - 🔒 Supabase temp-директория на Windows: `pytest` без флагов падает с
   `PermissionError` на временных файлах — известная локальная досада
   (деплой на Streamlit Cloud — Linux, там не воспроизводится).
