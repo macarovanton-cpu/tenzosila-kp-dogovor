@@ -2,7 +2,7 @@
 
 Прогоняет tests/autoverify/runner.generate_all() (продакшн-путь генерации
 КП/Договора/Спецификации) на 5 пресетах оплаты (фиксированный состав сделки)
-+ 4 доп. композициях для split_by_items, и печатает дословный текст условий
++ 5 доп. композициях для split_by_items, и печатает дословный текст условий
 оплаты в docs/PAYMENT_MATRIX.md — для ручной вычитки, не для авто-сверки.
 
 CLI: python -m tools.payment_matrix
@@ -36,13 +36,20 @@ _EXTRA_COMPOSITIONS = [
      {"install_default": _OPTION(180000)}),
     ("rama_ramps", "весы + рама + пандусы (без монтажа)", "supply",
      {"frame_18": _OPTION(130000), "ramp_set_fl_sl": _OPTION(280000)}),
-    ("orion_poles", "весы + ПАК ОРИОН + опоры", "spec",
-     {"orion_standard": _OPTION(464900), "orion_cable_poles": _OPTION(155000)}),
+    # Форма 9 PAYMENT_SPEC: монтаж весов есть → шеф-монтаж ОРИОНа растворяется
+    # в «монтажных работах» (поглощение B11).
+    ("orion_poles", "весы + ПАК ОРИОН + опоры + монтаж + поверка", "spec",
+     {"orion_standard": _OPTION(464900), "orion_cable_poles": _OPTION(155000),
+      "install_default": _OPTION(180000), "verification_default": _OPTION(60000)}),
+    # Форма 11 PAYMENT_SPEC: бандл ОРИОН расщепляется на ПАК + orion_install;
+    # монтажа весов нет → поглощение B11 не срабатывает, ОРИОН назван прямо.
+    ("orion_shef_only", "весы + шеф-монтаж ПАК ОРИОН (без монтажа весов)", "spec",
+     {"orion_standard": _OPTION(464900)}),
 ]
 
 
 def _build_scenarios() -> list[tuple[str, str, int, Fixture]]:
-    """(заголовок, состав, days, Fixture) для всех 9 сценариев."""
+    """(заголовок, состав, days, Fixture) для всех 10 сценариев."""
     base = load_fixture("fundament_montazh_poverka")
     preset_names = {p["id"]: p["name"] for p in load_payment_terms()["presets"]}
     scenarios: list[tuple[str, str, int, Fixture]] = []
@@ -102,7 +109,7 @@ def main() -> None:
 
     # ponytail: минимальная самопроверка нетривиального цикла/ветвления
     assert OUT_MD.exists()
-    assert text.count("### Форма:") == 9, text.count("### Форма:")
+    assert text.count("### Форма:") == 10, text.count("### Форма:")
     assert "Договор поставки" in text and "Спецификация (через редактор" in text
     print(f"OK: {OUT_MD} ({len(scenarios)} форм)")
 
