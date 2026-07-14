@@ -616,6 +616,9 @@ def build_specification_items(
             "is_custom": True,
             "source": "custom",
             "metadata": metadata,
+            # Сырой тег типа работ (B11) — резерв к промоушену id при коллизии;
+            # источник has_install/has_verification для installation_object.
+            "custom_scope": item.get("scope"),
         })
 
     items.sort(key=lambda x: _ITEM_ORDER.get(x["id"], 10))

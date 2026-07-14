@@ -459,6 +459,9 @@ def build_spec_items(
                 custom["name"], custom.get("scope")
             ),
             "term_role": None,
+            # Сырой тег типа работ (B11) — источник has_install/has_verification
+            # для installation_object; НЕ metadata["scope"] (там WorkType.scope).
+            "custom_scope": custom.get("scope"),
         })
 
     return items

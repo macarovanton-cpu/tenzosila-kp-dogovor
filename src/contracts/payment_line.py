@@ -411,9 +411,13 @@ def build_lines_from_snapshot(
             base_amount=base_l3,
         ))
 
-    # L4/L5 — монтаж и поверка (W6: объект по installation_scope)
+    # L4/L5 — монтаж и поверка (W6/B11: объект по составу iv-бакета)
     if g["installation_and_verification"]:
-        iv_obj = installation_object("full", installation_scope == "shefmontazh")
+        iv_items = [
+            it for it in spec_items
+            if it.get("payment_group") == "installation_and_verification"
+        ]
+        iv_obj = installation_object("full", iv_items, installation_scope == "shefmontazh")
         iv_prepay = pct("installation_and_verification", "prepay")
         iv_post   = pct("installation_and_verification", "postpay")
         if iv_prepay > 0:

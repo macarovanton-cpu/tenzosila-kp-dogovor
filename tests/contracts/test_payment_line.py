@@ -266,10 +266,10 @@ def test_bridge_full_scenario():
     assert l3.amount == 1_200_000  # 50% от 2млн + 100% от 200к
     assert l3.share_pct is None     # защёлка: разные % → процент не печатается
     assert l3.share_prep is None
-    # L4 — предоплата монтажа
+    # L4 — предоплата монтажа (бакет iv = только монтаж без поверки → B11: «монтажных работ»)
     assert l4.kind == "предоплата"
     assert l4.trigger == PaymentTrigger.BRIGADE_READY
-    assert l4.share_object == "монтажных работ и поверки"
+    assert l4.share_object == "монтажных работ"
     assert l4.amount == 50_000
     # L5 — доплата монтажа
     assert l5.kind == "доплата"
@@ -634,7 +634,10 @@ def test_bridge_frame_only_no_ramps():
 # ---------------------------------------------------------------------------
 
 def test_bridge_w6_shefmontazh_object():
-    """installation_scope='shefmontazh' → «шеф-монтажных работ и поверки» в обеих фазах."""
+    """installation_scope='shefmontazh' → шеф-префикс монтажа в обеих фазах.
+
+    Бакет iv = только монтаж (без поверки) → B11-объект «шеф-монтажных работ».
+    """
     spec_items = [
         _item("vesta-c-60-18", "scales", 1_000_000),
         _item("install_default", "installation_and_verification", 100_000),
@@ -650,11 +653,14 @@ def test_bridge_w6_shefmontazh_object():
     iv_lines = [ln for ln in lines if ln.trigger in
                 (PaymentTrigger.BRIGADE_READY, PaymentTrigger.WORK_ACT)]
     assert len(iv_lines) == 2
-    assert all(ln.share_object == "шеф-монтажных работ и поверки" for ln in iv_lines)
+    assert all(ln.share_object == "шеф-монтажных работ" for ln in iv_lines)
 
 
 def test_bridge_w6_default_scope_keeps_montazh():
-    """Без scope (или full) — обычный объект «монтажных работ и поверки»."""
+    """Без scope (или full) — монтаж без шеф-префикса.
+
+    Бакет iv = только монтаж (без поверки) → B11-объект «монтажных работ».
+    """
     spec_items = [
         _item("vesta-c-60-18", "scales", 1_000_000),
         _item("install_default", "installation_and_verification", 100_000),
@@ -670,7 +676,7 @@ def test_bridge_w6_default_scope_keeps_montazh():
         )
         iv_lines = [ln for ln in lines if ln.trigger in
                     (PaymentTrigger.BRIGADE_READY, PaymentTrigger.WORK_ACT)]
-        assert all(ln.share_object == "монтажных работ и поверки" for ln in iv_lines)
+        assert all(ln.share_object == "монтажных работ" for ln in iv_lines)
 
 
 # ---------------------------------------------------------------------------

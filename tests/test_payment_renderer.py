@@ -226,7 +226,10 @@ def test_split_only_scales(payment_terms):
 
 
 def test_split_scales_plus_install(payment_terms):
-    """C: весы + монтаж, без фундамента и доставки → 3 строки."""
+    """C: весы + монтаж (без поверки), без фундамента и доставки → 3 строки.
+
+    Бакет iv = только монтаж → B11-объект «Монтаж» (без «и поверка»).
+    """
     items = [
         _item("vesta-с-60-18", "scales"),
         _item("install_default", "installation_and_verification"),
@@ -238,7 +241,8 @@ def test_split_scales_plus_install(payment_terms):
     assert "Предоплата 50%" in lines[0]
     assert "Доплата 50% за весы" in lines[1]
     assert "доставку" not in lines[1]
-    assert "Монтаж и поверка" in lines[2]
+    assert "— Монтаж:" in lines[2]
+    assert "поверка" not in lines[2]
 
 
 def test_split_scales_with_orion_no_others(payment_terms):
@@ -292,7 +296,8 @@ def test_split_iv_single_phase_word_is_oplata(payment_terms):
     )
     text = render_payment_block(state, items, payment_terms)
     iv_line = text.split("\n")[-1]
-    assert iv_line == "— Монтаж и поверка: 100% оплата — Акт выполненных работ."
+    # Бакет iv = только монтаж (без поверки) → B11-объект «Монтаж».
+    assert iv_line == "— Монтаж: 100% оплата — Акт выполненных работ."
     assert "готовности к монтажу" not in iv_line
 
 
@@ -342,7 +347,10 @@ def test_split_rama_ramps_named(payment_terms):
 
 
 def test_split_shefmontazh_label(payment_terms):
-    """W6: is_shefmontazh → строка монтажа называется «Шеф-монтаж и поверка»."""
+    """W6: is_shefmontazh → строка монтажа получает шеф-префикс.
+
+    Бакет iv = только монтаж (без поверки) → B11-объект «Шеф-монтаж».
+    """
     items = [
         _item("vesta-с-60-18", "scales"),
         _item("install_default", "installation_and_verification"),
@@ -350,8 +358,8 @@ def test_split_shefmontazh_label(payment_terms):
     state = _state("split_by_items", is_shefmontazh=True)
     text = render_payment_block(state, items, payment_terms)
     iv_line = text.split("\n")[-1]
-    assert iv_line.startswith("— Шеф-монтаж и поверка:")
-    assert "Монтаж и поверка:" not in iv_line
+    assert iv_line.startswith("— Шеф-монтаж:")
+    assert "поверка" not in iv_line
 
 
 def test_split_no_term_in_kp(payment_terms):
