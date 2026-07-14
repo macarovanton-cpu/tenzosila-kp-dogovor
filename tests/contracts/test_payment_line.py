@@ -450,13 +450,14 @@ def test_bridge_v3_after_delivery():
 
 
 def test_bridge_prepay_100():
-    """prepay_100 → 1 строка; предоплата; pct=100; W7 — триггер с основанием «счёт»."""
+    """prepay_100 → 1 строка; W3 — единственный платёж → «оплата»;
+    pct=100; W7 — триггер с основанием «счёт»."""
     spec_items = [_item("vesta-c-60-18", "scales", 800_000)]
     payment = {"preset_id": "prepay_100", "days": 5}
     lines = build_lines_from_snapshot(payment, spec_items)
     assert len(lines) == 1
     ln = lines[0]
-    assert ln.kind == "предоплата"
+    assert ln.kind == "оплата"  # W3: до фикса хардкод «предоплата» мимо kind_word
     assert ln.share_pct == 100.0
     assert ln.trigger == PaymentTrigger.SPEC_SIGNED_INVOICE
     assert ln.amount == 800_000

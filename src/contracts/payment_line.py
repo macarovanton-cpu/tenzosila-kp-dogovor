@@ -154,8 +154,9 @@ def _non_split_phases(
 
     if preset_id == "prepay_100":
         # W7: простая поставка — основание «счёт» в триггере.
+        # W3: единственный платёж → слово-тип «оплата» (kind_word), не «предоплата».
         return [
-            ("предоплата", 100, PaymentTrigger.SPEC_SIGNED_INVOICE),
+            (kind_word(100, 0, "prepay"), 100, PaymentTrigger.SPEC_SIGNED_INVOICE),
         ], days
 
     # custom и неизвестные пресеты — свободный текст, строки не генерируем
