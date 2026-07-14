@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from src.config import (
     OPTION_BLOCKS_ORDER,
     UNIT_BY_BLOCK,
 )
+from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
 from src.data_loader import (
     get_model_by_id,
     get_price_by_model_id,
@@ -193,7 +195,9 @@ def _iter_valid_custom_items(state: dict[str, Any]) -> list[dict[str, Any]]:
         if not name or price <= 0:
             continue
         item_id = str(item.get("id") or f"custom_{index}")
-        result.append({"id": item_id, "name": name, "price": price})
+        result.append(
+            {"id": item_id, "name": name, "price": price, "scope": item.get("scope")}
+        )
     return result
 
 
@@ -233,6 +237,42 @@ def resolve_payment_group(item_key: str) -> str:
     if item_key == "orion_cable_poles":
         return "foundation"
     return "scales"
+
+
+# Авто-маппинг payment_group по имени custom-позиции (contracts_v2_1.md §4).
+# Fallback для нетегированных позиций (scope=other/None или старый снапшот).
+_NAME_FOUNDATION_RE = re.compile(
+    r"^фундамент|^строительство фундамента|^бетонное основание"
+    r"|укладка.+плит|опор и кабель-трасс",
+    re.IGNORECASE,
+)
+_NAME_INSTALL_RE = re.compile(
+    r"^монтаж|^поверка|^шеф.?монтаж",
+    re.IGNORECASE,
+)
+
+
+def _payment_group_by_name(name: str) -> str:
+    """payment_group по имени позиции (для custom items без ключа опции)."""
+    n = name.strip()
+    if n.lower().startswith("доставка"):
+        return "delivery"
+    if _NAME_INSTALL_RE.match(n):
+        return "installation_and_verification"
+    if _NAME_FOUNDATION_RE.search(n):
+        return "foundation"
+    return "scales"
+
+
+def resolve_custom_payment_group(name: str, scope: str | None) -> str:
+    """Бакет оплаты произвольной позиции: тег типа работ, иначе — по имени.
+
+    Единое ядро для КП (build_spec_items) и Договора (from_kp) — закрывает B12.
+    """
+    work = CUSTOM_WORK_TYPES.get(
+        scope or DEFAULT_WORK_TYPE, CUSTOM_WORK_TYPES[DEFAULT_WORK_TYPE]
+    )
+    return work.payment_group or _payment_group_by_name(name)
 
 
 # Имена строк расщеплённого бандла ОРИОН (FIX_SPEC §A1). Единый источник для
@@ -415,7 +455,9 @@ def build_spec_items(
             "total": price * qty,
             "is_overridden": is_ov,
             "customer_side": False,
-            "payment_group": "scales",
+            "payment_group": resolve_custom_payment_group(
+                custom["name"], custom.get("scope")
+            ),
             "term_role": None,
         })
 

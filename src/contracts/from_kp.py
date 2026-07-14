@@ -11,6 +11,7 @@ from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
 from src.spec_builder import (
     _assert_single_orion_bundle,
     format_platform_size,
+    resolve_custom_payment_group,
     resolve_payment_group,
     split_orion_bundle,
 )
@@ -62,31 +63,6 @@ _FOUNDATION_PATTERNS = [
     (re.compile(r"^pag_slabs_(\d+)$"),
      "Укладка плит ПАГ, {N}м"),
 ]
-
-# Авто-маппинг payment_group по имени позиции (contracts_v2_1.md §4).
-# Используется только для custom_items из snapshot (нет ключа опции).
-_NAME_FOUNDATION_RE = re.compile(
-    r"^фундамент|^строительство фундамента|^бетонное основание"
-    r"|укладка.+плит|опор и кабель-трасс",
-    re.IGNORECASE,
-)
-_NAME_INSTALL_RE = re.compile(
-    r"^монтаж|^поверка|^шеф.?монтаж",
-    re.IGNORECASE,
-)
-
-
-def _payment_group_by_name(name: str) -> str:
-    """payment_group по имени позиции (для custom items без ключа опции)."""
-    n = name.strip()
-    if n.lower().startswith("доставка"):
-        return "delivery"
-    if _NAME_INSTALL_RE.match(n):
-        return "installation_and_verification"
-    if _NAME_FOUNDATION_RE.search(n):
-        return "foundation"
-    return "scales"
-
 
 def _row_sort_key(row: dict[str, Any]) -> int:
     """Ключ сортировки для стабильного порядка строк спецификации."""
@@ -628,7 +604,7 @@ def build_specification_items(
                 metadata["scope"] = work.scope
         else:
             spec_id = f"custom_{index}"
-        payment_group = work.payment_group or _payment_group_by_name(name)
+        payment_group = resolve_custom_payment_group(name, item.get("scope"))
         items.append({  # type: ignore[misc]
             "id": spec_id,
             "name": name,
