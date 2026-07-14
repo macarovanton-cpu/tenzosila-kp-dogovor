@@ -66,9 +66,10 @@ def render_terms_section(deal: dict, spec_items: list[dict]) -> list[str]:
             "строительной и монтажной бригад" if has_contractor_foundation
             else "монтажной бригады"
         )
-        # B11: поверка называется в сроках только если она есть в сделке.
+        # B11: поверка называется в сроках, только если её организует Подрядчик —
+        # у поверки заказчика нет ни срока, ни выезда бригады в этом разделе.
         subj = (
-            "монтаж Весов и поверка Весов" if ctx["verification_scope"] != "none"
+            "монтаж Весов и поверка Весов" if ctx["verification_scope"] == "supplier"
             else "монтаж Весов"
         )
         lines.append(

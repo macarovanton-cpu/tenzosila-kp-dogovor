@@ -210,3 +210,33 @@ class TestCustomerBuilds:
 
         assert "поставка Весов" in lines[0]
         assert "монтаж Весов" in lines[1]
+
+
+class TestVerificationScopeInTerms:
+    """B11: сроки не обещают поверку, которую организует заказчик."""
+
+    def test_customer_scope_omits_verification(self):
+        spec_items = _make_spec_items("vesta-c-80-18", "install_default")
+        deal = _make_deal([
+            {"id": "weights", "metadata": {}},
+            {"id": "installation", "metadata": {"scope": "full"}},
+        ], overrides={"foundation_scope": "customer_builds", "verification_scope": "customer"})
+
+        lines = render_terms_section(deal, spec_items)
+
+        assert "монтаж Весов" in lines[1]
+        assert "поверка Весов" not in lines[1]
+
+    def test_supplier_scope_keeps_verification(self):
+        spec_items = _make_spec_items(
+            "vesta-c-80-18", "install_default", "verification_default",
+        )
+        deal = _make_deal([
+            {"id": "weights", "metadata": {}},
+            {"id": "installation", "metadata": {"scope": "full"}},
+            {"id": "verification", "metadata": {}},
+        ], overrides={"foundation_scope": "customer_builds"})
+
+        lines = render_terms_section(deal, spec_items)
+
+        assert "монтаж Весов и поверка Весов" in lines[1]
