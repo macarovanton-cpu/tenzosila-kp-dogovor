@@ -13,10 +13,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from functools import lru_cache
 from typing import Literal
 
 from src.config import PAYMENT_TERMS_JSON
+
+_logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Дефолты — единственный источник из data/payment_terms.json
@@ -147,18 +150,80 @@ def foundation_object(register: Literal["full", "lite"], has_poles: bool) -> str
     return base + _POLES_SUFFIX if has_poles else base
 
 
-def installation_object(register: Literal["full", "lite"], shef: bool) -> str:
-    """Объект оплаты монтажа (W6): при шеф-монтаже печатается «шеф-монтаж».
+def _iv_kind(item: dict) -> tuple[bool, bool, bool]:
+    """(is_install, is_verification, is_orion_install) одной позиции iv-бакета.
 
-    Один источник для КП и Спец. Флаг shef оба пути берут из одного поля
-    снапшота installation_scope: КП — state["is_shefmontazh"] (⟺
-    scope == "shefmontazh", см. storage.snapshot_builder
-    ._resolve_installation_scope и contracts.from_kp._reconstruct_state),
-    Спец — installation_scope напрямую.
+    OR каталожного ключа и сырого custom-тега (B11): на промоушен id полагаться
+    нельзя — он молча ломается при коллизии existing_ids. Сырой тег `custom_scope`
+    кладут оба билдера (spec_builder.build_spec_items, from_kp.build_specification_items).
     """
+    key = str(item.get("item_key") or item.get("id") or "")
+    tag = item.get("custom_scope")
+    is_install = key in {"install_default", "installation"} or tag == "installation"
+    is_verif = key in {"verification_default", "verification"} or tag == "verification"
+    is_orion = key == "orion_install"
+    return is_install, is_verif, is_orion
+
+
+def _iv_generic(register: Literal["full", "lite"], shef: bool) -> str:
+    """Fallback-объект монтажа — исходный статичный текст (заведомо не хуже)."""
     if register == "full":
         return "шеф-монтажных работ и поверки" if shef else "монтажных работ и поверки"
     return "Шеф-монтаж и поверка" if shef else "Монтаж и поверка"
+
+
+def _iv_compose(
+    register: Literal["full", "lite"],
+    has_install: bool, has_verification: bool, has_orion_install: bool, shef: bool,
+) -> str:
+    """Собрать объект монтажа по фактическому составу iv-бакета.
+
+    Поглощение (реш. Антона): монтаж весов есть → шеф-монтаж ОРИОНа растворяется
+    (не называется отдельно). ОРИОН всегда шеф-монтаж (A7).
+    """
+    parts: list[str] = []
+    if has_install:
+        if register == "full":
+            parts.append("шеф-монтажных работ" if shef else "монтажных работ")
+        else:
+            parts.append("Шеф-монтаж" if shef else "Монтаж")
+    elif has_orion_install:
+        parts.append("шеф-монтажа ПАК ОРИОН" if register == "full" else "Шеф-монтаж ПАК ОРИОН")
+    if has_verification:
+        parts.append("поверки" if register == "full" else "поверка")
+    if not parts:
+        return _iv_generic(register, shef)
+    return " и ".join(parts)
+
+
+def installation_object(
+    register: Literal["full", "lite"],
+    iv_items: list[dict],
+    shef: bool,
+) -> str:
+    """Объект оплаты монтажа (W6/B11): композиция по составу iv-бакета.
+
+    Гвард-по-остатку: состав бакета опознан целиком (каждая позиция — монтаж,
+    поверка или шеф-монтаж ОРИОНа)? Иначе — generic (исходный текст) + warning.
+    Композиция включается только когда бакет опознан полностью.
+
+    Флаг shef оба пути берут из одного поля снапшота installation_scope: КП —
+    state["is_shefmontazh"] (⟺ scope == "shefmontazh"), Спец — installation_scope.
+    """
+    kinds = [_iv_kind(it) for it in iv_items]
+    if not kinds or any(not any(k) for k in kinds):
+        for it in iv_items:
+            if not any(_iv_kind(it)):
+                _logger.warning(
+                    "installation_object: неопознанная позиция iv-бакета "
+                    "key=%r name=%r → generic",
+                    it.get("item_key") or it.get("id"), it.get("name"),
+                )
+        return _iv_generic(register, shef)
+    has_install = any(k[0] for k in kinds)
+    has_verification = any(k[1] for k in kinds)
+    has_orion = any(k[2] for k in kinds)
+    return _iv_compose(register, has_install, has_verification, has_orion, shef)
 
 
 # ---------------------------------------------------------------------------

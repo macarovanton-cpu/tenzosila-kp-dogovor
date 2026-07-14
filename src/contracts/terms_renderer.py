@@ -66,8 +66,13 @@ def render_terms_section(deal: dict, spec_items: list[dict]) -> list[str]:
             "строительной и монтажной бригад" if has_contractor_foundation
             else "монтажной бригады"
         )
+        # B11: поверка называется в сроках только если она есть в сделке.
+        subj = (
+            "монтаж Весов и поверка Весов" if ctx["verification_scope"] != "none"
+            else "монтаж Весов"
+        )
         lines.append(
-            f"- монтаж Весов и поверка Весов: в течение {_format_work_days(install_d)} "
+            f"- {subj}: в течение {_format_work_days(install_d)} "
             "при условии получения Подрядчиком предоплаты. "
             f"Выезд {crew} на Объект работ осуществляется при соблюдении "
             "вышеперечисленных условий и получения Подрядчиком письменного "

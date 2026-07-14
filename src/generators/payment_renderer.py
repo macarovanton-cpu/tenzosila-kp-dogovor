@@ -122,9 +122,13 @@ def render_split_by_items(
             f_event = event("FOUNDATION_ACT_POLES" if flags["has_poles"] else "FOUNDATION_ACT")
             lines.append(f"— {word} {f_post}% за {f_obj} — {f_event}.")
 
-    # --- Строка 4: монтаж и поверка (обе фазы одной строкой; W6 — шеф-монтаж) ---
+    # --- Строка 4: монтаж и поверка (обе фазы одной строкой; W6/B11 — состав бакета) ---
     if g["installation_and_verification"]:
-        iv_label = installation_object("lite", bool(state.get("is_shefmontazh")))
+        iv_items = [
+            it for it in spec_items
+            if it.get("payment_group") == "installation_and_verification"
+        ]
+        iv_label = installation_object("lite", iv_items, bool(state.get("is_shefmontazh")))
         iv_prepay = pct("installation_and_verification", "prepay")
         iv_post = pct("installation_and_verification", "postpay")
         phases: list[str] = []
