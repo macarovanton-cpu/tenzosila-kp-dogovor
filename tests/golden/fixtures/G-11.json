@@ -1,0 +1,96 @@
+{
+  "meta": {
+    "id": "G-11",
+    "flow": "spec",
+    "comment": "B9 остаток 1/2: ИТОГО = 3 450 001 (оканчивается на …1, не на …11/…21). prepay_100 → единственная строка ОПЛАТЫ = ИТОГО. В отличие от autoverify-фикстуры ruble_declension (которая проверяет только прямой вызов format_payment_line), этот дамп читает строку ОПЛАТЫ из РЕАЛЬНОГО сгенерированного .docx (провод шаблон+филлер, тот же, что печатает клиенту). Регресс в payment_line, дающий «рубля» вместо «рубль», сломает этот golden-дамп."
+  },
+  "kp_state": {
+    "kp_date": "2026-06-01",
+    "kp_valid_days": 15,
+    "total_term_days": null,
+    "kp_number": "КП-2026-G11",
+    "manager_id": "makarov_av",
+    "client_name": "ООО «Метроном»",
+    "model_line": "СЛ",
+    "model_max": 60,
+    "model_length": 18,
+    "platform_width_m": 3.0,
+    "model_id": "vesta-сл-60-18",
+    "model_price": 1800001,
+    "model_qty": 1,
+    "sensor_id": "zemic_dhm9b_30t",
+    "indicator_id": "titan_3cs",
+    "cable_m": 20,
+    "warranty_months": 24,
+    "construction_beam": "Двутавр 25Б1",
+    "construction_beam_count": 14,
+    "construction_center_beam": "",
+    "construction_center_beam_count": 0,
+    "construction_deck_mm": 6,
+    "construction_underlining_mm": 4,
+    "is_dual_range": false,
+    "bytovka_dimensions": "",
+    "is_shefmontazh": false,
+    "foundation_execution": "пандусный",
+    "options": {
+      "foundation_std_sl_fl_18": {
+        "enabled": true, "price": 1350000, "qty": 1,
+        "customer_side": false, "retail": 1350000, "dealer_is_synthetic": false
+      },
+      "install_default": {
+        "enabled": true, "price": 180000, "qty": 1,
+        "customer_side": false, "retail": 180000, "dealer_is_synthetic": false
+      },
+      "verification_default": {
+        "enabled": true, "price": 60000, "qty": 1,
+        "customer_side": false, "retail": 60000, "dealer_is_synthetic": false
+      },
+      "delivery_default": {
+        "enabled": true, "price": 60000, "qty": 1,
+        "customer_side": false, "retail": 60000, "dealer_is_synthetic": false
+      }
+    },
+    "custom_items": [],
+    "spec_items_overrides": {},
+    "payment_preset_id": "prepay_100",
+    "payment_days": 5,
+    "payment_custom_text": "",
+    "payment_split_state": {},
+    "payment_v1_prepay": 50,
+    "payment_v2_prepay": 30,
+    "payment_v2_preship": 40,
+    "payment_v3_days": 15,
+    "payment_v3_trigger_id": "after_installation"
+  },
+  "requisites": {
+    "ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ": "ООО «Метроном»",
+    "ЗАКАЗЧИК_ПОЛНОЕ_НАИМЕНОВАНИЕ": "Общество с ограниченной ответственностью «Метроном»",
+    "ЗАКАЗЧИК_ИНН": "5027089899",
+    "ЗАКАЗЧИК_КПП": "502701001",
+    "ЗАКАЗЧИК_ОГРН": "1035005002344",
+    "ЗАКАЗЧИК_АДРЕС_ЮР": "140002, Московская обл., г. Люберцы, ул. Заводская, д. 3",
+    "ЗАКАЗЧИК_АДРЕС_ПОЧТ": "140002, Московская обл., г. Люберцы, ул. Заводская, д. 3",
+    "ЗАКАЗЧИК_РС": "40702810900000054399",
+    "ЗАКАЗЧИК_БАНК": "АО «Альфа-Банк», г. Москва",
+    "ЗАКАЗЧИК_КС": "30101810200000000593",
+    "ЗАКАЗЧИК_БИК": "044525593",
+    "ЗАКАЗЧИК_ТЕЛЕФОН": "+7 495 765-43-21",
+    "ЗАКАЗЧИК_EMAIL": "office@metronom.ru",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ": "Директор",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ФИО": "Соколов Игорь Дмитриевич",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ДОЛЖНОСТЬ_РП": "Директора",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ФИО_РП": "Соколова Игоря Дмитриевича",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ИНИЦИАЛЫ": "И.Д. Соколов",
+    "ЗАКАЗЧИК_ОСНОВАНИЕ": "Устава",
+    "ЗАКАЗЧИК_ДИРЕКТОР_ПОЛ": "male"
+  },
+  "contract": {
+    "contract_date": "2026-06-15",
+    "contract_number": "G11/2026",
+    "spec_number": "1",
+    "object_address": "Московская обл., г. Люберцы, ул. Заводская, д. 3, стр. 2",
+    "scope_overrides": {},
+    "flags": {},
+    "payment_rows": null
+  }
+}
