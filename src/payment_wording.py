@@ -203,6 +203,10 @@ def _iv_compose(
         parts.append("поверки" if register == "full" else "поверка")
     if not parts:
         return _iv_generic(register, shef)
+    if register == "lite":
+        # B15: lite-объект открывает строку КП — первый элемент с заглавной
+        # (состав «только поверка» давал «— поверка: …»).
+        parts[0] = parts[0][0].upper() + parts[0][1:]
     return " и ".join(parts)
 
 

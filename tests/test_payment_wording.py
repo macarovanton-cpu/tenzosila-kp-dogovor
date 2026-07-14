@@ -158,6 +158,13 @@ def test_compose_orion_install_plus_verification():
     )
 
 
+def test_compose_verification_only_lite_capitalized():
+    """B15: состав «только поверка» — lite-объект с заглавной («— Поверка: …»),
+    full — строчными (внутри предложения после «от стоимости»)."""
+    assert installation_object("lite", [_VERIF_CAT], False) == "Поверка"
+    assert installation_object("full", [_VERIF_CAT], False) == "поверки"
+
+
 def test_compose_custom_install():
     iv = [{"item_key": "custom_1", "custom_scope": "installation"}, _VERIF_CAT]
     assert installation_object("lite", iv, False) == "Монтаж и поверка"
