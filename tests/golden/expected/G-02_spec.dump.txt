@@ -385,3 +385,23 @@ P{}
 P{style='footer'}
   R{style='page number'} [FIELD 'PAGE'] cached=''
 P{style='footer'}
+
+--- BUCKETS ---
+
+[ITEMS]
+weights | Весы автомобильные ВЕСТА-СЛ-60-18-Ц, max 60т, размеры платформы 18х3м | scales
+rama | Рама 18м для весов ВЕСТА | scales
+pandus | Комплект пандусов для весов ВЕСТА-СЛ/ФЛ | scales
+delivery | Доставка весов до объекта | delivery
+installation | Шеф-монтаж и пусконаладка | installation_and_verification
+verification | Поверка автомобильных весов с доставкой эталонов | installation_and_verification
+
+[GROUPS]
+scales: weights, rama, pandus
+foundation: (пусто)
+delivery: delivery
+installation_and_verification: installation, verification
+
+[IV]
+has_install=True has_verification=True has_orion_install=False
+guard_triggered=False

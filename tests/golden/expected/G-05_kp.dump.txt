@@ -1158,3 +1158,25 @@ TBL{cols=3;grid=4253,5103,709}
     TC{}
       P{jc=right}
 P{style='footer'}
+
+--- BUCKETS ---
+
+[ITEMS]
+vesta-с-60-18 | Весы автомобильные ВЕСТА-С-60-18 | scales
+orion_cable_poles | Установка опор и кабель-трасс для ПАК ОРИОН | foundation
+orion_standard | Программно-аппаратный комплекс «ОРИОН» | scales
+orion_install | Монтаж и настройка программно-аппаратного комплекса «ОРИОН» | installation_and_verification
+foundation_s_f_18 | Фундамент железобетонный в приямок под весы ВЕСТА-С-60-18, 18м | foundation
+delivery_default | Доставка весов до объекта | delivery
+install_default | Монтаж и пусконаладка автовесов | installation_and_verification
+verification_default | Первичная поверка | installation_and_verification
+
+[GROUPS]
+scales: vesta-с-60-18, orion_standard
+foundation: orion_cable_poles, foundation_s_f_18
+delivery: delivery_default
+installation_and_verification: orion_install, install_default, verification_default
+
+[IV]
+has_install=True has_verification=True has_orion_install=True
+guard_triggered=False

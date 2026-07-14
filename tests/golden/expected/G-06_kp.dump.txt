@@ -1137,3 +1137,23 @@ TBL{cols=3;grid=4253,5103,709}
     TC{}
       P{jc=right}
 P{style='footer'}
+
+--- BUCKETS ---
+
+[ITEMS]
+vesta-сл-60-18 | Весы автомобильные ВЕСТА-СЛ-60-18 | scales
+foundation_std_sl_fl_18 | Фундамент железобетонный пандусный под весы ВЕСТА-СЛ-60-18, 18м | foundation
+delivery_default | Доставка весов до объекта | delivery
+install_default | Монтаж и пусконаладка автовесов | installation_and_verification
+verification_default | Первичная поверка | installation_and_verification
+custom_1 | Антивандальная табличка на весовой платформе | scales | custom_scope=None
+
+[GROUPS]
+scales: vesta-сл-60-18, custom_1
+foundation: foundation_std_sl_fl_18
+delivery: delivery_default
+installation_and_verification: install_default, verification_default
+
+[IV]
+has_install=True has_verification=True has_orion_install=False
+guard_triggered=False

@@ -1128,3 +1128,22 @@ TBL{cols=3;grid=4253,5103,709}
     TC{}
       P{jc=right}
 P{style='footer'}
+
+--- BUCKETS ---
+
+[ITEMS]
+vesta-сл-60-18 | Весы автомобильные ВЕСТА-СЛ-60-18 | scales
+concrete_base_on_frame | Бетонное основание для весов на раме | foundation
+delivery_default | Доставка весов до объекта | delivery
+install_default | Монтаж и пусконаладка автовесов | installation_and_verification
+verification_default | Первичная поверка | installation_and_verification
+
+[GROUPS]
+scales: vesta-сл-60-18
+foundation: concrete_base_on_frame
+delivery: delivery_default
+installation_and_verification: install_default, verification_default
+
+[IV]
+has_install=True has_verification=True has_orion_install=False
+guard_triggered=False

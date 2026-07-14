@@ -35,6 +35,7 @@ from src.contracts.supply_filler import build_supply_context, decide_contract_ty
 from src.contracts.utils import format_date_parts
 from src.data_loader import load_models, load_payment_terms, load_prices
 from src.generators.kp_generator import generate_kp
+from src.spec_builder import build_spec_items
 from src.storage.snapshot_builder import build_kp_snapshot
 from src.ui.payment_lines_editor import (
     _line_to_row,
@@ -62,7 +63,8 @@ class GeneratedSet:
     flow: str                                   # фактический тип: spec | supply
     docx_paths: dict[str, Path]                 # kp / contract / spec | kp / supply
     data: dict[str, Any]                        # плоский dict плейсхолдеров
-    items: list[dict[str, Any]]                 # SpecItem list (per-unit)
+    items: list[dict[str, Any]]                 # SpecItem list (per-unit), Договор-путь
+    kp_items: list[dict[str, Any]]               # SpecItem list, КП-путь (build_spec_items)
     deal: dict[str, Any]
     payment_rows: list[dict[str, Any]]          # строки редактора оплаты
     spec_total: int                             # подытог_за_1 × model_qty
@@ -101,6 +103,12 @@ def generate_all(fixture: Fixture, out_dir: Path) -> GeneratedSet:
     # --- КП (шов чистый: state → bytes) ---
     kp_path = out_dir / f"{fixture.id}_kp.docx"
     kp_path.write_bytes(generate_kp(fixture.kp_state, prices))
+
+    # Зеркало build_template_context (kp_generator.py) — те же items, что видит
+    # docxtpl, но КП-путь не отдаёт их наружу. Нужны отдельно от items ниже:
+    # это ДРУГОЙ билдер (spec_builder vs from_kp), расхождение между ними —
+    # ровно то, что должен ловить golden (B11/B12).
+    kp_items = build_spec_items(fixture.kp_state, prices, models_json)
 
     # --- kp_row из снапшота (зеркало пути «Из базы (по номеру)») ---
     snapshot = build_kp_snapshot(fixture.kp_state)
@@ -202,6 +210,7 @@ def generate_all(fixture: Fixture, out_dir: Path) -> GeneratedSet:
         docx_paths=docx_paths,
         data=data,
         items=items,
+        kp_items=kp_items,
         deal=deal,
         payment_rows=prows,
         spec_total=spec_total,

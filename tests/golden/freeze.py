@@ -15,6 +15,7 @@ import argparse
 from pathlib import Path
 
 from tests.autoverify.runner import generate_all
+from tests.golden.dump_buckets import buckets_section
 from tests.golden.dump_docx import dump_docx
 from tests.golden.fixtures import list_fixture_ids, load_fixture
 
@@ -24,9 +25,13 @@ EXPECTED_DIR = Path(__file__).parent / "expected"
 def freeze_one(fixture_id: str) -> None:
     """Сгенерировать фикстуру и записать .docx + .dump.txt в expected/."""
     result = generate_all(load_fixture(fixture_id), EXPECTED_DIR)
-    for path in result.docx_paths.values():
+    for kind, path in result.docx_paths.items():
+        # kp — свой билдер (spec_builder), остальные — from_kp; расхождение
+        # между ними это ровно то, что BUCKETS должен ловить (B11/B12).
+        items = result.kp_items if kind == "kp" else result.items
         dump_path = path.with_suffix(".dump.txt")
-        dump_path.write_text(dump_docx(path), encoding="utf-8", newline="\n")
+        text = dump_docx(path) + buckets_section(items)
+        dump_path.write_text(text, encoding="utf-8", newline="\n")
         print(f"{fixture_id}: {path.name} -> {dump_path.name}")
 
 

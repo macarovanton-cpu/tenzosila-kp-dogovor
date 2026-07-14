@@ -546,3 +546,20 @@ TBL{cols=2;grid=5102,5105}
 P{style='footer';jc=center}
 P{style='footer';jc=center}
   R{font=Arial;sz=9} [FIELD 'PAGE   \\* MERGEFORMAT'] cached='7'
+
+--- BUCKETS ---
+
+[ITEMS]
+weights | Весы автомобильные ВЕСТА-СЛ-60-18-Ц, max 60т, размеры платформы 18х3м | scales
+rama | Рама 18м для весов ВЕСТА | scales
+delivery | Доставка весов до объекта | delivery
+
+[GROUPS]
+scales: weights, rama
+foundation: (пусто)
+delivery: delivery
+installation_and_verification: (пусто)
+
+[IV]
+has_install=False has_verification=False has_orion_install=False
+guard_triggered=True

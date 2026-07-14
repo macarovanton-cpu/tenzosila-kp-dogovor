@@ -459,3 +459,23 @@ P{}
 P{style='footer'}
   R{style='page number'} [FIELD 'PAGE'] cached=''
 P{style='footer'}
+
+--- BUCKETS ---
+
+[ITEMS]
+weights | Весы автомобильные ВЕСТА-СЛ-60-18-Ц, max 60т, размеры платформы 18х3м | scales
+foundation | Фундамент пандусный «Стандарт» под весы автомобильные ВЕСТА-СЛ, 18м | foundation
+delivery | Доставка весов до объекта | delivery
+installation | Монтаж автомобильных весов | installation_and_verification
+verification | Поверка автомобильных весов с доставкой эталонов | installation_and_verification
+custom_1 | Антивандальная табличка на весовой платформе | scales | custom_scope=None
+
+[GROUPS]
+scales: weights, custom_1
+foundation: foundation
+delivery: delivery
+installation_and_verification: installation, verification
+
+[IV]
+has_install=True has_verification=True has_orion_install=False
+guard_triggered=False

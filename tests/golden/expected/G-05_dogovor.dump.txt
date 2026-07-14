@@ -378,3 +378,25 @@ P{style='Normal'}
 P{style='Normal'}
 P{style='Footer'}
 P{style='Normal'}
+
+--- BUCKETS ---
+
+[ITEMS]
+weights | Весы автомобильные ВЕСТА-С-60-18-Ц, max 60т, размеры платформы 18х3м | scales
+orion | Программно-аппаратный комплекс «ОРИОН» | scales
+foundation | Фундамент железобетонный под весы автомобильные ВЕСТА-С, 18м | foundation
+orion_poles | Установка опор и кабель-трасс для программно-аппаратного комплекса «ОРИОН» | foundation
+delivery | Доставка весов до объекта | delivery
+installation | Монтаж автомобильных весов | installation_and_verification
+orion_install | Монтаж и настройка программно-аппаратного комплекса «ОРИОН» | installation_and_verification
+verification | Поверка автомобильных весов с доставкой эталонов | installation_and_verification
+
+[GROUPS]
+scales: weights, orion
+foundation: foundation, orion_poles
+delivery: delivery
+installation_and_verification: installation, orion_install, verification
+
+[IV]
+has_install=True has_verification=True has_orion_install=True
+guard_triggered=False

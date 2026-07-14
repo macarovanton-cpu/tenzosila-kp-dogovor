@@ -1107,3 +1107,20 @@ TBL{cols=3;grid=4253,5103,709}
     TC{}
       P{jc=right}
 P{style='footer'}
+
+--- BUCKETS ---
+
+[ITEMS]
+vesta-сл-60-18 | Весы автомобильные ВЕСТА-СЛ-60-18 | scales
+frame_18 | Рама под весы ВЕСТА-СЛ, 18м | scales
+delivery_default | Доставка весов до объекта | delivery
+
+[GROUPS]
+scales: vesta-сл-60-18, frame_18
+foundation: (пусто)
+delivery: delivery_default
+installation_and_verification: (пусто)
+
+[IV]
+has_install=False has_verification=False has_orion_install=False
+guard_triggered=True
