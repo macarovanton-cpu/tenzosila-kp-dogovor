@@ -16,10 +16,8 @@ def mock_ai_client():
 
 
 @pytest.fixture()
-def mock_st():
-    with patch("src.contracts.extractor.st") as m:
-        m.secrets = {"OPENROUTER_API_KEY": "test-key"}
-        yield m
+def mock_secret_env(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
 
 
 @pytest.fixture()
@@ -59,7 +57,7 @@ CARD_AI_RESPONSE = {
 
 
 class TestExtractCardData:
-    def test_returns_only_requisites_key(self, mock_ai_client, mock_st, minimal_card_docx):
+    def test_returns_only_requisites_key(self, mock_ai_client, mock_secret_env, minimal_card_docx):
         mock_ai_client.chat.completions.create.return_value.choices = [
             MagicMock(message=MagicMock(content=json.dumps(CARD_AI_RESPONSE)))
         ]
@@ -68,7 +66,7 @@ class TestExtractCardData:
         assert "requisites" in result
         assert "specification" not in result
 
-    def test_returns_19_requisite_fields(self, mock_ai_client, mock_st, minimal_card_docx):
+    def test_returns_19_requisite_fields(self, mock_ai_client, mock_secret_env, minimal_card_docx):
         mock_ai_client.chat.completions.create.return_value.choices = [
             MagicMock(message=MagicMock(content=json.dumps(CARD_AI_RESPONSE)))
         ]
@@ -77,7 +75,7 @@ class TestExtractCardData:
         assert len(result["requisites"]) == 19
         assert result["requisites"]["ЗАКАЗЧИК_ИНН"] == "7701234567"
 
-    def test_uses_card_only_prompt(self, mock_ai_client, mock_st, minimal_card_docx):
+    def test_uses_card_only_prompt(self, mock_ai_client, mock_secret_env, minimal_card_docx):
         """AI вызывается с промтом из extract_card_data.txt, не extract_contract_data.txt."""
         mock_ai_client.chat.completions.create.return_value.choices = [
             MagicMock(message=MagicMock(content=json.dumps(CARD_AI_RESPONSE)))
@@ -89,7 +87,7 @@ class TestExtractCardData:
         assert "СПЕЦ_П1" not in system_prompt
         assert "ЗАКАЗЧИК_ИНН" in system_prompt
 
-    def test_card_data_accepts_pdf(self, mock_ai_client, mock_st, tmp_path):
+    def test_card_data_accepts_pdf(self, mock_ai_client, mock_secret_env, tmp_path):
         """extract_card_data работает с PDF карточкой (через extract_pdf_text)."""
         mock_ai_client.chat.completions.create.return_value.choices = [
             MagicMock(message=MagicMock(content=json.dumps(CARD_AI_RESPONSE)))
@@ -123,7 +121,7 @@ def _make_pdf(path, pages: list[str]) -> str:
 
 
 class TestEmptyInput:
-    def test_scan_kp_raises_before_ai(self, mock_ai_client, mock_st, minimal_card_docx, tmp_path):
+    def test_scan_kp_raises_before_ai(self, mock_ai_client, mock_secret_env, minimal_card_docx, tmp_path):
         """Скан КП (пустой текстовый слой) → NoTextLayerError, LLM не вызывается."""
         from src.contracts.extractor import extract_kp_data_legacy
         from src.contracts.requisites_extract import NoTextLayerError
@@ -132,7 +130,7 @@ class TestEmptyInput:
             extract_kp_data_legacy(kp_path, minimal_card_docx)
         mock_ai_client.chat.completions.create.assert_not_called()
 
-    def test_scan_card_pdf_raises_before_ai(self, mock_ai_client, mock_st, tmp_path):
+    def test_scan_card_pdf_raises_before_ai(self, mock_ai_client, mock_secret_env, tmp_path):
         """Скан карточки (PDF без текста) → NoTextLayerError, LLM не вызывается."""
         from src.contracts.extractor import extract_card_data
         from src.contracts.requisites_extract import NoTextLayerError
@@ -153,7 +151,7 @@ class TestPromptIsCopyOnly:
 
 
 class TestAllPagesRead:
-    def test_legacy_reads_pages_beyond_3_5(self, mock_ai_client, mock_st, minimal_card_docx, tmp_path):
+    def test_legacy_reads_pages_beyond_3_5(self, mock_ai_client, mock_secret_env, minimal_card_docx, tmp_path):
         """Хардкод страниц 3–5 снят: текст 1-й и 6-й страниц КП доходит до LLM."""
         mock_ai_client.chat.completions.create.return_value.choices = [
             MagicMock(message=MagicMock(content=json.dumps(CARD_AI_RESPONSE)))

@@ -7,10 +7,10 @@ import re
 from pathlib import Path
 
 import pdfplumber
-import streamlit as st
 from docx import Document
 from openai import OpenAI
 
+from core.settings import get_secret
 from src.contracts.requisites_extract import MIN_NONSPACE_CHARS, NoTextLayerError
 
 PROMPT_PATH = Path(__file__).parent / "prompts" / "extract_contract_data.txt"
@@ -92,7 +92,7 @@ def extract_data_via_ai(kp_text: str, card_text: str) -> dict:
 
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
-        api_key=st.secrets["OPENROUTER_API_KEY"],
+        api_key=get_secret("OPENROUTER_API_KEY"),
     )
 
     user_message = (
@@ -153,7 +153,7 @@ def extract_card_data(card_path: str) -> dict:
 
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
-        api_key=st.secrets["OPENROUTER_API_KEY"],
+        api_key=get_secret("OPENROUTER_API_KEY"),
     )
     response = client.chat.completions.create(
         model="qwen/qwen3-235b-a22b",

@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import functools
 import logging
-import os
 from datetime import UTC, date, datetime
 from typing import Any
 
 from supabase import Client, ClientOptions, create_client
+
+from core.settings import get_secret
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +22,8 @@ class StorageError(Exception):
 
 @functools.lru_cache(maxsize=1)
 def _get_client() -> Client:
-    try:
-        import streamlit as st
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
-    except Exception:
-        url = os.environ.get("SUPABASE_URL", "")
-        key = os.environ.get("SUPABASE_KEY", "")
-    if not url or not key:
-        raise StorageError("SUPABASE_URL / SUPABASE_KEY не заданы")
+    url = get_secret("SUPABASE_URL")
+    key = get_secret("SUPABASE_KEY")
     options = ClientOptions(postgrest_client_timeout=10)
     return create_client(url, key, options=options)
 
