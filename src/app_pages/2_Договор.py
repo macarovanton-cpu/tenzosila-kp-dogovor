@@ -508,13 +508,22 @@ if mode == "Из базы (по номеру)":
         except StorageError as e:
             st.error(f"Ошибка поиска: {e}")
 
+    # A12: коммитим ТОЛЬКО новый КП (номер:updated_at). Без guard'а блок
+    # перезасевал payment_lines дефолтами на каждом rerun — второй писатель
+    # против дельты редактора оплаты → его сторож сходимости зацикливал rerun.
+    _kp_sig = None
     if kp_row is not None:
+        _kp_sig = f"{kp_row.get('kp_number', '')}:{kp_row.get('updated_at', '')}"
+    if _kp_sig is not None and (
+        search_clicked or st.session_state["contract"].get("_kp_loaded_sig") != _kp_sig
+    ):
         try:
             prices = load_prices()
             models_json = load_models()
             payment_terms = load_payment_terms()
             payload = build_kp_payload(kp_row, prices, models_json, payment_terms)
         except Exception as exc:
+            # Маркер НЕ ставим: state не тронут, блок повторит попытку.
             st.error(
                 f"Ошибка загрузки КП «{kp_row.get('kp_number', '')}»: {exc}. "
                 "Данные на странице — от предыдущего КП."
@@ -550,6 +559,11 @@ if mode == "Из базы (по номеру)":
             else:
                 set_payment_lines(_default_rows)
             st.success(f"КП «{kp_row.get('kp_number', '')}» загружен из базы.")
+            # Маркер — ПОСЛЕДНИМ, после засева строк: недосев при исключении
+            # выше не помечает КП загруженным. Coverage-ветка помечается тоже:
+            # её недосев громкий (st.error + генерация заблокирована), а повтор
+            # блока каждый rerun перетирал бы ручные правки w_-полей.
+            st.session_state["contract"]["_kp_loaded_sig"] = _kp_sig
 
 else:
     # ---- Mode B: Legacy AI парсинг PDF КП + карточки ----
