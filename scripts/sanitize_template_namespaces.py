@@ -111,11 +111,28 @@ def _counts(root: etree._Element) -> tuple[int, int, int]:
     )
 
 
+def is_document_xml_healthy(xml_bytes: bytes) -> tuple[bool, str]:
+    """Корень — w:document с префиксом w, все токены mc:Ignorable объявлены.
+
+    Общий предикат: им же пользуется страж tests/test_template_namespaces.py.
+    """
+    root = etree.fromstring(xml_bytes)
+    if root.tag != f"{{{W_NS}}}document":
+        return False, f"корень {root.tag!r}, ожидался w:document"
+    if root.prefix != "w":
+        return False, f"префикс корня {root.prefix!r} вместо 'w' (ns0-порча)"
+    ignorable = root.get(f"{{{MC_NS}}}Ignorable", "")
+    undeclared = [p for p in ignorable.split() if p not in root.nsmap]
+    if undeclared:
+        return False, f"mc:Ignorable ссылается на необъявленные префиксы: {undeclared}"
+    return True, ""
+
+
 def sanitize_xml(xml_bytes: bytes, healthy: dict[str, str]) -> bytes | None:
     """None — если файл уже здоров (идемпотентность)."""
-    old = etree.fromstring(xml_bytes)
-    if old.prefix == "w":
+    if is_document_xml_healthy(xml_bytes)[0]:
         return None
+    old = etree.fromstring(xml_bytes)
 
     # Отпечаток снимаем до extend — lxml переносит детей, старый корень пустеет.
     old_text, old_counts = _text_of(old), _counts(old)
@@ -133,13 +150,10 @@ def sanitize_xml(xml_bytes: bytes, healthy: dict[str, str]) -> bytes | None:
     assert _text_of(new) == old_text, "текст изменился при пересборке"
     assert _counts(new) == old_counts, f"структура поплыла: {_counts(new)} != {old_counts}"
 
-    ignorable = new.get(f"{{{MC_NS}}}Ignorable", "")
-    undeclared = [p for p in ignorable.split() if p not in nsmap]
-    assert not undeclared, f"mc:Ignorable ссылается на необъявленные префиксы: {undeclared}"
-
-    return etree.tostring(
-        new, encoding="UTF-8", xml_declaration=True, standalone=True
-    )
+    out = etree.tostring(new, encoding="UTF-8", xml_declaration=True, standalone=True)
+    ok, reason = is_document_xml_healthy(out)
+    assert ok, f"пересборка не вылечила файл: {reason}"
+    return out
 
 
 def sanitize_docx(path: Path) -> bool:
