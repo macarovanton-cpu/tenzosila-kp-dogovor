@@ -47,12 +47,12 @@ def _sample_prices(
 def test_diagnose_prices_reports_real_counts_and_classes(prices: dict) -> None:
     diagnostics = diagnose_prices(prices, today=date(2026, 6, 12))
 
-    assert diagnostics.model_count == 45
-    assert diagnostics.option_count == 65
+    assert diagnostics.model_count == 53
+    assert diagnostics.option_count == 89
     assert diagnostics.class_counts == {
         "A_retail_and_dealer": 20,
-        "B_retail_only": 36,
-        "C_manual_range": 4,
+        "B_retail_only": 52,
+        "C_manual_range": 12,
         "UNKNOWN": 5,
     }
     assert diagnostics.on_request_count == 1

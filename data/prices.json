@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "version": "0.4",
+    "version": "0.5",
     "source_retail": "2026_03_01_Прайс_розница_Tenzosila.pdf",
     "source_dealer": "2026_03_01_Прайс_дилер_экспорт.pdf",
     "currency": "RUB",
@@ -15,11 +15,24 @@
       "Навес под ключ = Навес + Фундамент под навес + Монтаж навеса одной суммой. В прайсе нет длины 24м.",
       "Монтаж автовесов — ручной диапазон 100К–1М (дефолт 180К). Прайсовая строка «Монтаж С-60(80)-18 (3 секции) — 175К» — информационная.",
       "ЕАЭС-цены убраны из scope MVP (v0.2). При необходимости — отдельная задача.",
-      "v0.4 (2026-04-25): Переименованы label у install_default, delivery_default, verification_default — для соответствия формату реальных КП (1.5b-fix2)."
+      "v0.4 (2026-04-25): Переименованы label у install_default, delivery_default, verification_default — для соответствия формату реальных КП (1.5b-fix2).",
+      "v0.4→ (2026-07-15): Добавлены 12 моделей автовесов из дилерского прайса 01.03.2026, отсутствовавшие ранее: ФЛ/СЛ/Ф/С 60т-12м и 60т-16м; СЛ 100т-18/20/22/24м. Дилерская цена взята напрямую из дилерской колонки PDF (не пересчёт ×0.92); скидка 8%.",
+      "v0.5 (2026-07-16): СЛ-100 (18/20/22/24) УДАЛЕНЫ — справочник исключил модель (changelog v10.2 от 15.04.2025). В дилерском PDF строки есть, поэтому парсер будет показывать их как дельту: это ожидаемо, см. EXPECTED_NEW в tests/admin/test_price_pdf_dealer.py.",
+      "v0.5: Заведены опции на длины 12 и 16м (рамы, ограждения, люки, фундаменты, стройработы, плиты, навес) + расширен applies_to_lengths у позиций, цена которых от длины не зависит. В прайсе 01.03.2026 колонок 12м и 16м НЕТ — принята цена 18м, дилерской цены на эти длины не существует (price_dealer_ru: null). Фундаменты и навес — C_manual_range: нестандартная длина считается по факту."
     ],
-    "updated_at": "2026-04-25"
+    "updated_at": "2026-07-16"
   },
   "models": {
+    "vesta-фл-60-12": {
+      "retail": 1140296,
+      "dealer_ru": 1049072,
+      "dealer_discount_pct": 8
+    },
+    "vesta-фл-60-16": {
+      "retail": 1480343,
+      "dealer_ru": 1361915,
+      "dealer_discount_pct": 8
+    },
     "vesta-фл-60-18": {
       "retail": 1668432,
       "dealer_ru": 1534958,
@@ -55,6 +68,16 @@
       "dealer_ru": 2031886,
       "dealer_discount_pct": 8
     },
+    "vesta-сл-60-12": {
+      "retail": 1296581,
+      "dealer_ru": 1192855,
+      "dealer_discount_pct": 8
+    },
+    "vesta-сл-60-16": {
+      "retail": 1665760,
+      "dealer_ru": 1532499,
+      "dealer_discount_pct": 8
+    },
     "vesta-сл-60-18": {
       "retail": 1805972,
       "dealer_ru": 1661494,
@@ -88,6 +111,16 @@
     "vesta-сл-80-24": {
       "retail": 2324874,
       "dealer_ru": 2138884,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-60-12": {
+      "retail": 1176980,
+      "dealer_ru": 1082822,
+      "dealer_discount_pct": 8
+    },
+    "vesta-ф-60-16": {
+      "retail": 1579817,
+      "dealer_ru": 1453431,
       "dealer_discount_pct": 8
     },
     "vesta-ф-60-18": {
@@ -143,6 +176,16 @@
     "vesta-ф-100-24": {
       "retail": 2627411,
       "dealer_ru": 2417218,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-60-12": {
+      "retail": 1329013,
+      "dealer_ru": 1222692,
+      "dealer_discount_pct": 8
+    },
+    "vesta-с-60-16": {
+      "retail": 1750520,
+      "dealer_ru": 1610478,
       "dealer_discount_pct": 8
     },
     "vesta-с-60-18": {
@@ -258,6 +301,7 @@
         "СЛ"
       ],
       "applies_to_lengths": [
+        12,
         16,
         18,
         20,
@@ -277,6 +321,7 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
         16,
         18,
         20,
@@ -527,6 +572,7 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
         16,
         18,
         20,
@@ -549,6 +595,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -568,6 +616,8 @@
         "ФЛ"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -588,6 +638,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -775,6 +827,8 @@
     "concrete_base_on_frame": {
       "label": "Бетонное основание для весов на раме",
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -1121,6 +1175,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -1146,6 +1202,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -1171,6 +1229,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -1196,6 +1256,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -1221,6 +1283,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -1246,6 +1310,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -1269,6 +1335,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -1292,6 +1360,8 @@
         "П"
       ],
       "applies_to_lengths": [
+        12,
+        16,
         18,
         20,
         22,
@@ -1305,6 +1375,388 @@
       "range_max": 2000000,
       "allow_customer_value": true,
       "notes": "Ручной диапазон. Альтернатива — «Заказчик» (поверка силами заказчика)."
+    },
+    "frame_12": {
+      "label": "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 12м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 130000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "frame_16": {
+      "label": "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 16м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 130000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "fence_light_12": {
+      "label": "Ограждение ЛАЙТ уголок 100мм, 12м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 99000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "fence_light_16": {
+      "label": "Ограждение ЛАЙТ уголок 100мм, 16м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 99000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "fence_norma_12": {
+      "label": "Ограждение НОРМА высота 200мм, 12м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 128000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "fence_norma_16": {
+      "label": "Ограждение НОРМА высота 200мм, 16м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 128000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "hatches_fl_12": {
+      "label": "Комплект люков для весов ВЕСТА-ФЛ, 12м",
+      "applies_to_lines": [
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 200000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "hatches_fl_16": {
+      "label": "Комплект люков для весов ВЕСТА-ФЛ, 16м",
+      "applies_to_lines": [
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 200000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "hatches_f_12": {
+      "label": "Комплект люков для весов ВЕСТА-Ф, 12м",
+      "applies_to_lines": [
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 150000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "hatches_f_16": {
+      "label": "Комплект люков для весов ВЕСТА-Ф, 16м",
+      "applies_to_lines": [
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 150000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "foundation_lite_sl_fl_12": {
+      "label": "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ/ФЛ, 12м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 1200000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 800000,
+      "range_max": 3600000,
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Ручной диапазон: нестандартная длина считается по факту, верх — ×4.5 к нижней границе (удалённые объекты)."
+    },
+    "foundation_lite_sl_fl_16": {
+      "label": "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ/ФЛ, 16м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 1200000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 800000,
+      "range_max": 3600000,
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Ручной диапазон: нестандартная длина считается по факту, верх — ×4.5 к нижней границе (удалённые объекты)."
+    },
+    "foundation_std_sl_fl_12": {
+      "label": "Фундамент пандусный «Стандарт» под ВЕСТА-СЛ/ФЛ, 12м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 1350000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 800000,
+      "range_max": 3600000,
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Ручной диапазон: нестандартная длина считается по факту, верх — ×4.5 к нижней границе (удалённые объекты)."
+    },
+    "foundation_std_sl_fl_16": {
+      "label": "Фундамент пандусный «Стандарт» под ВЕСТА-СЛ/ФЛ, 16м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 1350000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 800000,
+      "range_max": 3600000,
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Ручной диапазон: нестандартная длина считается по факту, верх — ×4.5 к нижней границе (удалённые объекты)."
+    },
+    "foundation_s_f_12": {
+      "label": "Фундамент под ВЕСТА-С/Ф/П, 12м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 1500000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 900000,
+      "range_max": 4050000,
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Ручной диапазон: нестандартная длина считается по факту, верх — ×4.5 к нижней границе (удалённые объекты)."
+    },
+    "foundation_s_f_16": {
+      "label": "Фундамент под ВЕСТА-С/Ф/П, 16м",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "П"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 1500000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 900000,
+      "range_max": 4050000,
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Ручной диапазон: нестандартная длина считается по факту, верх — ×4.5 к нижней границе (удалённые объекты)."
+    },
+    "construction_works_12": {
+      "label": "Строительные работы без материалов, 12м",
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 400000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "construction_works_16": {
+      "label": "Строительные работы без материалов, 16м",
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 400000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "road_slabs_12": {
+      "label": "Укладка дорожных плит, 12м",
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 300000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "road_slabs_16": {
+      "label": "Укладка дорожных плит, 16м",
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 300000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "pag_slabs_12": {
+      "label": "Укладка плит ПАГ, 12м",
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 450000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "pag_slabs_16": {
+      "label": "Укладка плит ПАГ, 16м",
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 450000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
+    },
+    "canopy_turnkey_12": {
+      "label": "Навес под ключ для ВЕСТА, 12м (навес + фундамент + монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 5500000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 3850000,
+      "range_max": 17325000,
+      "components": {
+        "canopy": 2800000,
+        "foundation_under_canopy": 1100000,
+        "canopy_installation": 1600000
+      },
+      "notes": "В прайсе от 01.03.2026 длина 12м отсутствует; принята цена 18м. Ручной диапазон: низ −30% от 18м, верх — ×4.5 к нижней границе."
+    },
+    "canopy_turnkey_16": {
+      "label": "Навес под ключ для ВЕСТА, 16м (навес + фундамент + монтаж)",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 5500000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "C_manual_range",
+      "range_min": 3850000,
+      "range_max": 17325000,
+      "components": {
+        "canopy": 2800000,
+        "foundation_under_canopy": 1100000,
+        "canopy_installation": 1600000
+      },
+      "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Ручной диапазон: низ −30% от 18м, верх — ×4.5 к нижней границе."
     }
   }
 }

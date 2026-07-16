@@ -18,8 +18,8 @@ def test_normalize_prices_keeps_model_and_option_counts(prices: dict) -> None:
 
     by_type = Counter(item.item_type for item in items)
 
-    assert len(items) == 110
-    assert by_type == {"model": 45, "option": 65}
+    assert len(items) == 142
+    assert by_type == {"model": 53, "option": 89}
 
 
 def test_normalize_prices_reports_option_classes(prices: dict) -> None:
@@ -31,8 +31,8 @@ def test_normalize_prices_reports_option_classes(prices: dict) -> None:
 
     assert by_class == {
         "A_retail_and_dealer": 20,
-        "B_retail_only": 36,
-        "C_manual_range": 4,
+        "B_retail_only": 52,
+        "C_manual_range": 12,
         "UNKNOWN": 5,
     }
     assert on_request_count == 1
@@ -64,7 +64,7 @@ def test_normalize_prices_maps_option_fields_without_losing_payload(
     assert option.price_dealer_ru == 349600
     assert option.price_class == "A_retail_and_dealer"
     assert option.applies_to_lines == ["Ф", "С", "П"]
-    assert option.applies_to_lengths == [16, 18, 20, 22, 24]
+    assert option.applies_to_lengths == [12, 16, 18, 20, 22, 24]
     assert option.raw_payload == prices["options"]["ramp_set_f_s"]
 
 

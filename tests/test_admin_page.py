@@ -54,5 +54,5 @@ def test_admin_page_shows_price_diagnostics() -> None:
 
     # Метрики бизнес-карточки
     metrics = {m.label: m.value for m in at.metric}
-    assert metrics.get("Модели") == "45"
+    assert metrics.get("Модели") == "53"
     assert "Предупреждений" in metrics

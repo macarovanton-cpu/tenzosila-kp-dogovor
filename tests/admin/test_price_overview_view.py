@@ -28,7 +28,7 @@ def test_price_overview_view_model_shows_configured_rules(prices: dict) -> None:
         "on_request",
     }
 
-    assert view_model.diagnostics.model_count == 45
-    assert view_model.diagnostics.option_count == 65
+    assert view_model.diagnostics.model_count == 53
+    assert view_model.diagnostics.option_count == 89
     assert "read-only" in view_model.readonly_note
     assert "Фазе 4" in view_model.rules_note

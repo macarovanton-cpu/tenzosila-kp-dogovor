@@ -6,6 +6,7 @@ from src.filters import (
     available_max_loads,
     calc_default_deck_mm,
     get_visible_options,
+    is_option_applicable,
     model_id_from_cascade,
     model_exists_in_prices,
 )
@@ -21,9 +22,9 @@ def test_available_max_loads_hides_40t_for_s(models_json, prices):
 
 
 def test_available_lengths_sl_60_excludes_24(models_json, prices):
-    """Для СЛ-60 в prices доступны только 18/20/22 (нет 24)."""
+    """Для СЛ-60 в prices доступны 12/16/18/20/22 (нет 24)."""
     lens = available_lengths(models_json, "СЛ", 60, prices)
-    assert lens == [18, 20, 22]
+    assert lens == [12, 16, 18, 20, 22]
 
 
 def test_visible_options_ramps_for_sl_18(prices):
@@ -85,3 +86,34 @@ def test_calc_default_deck_mm_boundary_60():
     assert calc_default_deck_mm(61) == 8
     assert calc_default_deck_mm(80) == 8
     assert calc_default_deck_mm(100) == 8
+
+
+def test_is_option_applicable_filters_by_length():
+    """Длина вне applies_to_lengths → опция неприменима."""
+    entry = {"applies_to_lengths": [18, 20]}
+    assert is_option_applicable(entry, "С", 18)
+    assert not is_option_applicable(entry, "С", 12)
+
+
+def test_is_option_applicable_without_lengths_passes_any():
+    """Нет applies_to_lengths → опция применима на любой длине."""
+    assert is_option_applicable({"applies_to_lines": ["С"]}, "С", 12)
+
+
+def test_short_lengths_have_core_options(prices):
+    """Ловушка: на 12/16м КП не должно вырождаться в голые весы.
+
+    До 2026-07-16 монтаж/доставка/поверка/фундамент имели
+    applies_to_lengths=[18,20,22,24] → на коротких длинах блоки не рендерились
+    вовсе, и менеджер не мог выставить даже доставку.
+    """
+    for length in (12, 16):
+        for block, key in (
+            ("install", "install_default"),
+            ("delivery", "delivery_default"),
+            ("verification", "verification_default"),
+            ("foundation_and_base", "foundation_s_f_%d" % length),
+            ("frames", "frame_%d" % length),
+        ):
+            keys = [k for k, _ in get_visible_options(prices["options"], "С", length, block)]
+            assert key in keys, f"{length}м: блок {block} не отдал {key}"
