@@ -12,10 +12,15 @@ pytest tests/ -v
 `specification.items` (массив SpecItem), `flags` (winter_concrete и т.п.),
 `scope_overrides`, `card`, `extracted`.
 
-**Цены — 3 класса** (поле `price_class` в prices.json):
-- `A_retail_and_dealer` — slider [dealer_ru ↔ retail×1.4], default retail
-- `B_retail_only` — slider [retail×0.6 ↔ retail×1.4], default retail
-- `C_manual_range` — number_input [range_min ↔ range_max], default price_retail
+**Цены — 3 класса** (поле `price_class` в prices.json). Виджет везде
+`st.number_input` с min/max — слайдеров в проекте НЕТ (снесены `ae35a8f`
+30.04.2026 ради мобильной адаптации). Множители — `src/config.py`:
+- `A_retail_and_dealer` — [dealer_ru ↔ retail×1.4], default retail
+- `B_retail_only` — [retail×0.6 ↔ min×4.5], default retail (потолок от НИЗА,
+  эффективно retail×2.7 — работы на удалённых объектах уходят за прайс)
+- `C_manual_range` — [range_min ↔ range_max], default price_retail
+- нет `price_class` → UNKNOWN: [retail×0.92 ↔ retail×1.4], дилерская synthetic
+- цена модели — логика A, но потолок retail×2.0 (×2.4 при ширине ≠ 3 м)
 
 **Инварианты поведения:**
 - При смене модели — сбросить все options, model_price = retail новой модели.
