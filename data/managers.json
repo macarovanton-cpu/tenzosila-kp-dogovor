@@ -13,6 +13,38 @@
       "phone": "+7 903 651-85-77",
       "email": "a.makarov@tenzosila.ru",
       "is_default": true
+    },
+    {
+      "id": "romanova_yu",
+      "full_name": "Романова Юлия",
+      "position": "И.о. руководителя отдела продаж",
+      "phone": "+7 960 111-72-47",
+      "email": "y.romanova@tenzosila.ru",
+      "is_default": false
+    },
+    {
+      "id": "oleynikov_i",
+      "full_name": "Олейников Игорь",
+      "position": "Менеджер по продажам",
+      "phone": "+7 903 852-41-47",
+      "email": "i.oleynikov@tenzosila.ru",
+      "is_default": false
+    },
+    {
+      "id": "lipin_m",
+      "full_name": "Липин Максим",
+      "position": "Региональный менеджер",
+      "phone": "+7 903 852-42-26",
+      "email": "m.lipin@tenzosila.ru",
+      "is_default": false
+    },
+    {
+      "id": "glebov_s",
+      "full_name": "Глебов Сергей",
+      "position": "Менеджер по продажам",
+      "phone": "+7 920 463-91-81",
+      "email": "s.glebov@tenzosila.ru",
+      "is_default": false
     }
   ]
 }
