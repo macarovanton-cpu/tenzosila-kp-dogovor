@@ -21,6 +21,7 @@ from src.pricing import (
     percent_to_retail,
 )
 from src.spec_builder import resolve_dynamic_option_label
+from src.utils.format import fmt_int_spaces
 
 FOUNDATION_EXECUTION_CHOICES: list[str] = [
     "пандусный",
@@ -377,8 +378,8 @@ def _render_price_widget(
         # Границы зависят от price_class — печатаем фактические, а не формулу
         # одного класса (прежний текст врал для B и C).
         help=(
-            f"Диапазон {params.min_v:,} – {params.max_v:,} ₽, "
-            f"округление до тысяч".replace(",", " ")
+            f"Диапазон {fmt_int_spaces(params.min_v)} – "
+            f"{fmt_int_spaces(params.max_v)} ₽, округление до тысяч"
         ),
     )
     value = st.number_input(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **common)
