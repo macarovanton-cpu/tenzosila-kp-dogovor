@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 # Маппинг длины платформы → количество секций (из models.json, детерминировано)
-_LENGTH_TO_SECTIONS: dict[int, int] = {18: 3, 20: 4, 22: 4, 24: 4}
+_LENGTH_TO_SECTIONS: dict[int, int] = {12: 2, 16: 3, 18: 3, 20: 4, 22: 4, 24: 4}
 _FOUNDATION_EXECUTION_CHOICES: frozenset[str] = frozenset({
     "пандусный",
     "приямок",

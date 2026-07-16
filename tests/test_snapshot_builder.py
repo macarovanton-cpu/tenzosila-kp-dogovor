@@ -381,6 +381,18 @@ def test_foundation_sections_20m():
     assert snap["foundation_sections"] == 4
 
 
+def test_foundation_sections_12m():
+    """Длина 12м → foundation_sections = 2 (файлы *_2скц.docx существуют)."""
+    snap = build_kp_snapshot(_state_with_option("foundation_s_f_12", length=12))
+    assert snap["foundation_sections"] == 2
+
+
+def test_foundation_sections_16m():
+    """Длина 16м → foundation_sections = 3."""
+    snap = build_kp_snapshot(_state_with_option("foundation_s_f_16", length=16))
+    assert snap["foundation_sections"] == 3
+
+
 def test_foundation_sections_null_when_no_foundation():
     """Нет фундаментных опций → foundation_sections = None."""
     state = _base_state()
