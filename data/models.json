@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "version": "0.3",
+    "version": "0.4",
     "generated_at": "2026-04-23",
     "source": [
       "03_knowledge_base/spravochnik_vesta_fixed.md (v10.2 от 15.04.2025)",
@@ -15,6 +15,8 @@
         "П"
       ],
       "lengths_m": [
+        12,
+        16,
         18,
         20,
         22,
@@ -51,13 +53,14 @@
       }
     },
     "notes": [
-      "Все модели в scope MVP. Модификации вне scope (М1, М2, К, Б, СБ, ФБ, ПВП, ПВС, длины <18 м) не включены — будут добавлены на последующих фазах.",
+      "Все модели в scope MVP. Модификации вне scope (М1, М2, К, Б, СБ, ФБ, ПВП, ПВС) не включены — будут добавлены на последующих фазах.",
       "Поля с null и data_incomplete=true требуют уточнения у производства (актуально для всей линейки П).",
       "Температурные диапазоны датчика и индикатора вынесены в equipment_defaults, т.к. одинаковы для всех моделей.",
       "v0.2: Исправлен deck_sheathing_mm для П (4→5). Добавлены поля center_reinforcement, underlining_mm_min/max в line_defaults. Добавлены П-80 (4 модели, data_incomplete — данные идентичны П-100, уточнить у производства).",
-      "v0.3: Добавлено поле dual_range у каждой модели по Таблице 6 описания типа (приказ № 544). Для моделей в scope MVP поле непустое."
+      "v0.3: Добавлено поле dual_range у каждой модели по Таблице 6 описания типа (приказ № 544). Для моделей в scope MVP поле непустое.",
+      "v0.4 (2026-07-16): Добавлены 8 моделей 60т на длинах 12 и 16 м (С/СЛ/Ф/ФЛ) — есть в дилерском прайсе 01.03.2026, ТХ взяты из Таблиц параметров справочника. СЛ-100 НЕ заведена: справочник исключил модель (changelog v10.2 от 15.04.2025), ключи удалены и из prices.json."
     ],
-    "updated_at": "2026-04-25"
+    "updated_at": "2026-07-16"
   },
   "equipment_defaults": {
     "sensor": {
@@ -425,6 +428,82 @@
           "min_load_t": 0.4,
           "e_kg": 20,
           "n": 2000
+        }
+      }
+    },
+    {
+      "id": "vesta-с-60-12",
+      "full_name": "ВЕСТА-С-60-12",
+      "line": "С",
+      "max_load_t": 60,
+      "length_m": 12,
+      "width_m": 3,
+      "sections": 2,
+      "sensors_count": 6,
+      "mass_kg": 6550,
+      "beam_profile": "Двутавр 25Б2",
+      "deck_default_mm": 6,
+      "min_load_t": 0.4,
+      "verification_division_kg": 20,
+      "n_intervals": 3000,
+      "axle_loads_t": {
+        "single": 18,
+        "double": 16,
+        "triple": 15,
+        "quad": 14
+      },
+      "data_incomplete": false,
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
+    },
+    {
+      "id": "vesta-с-60-16",
+      "full_name": "ВЕСТА-С-60-16",
+      "line": "С",
+      "max_load_t": 60,
+      "length_m": 16,
+      "width_m": 3,
+      "sections": 3,
+      "sensors_count": 8,
+      "mass_kg": 8800,
+      "beam_profile": "Двутавр 25Б2",
+      "deck_default_mm": 6,
+      "min_load_t": 0.4,
+      "verification_division_kg": 20,
+      "n_intervals": 3000,
+      "axle_loads_t": {
+        "single": 18,
+        "double": 16,
+        "triple": 15,
+        "quad": 14
+      },
+      "data_incomplete": false,
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
         }
       }
     },
@@ -1075,6 +1154,82 @@
       }
     },
     {
+      "id": "vesta-сл-60-12",
+      "full_name": "ВЕСТА-СЛ-60-12",
+      "line": "СЛ",
+      "max_load_t": 60,
+      "length_m": 12,
+      "width_m": 3,
+      "sections": 2,
+      "sensors_count": 6,
+      "mass_kg": 5800,
+      "beam_profile": "Двутавр 25Б1",
+      "deck_default_mm": 6,
+      "min_load_t": 0.4,
+      "verification_division_kg": 20,
+      "n_intervals": 3000,
+      "axle_loads_t": {
+        "single": 11,
+        "double": 10,
+        "triple": 9,
+        "quad": 9
+      },
+      "data_incomplete": false,
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
+    },
+    {
+      "id": "vesta-сл-60-16",
+      "full_name": "ВЕСТА-СЛ-60-16",
+      "line": "СЛ",
+      "max_load_t": 60,
+      "length_m": 16,
+      "width_m": 3,
+      "sections": 3,
+      "sensors_count": 8,
+      "mass_kg": 7850,
+      "beam_profile": "Двутавр 25Б1",
+      "deck_default_mm": 6,
+      "min_load_t": 0.4,
+      "verification_division_kg": 20,
+      "n_intervals": 3000,
+      "axle_loads_t": {
+        "single": 11,
+        "double": 10,
+        "triple": 9,
+        "quad": 9
+      },
+      "data_incomplete": false,
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
+    },
+    {
       "id": "vesta-сл-60-18",
       "full_name": "ВЕСТА-СЛ-60-18",
       "line": "СЛ",
@@ -1527,6 +1682,82 @@
           "min_load_t": 0.4,
           "e_kg": 20,
           "n": 2000
+        }
+      }
+    },
+    {
+      "id": "vesta-ф-60-12",
+      "full_name": "ВЕСТА-Ф-60-12",
+      "line": "Ф",
+      "max_load_t": 60,
+      "length_m": 12,
+      "width_m": 3,
+      "sections": 2,
+      "sensors_count": 6,
+      "mass_kg": 5750,
+      "beam_profile": "Двутавр 25Б2",
+      "deck_default_mm": 6,
+      "min_load_t": 0.4,
+      "verification_division_kg": 20,
+      "n_intervals": 3000,
+      "axle_loads_t": {
+        "single": 14,
+        "double": 13,
+        "triple": 12,
+        "quad": 11
+      },
+      "data_incomplete": false,
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
+    },
+    {
+      "id": "vesta-ф-60-16",
+      "full_name": "ВЕСТА-Ф-60-16",
+      "line": "Ф",
+      "max_load_t": 60,
+      "length_m": 16,
+      "width_m": 3,
+      "sections": 3,
+      "sensors_count": 8,
+      "mass_kg": 7700,
+      "beam_profile": "Двутавр 25Б2",
+      "deck_default_mm": 6,
+      "min_load_t": 0.4,
+      "verification_division_kg": 20,
+      "n_intervals": 3000,
+      "axle_loads_t": {
+        "single": 14,
+        "double": 13,
+        "triple": 12,
+        "quad": 11
+      },
+      "data_incomplete": false,
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
         }
       }
     },
@@ -2135,6 +2366,82 @@
           "min_load_t": 0.4,
           "e_kg": 20,
           "n": 2000
+        }
+      }
+    },
+    {
+      "id": "vesta-фл-60-12",
+      "full_name": "ВЕСТА-ФЛ-60-12",
+      "line": "ФЛ",
+      "max_load_t": 60,
+      "length_m": 12,
+      "width_m": 3,
+      "sections": 2,
+      "sensors_count": 6,
+      "mass_kg": 4800,
+      "beam_profile": "Двутавр 25Б1",
+      "deck_default_mm": 6,
+      "min_load_t": 0.4,
+      "verification_division_kg": 20,
+      "n_intervals": 3000,
+      "axle_loads_t": {
+        "single": 11,
+        "double": 10,
+        "triple": 9,
+        "quad": 9
+      },
+      "data_incomplete": false,
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
+        }
+      }
+    },
+    {
+      "id": "vesta-фл-60-16",
+      "full_name": "ВЕСТА-ФЛ-60-16",
+      "line": "ФЛ",
+      "max_load_t": 60,
+      "length_m": 16,
+      "width_m": 3,
+      "sections": 3,
+      "sensors_count": 8,
+      "mass_kg": 6400,
+      "beam_profile": "Двутавр 25Б1",
+      "deck_default_mm": 6,
+      "min_load_t": 0.4,
+      "verification_division_kg": 20,
+      "n_intervals": 3000,
+      "axle_loads_t": {
+        "single": 11,
+        "double": 10,
+        "triple": 9,
+        "quad": 9
+      },
+      "data_incomplete": false,
+      "notes": null,
+      "dual_range": {
+        "w1": {
+          "max_load_t": 30,
+          "min_load_t": 0.2,
+          "e_kg": 10,
+          "n": 3000
+        },
+        "w2": {
+          "max_load_t": 60,
+          "min_load_t": 0.4,
+          "e_kg": 20,
+          "n": 3000
         }
       }
     },

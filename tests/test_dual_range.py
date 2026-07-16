@@ -15,10 +15,10 @@ APP_PATH = str(Path(__file__).resolve().parent.parent / "src" / "app.py")
 
 
 def test_models_json_has_dual_range_for_scope():
-    """Все 65 моделей в scope MVP имеют непустой dual_range
+    """Все 73 модели в scope MVP имеют непустой dual_range
     с обязательными подполями w1/w2 и ключами max/min/e/n."""
     models = load_models()["models"]
-    assert len(models) == 65, f"Ожидалось 65 моделей, найдено {len(models)}"
+    assert len(models) == 73, f"Ожидалось 73 модели, найдено {len(models)}"
     for m in models:
         assert "dual_range" in m, f"{m['id']}: нет ключа dual_range"
         assert m["dual_range"] is not None, f"{m['id']}: dual_range = null"
