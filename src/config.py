@@ -21,10 +21,15 @@ DEFAULT_KP_VALID_DAYS: int = 15
 
 # Коридоры цен
 SYNTHETIC_DEALER_FACTOR: float = 0.92  # для UNKNOWN-опций 22м
-MAX_COEFF: float = 1.4                 # верхняя граница слайдера (× retail)
+MAX_COEFF: float = 1.4                 # верхняя граница (× retail)
 MIN_COEFF_B: float = 0.6               # нижняя граница для класса B
+# Класс B — работы (фундамент, стройка, плиты, навес, ОРИОН): удалённые объекты
+# стоят кратно дороже прайса, потолка ×1.4 не хватало. Считается ОТ НИЖНЕЙ
+# границы, а не от розницы → эффективно retail × 2.7.
+MAX_COEFF_FROM_MIN_B: float = 4.5
+MAX_COEFF_MODEL: float = 2.0           # верхняя граница цены весов (× retail)
 
-# Шаг слайдера — см. pricing.calc_slider_step()
+# Шаг ввода цены — см. pricing.calc_slider_step()
 
 # Линейки и длины в scope MVP
 LINES: list[str] = ["С", "СЛ", "Ф", "ФЛ", "П"]

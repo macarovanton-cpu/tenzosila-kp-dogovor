@@ -55,7 +55,12 @@ def test_slider_params_class_a_ramp_set_f_s(prices):
 
 
 def test_slider_params_class_b_construction_works_20(prices):
-    """Класс B: min=ceil(retail*0.6/1000)*1000, max=floor(retail*1.4/1000)*1000."""
+    """Класс B: min=ceil(retail*0.6/1000)*1000, max=floor(min*4.5/1000)*1000.
+
+    Потолок считается ОТ НИЖНЕЙ границы (работы на удалённых объектах уходят
+    кратно за прайс), эффективно retail*2.7 — не retail*1.4, как было до
+    2026-07-16.
+    """
     entry = prices["options"]["construction_works_20"]
     retail = int(entry["price_retail"])
     params = get_slider_params(entry)
@@ -63,9 +68,29 @@ def test_slider_params_class_b_construction_works_20(prices):
     assert params.min_v % 1000 == 0
     assert params.max_v % 1000 == 0
     assert params.default_v % 1000 == 0
-    assert params.min_v >= retail * 0.6  # ceil — округляем вверх
-    assert params.max_v <= retail * 1.4  # floor — округляем вниз
+    assert params.min_v >= retail * 0.6   # ceil — округляем вверх
+    assert params.max_v <= params.min_v * 4.5  # floor — округляем вниз
+    assert params.max_v > retail * 1.4    # потолок реально поднят
     assert params.dealer is None
+
+
+def test_class_b_ceiling_is_45x_lower_bound_for_all_options(prices):
+    """Ловушка на правило: у КАЖДОЙ опции класса B потолок = ×4.5 к низу.
+
+    Раньше было retail*1.4 — менеджеру не хватало верха на удалённых объектах
+    (север, дальние регионы), где строительство кратно дороже прайса.
+    """
+    from src.pricing import get_slider_params
+
+    checked = 0
+    for key, entry in prices["options"].items():
+        if entry.get("price_class") != "B_retail_only" or entry.get("on_request"):
+            continue
+        params = get_slider_params(entry)
+        assert params.max_v <= params.min_v * 4.5, key
+        assert params.max_v > params.min_v * 4.4, key  # floor до тысяч
+        checked += 1
+    assert checked >= 40, f"ожидали ≥40 опций класса B, проверили {checked}"
 
 
 def test_slider_params_class_c_verification(prices):
@@ -116,13 +141,13 @@ def test_slider_params_on_request_canopy_24(prices):
 def test_model_slider_rounds_to_thousands(prices):
     """Для vesta-фл-60-18: dealer_ru=1_534_958, retail=1_668_432.
 
-    min=1_535_000, max=2_335_000 (floor(1_668_432*1.4)=floor(2_335_804.8)),
-    default=1_668_000.
+    min=1_535_000, max=3_336_000 (floor(1_668_432*2.0)), default=1_668_000.
+    Потолок цены весов поднят ×1.4 → ×2.0 (решение Антона 2026-07-16).
     """
     price = {"retail": 1_668_432, "dealer_ru": 1_534_958}
     params = get_model_slider_params(price)
     assert params.min_v == 1_535_000
-    assert params.max_v == 2_335_000
+    assert params.max_v == 3_336_000
     assert params.default_v == 1_668_000
     assert params.step == 10_000        # max_v > 1_000_000
 
@@ -138,7 +163,10 @@ def test_model_slider_standard_width_keeps_existing_bounds():
 
 
 def test_model_slider_nonstandard_width_scales_price_and_expands_max():
-    """Для 3.5 м цена масштабируется линейно, max дополнительно расширяется на 20%."""
+    """Для 3.5 м цена масштабируется линейно, max дополнительно расширяется на 20%.
+
+    Базовый потолок ×2.0 (см. MAX_COEFF_MODEL) × 1.2 за нестандартную ширину.
+    """
     price = {"retail": 1_668_432, "dealer_ru": 1_534_958}
 
     params = get_model_slider_params(price, platform_width_m=3.5)
@@ -149,7 +177,7 @@ def test_model_slider_nonstandard_width_scales_price_and_expands_max():
     assert params.dealer == scaled_dealer
     assert params.min_v == 1_791_000
     assert params.default_v == 1_947_000
-    assert params.max_v == 3_270_000
+    assert params.max_v == 4_671_000
 
 
 def test_model_slider_real_model_s_60_18(prices):

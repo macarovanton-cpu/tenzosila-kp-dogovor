@@ -7,6 +7,8 @@ from typing import Any
 
 from src.config import (
     MAX_COEFF,
+    MAX_COEFF_FROM_MIN_B,
+    MAX_COEFF_MODEL,
     MIN_COEFF_B,
     SYNTHETIC_DEALER_FACTOR,
     VAT_RATE,
@@ -141,7 +143,9 @@ def get_slider_params(entry: dict[str, Any]) -> SliderParams:
 
     if price_class == "B_retail_only":
         min_v = _ceil_to_1000(retail * MIN_COEFF_B)
-        max_v = _floor_to_1000(retail * MAX_COEFF)
+        # Потолок — от нижней границы, не от розницы: работы на удалённых
+        # объектах выходят кратно за прайс (решение Антона 2026-07-16).
+        max_v = _floor_to_1000(min_v * MAX_COEFF_FROM_MIN_B)
         default_v = _clamp(_round_to_1000(retail), min_v, max_v)
         return SliderParams(
             kind="slider",
@@ -167,7 +171,7 @@ def get_model_slider_params(
     width = float(platform_width_m or 3.0)
     retail = _scale_model_price(int(price_entry.get("retail", 0)), width)
     dealer = _scale_model_price(int(price_entry.get("dealer_ru", 0)), width)
-    max_coeff = MAX_COEFF * (1.2 if width != 3.0 else 1.0)
+    max_coeff = MAX_COEFF_MODEL * (1.2 if width != 3.0 else 1.0)
     min_v = _ceil_to_1000(dealer)
     max_v = _floor_to_1000(retail * max_coeff)
     default_v = _clamp(_round_to_1000(retail), min_v, max_v)

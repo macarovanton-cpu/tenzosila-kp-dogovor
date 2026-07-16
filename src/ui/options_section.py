@@ -374,7 +374,12 @@ def _render_price_widget(
         key=widget_key,
         on_change=_clear_price_override,
         args=(key,),
-        help="Диапазон дилерская ↔ розница +40 %. Значения округлены до тысяч",
+        # Границы зависят от price_class — печатаем фактические, а не формулу
+        # одного класса (прежний текст врал для B и C).
+        help=(
+            f"Диапазон {params.min_v:,} – {params.max_v:,} ₽, "
+            f"округление до тысяч".replace(",", " ")
+        ),
     )
     value = st.number_input(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **common)
 
