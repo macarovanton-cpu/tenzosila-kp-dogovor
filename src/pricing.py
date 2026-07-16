@@ -17,7 +17,6 @@ from src.config import (
 
 @dataclass(frozen=True)
 class SliderParams:
-    kind: str                 # "slider" | "number_input"
     min_v: int
     max_v: int
     default_v: int
@@ -69,7 +68,6 @@ def _as_unknown_params(entry: dict[str, Any]) -> SliderParams:
     max_v = _floor_to_1000(retail * MAX_COEFF)
     default_v = _clamp(_round_to_1000(retail), min_v, max_v)
     return SliderParams(
-        kind="slider",
         min_v=min_v,
         max_v=max_v,
         default_v=default_v,
@@ -84,7 +82,6 @@ def _as_unknown_params(entry: dict[str, Any]) -> SliderParams:
 
 def _on_request_params(entry: dict[str, Any]) -> SliderParams:
     return SliderParams(
-        kind="slider",
         min_v=0, max_v=0, default_v=0, step=1,
         dealer=None, retail=0,
         is_on_request=True,
@@ -111,7 +108,6 @@ def get_slider_params(entry: dict[str, Any]) -> SliderParams:
         max_v = _floor_to_1000(int(entry.get("range_max", 0)))
         default_v = _clamp(_round_to_1000(retail), min_v, max_v)
         return SliderParams(
-            kind="number_input",
             min_v=min_v,
             max_v=max_v,
             default_v=default_v,
@@ -129,7 +125,6 @@ def get_slider_params(entry: dict[str, Any]) -> SliderParams:
         max_v = _floor_to_1000(retail * MAX_COEFF)
         default_v = _clamp(_round_to_1000(retail), min_v, max_v)
         return SliderParams(
-            kind="slider",
             min_v=min_v,
             max_v=max_v,
             default_v=default_v,
@@ -148,7 +143,6 @@ def get_slider_params(entry: dict[str, Any]) -> SliderParams:
         max_v = _floor_to_1000(min_v * MAX_COEFF_FROM_MIN_B)
         default_v = _clamp(_round_to_1000(retail), min_v, max_v)
         return SliderParams(
-            kind="slider",
             min_v=min_v,
             max_v=max_v,
             default_v=default_v,
@@ -176,7 +170,6 @@ def get_model_slider_params(
     max_v = _floor_to_1000(retail * max_coeff)
     default_v = _clamp(_round_to_1000(retail), min_v, max_v)
     return SliderParams(
-        kind="slider",
         min_v=min_v,
         max_v=max_v,
         default_v=default_v,

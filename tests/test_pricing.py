@@ -44,7 +44,6 @@ def test_slider_params_class_a_ramp_set_f_s(prices):
     entry = prices["options"]["ramp_set_f_s"]
     # retail=380_000, dealer=349_600
     params = get_slider_params(entry)
-    assert params.kind == "slider"
     assert params.min_v == 350_000       # ceil(349_600/1000)*1000
     assert params.max_v == 532_000       # floor(380_000*1.4/1000)*1000 = floor(532_000)
     assert params.default_v == 380_000   # round(380_000/1000)*1000
@@ -64,7 +63,6 @@ def test_slider_params_class_b_construction_works_20(prices):
     entry = prices["options"]["construction_works_20"]
     retail = int(entry["price_retail"])
     params = get_slider_params(entry)
-    assert params.kind == "slider"
     assert params.min_v % 1000 == 0
     assert params.max_v % 1000 == 0
     assert params.default_v % 1000 == 0
@@ -98,7 +96,6 @@ def test_slider_params_class_c_verification(prices):
     entry = prices["options"]["verification_default"]
     # range_min=20_000, range_max=2_000_000
     params = get_slider_params(entry)
-    assert params.kind == "number_input"
     assert params.min_v == 20_000
     assert params.max_v == 2_000_000
     assert params.default_v == 60_000   # round(60_000/1000)*1000
@@ -110,7 +107,6 @@ def test_slider_params_class_c_bytovka(prices):
     """Бытовка: ручной диапазон 200К–1.5М, дефолт retail."""
     entry = prices["options"]["bytovka_weigh_room"]
     params = get_slider_params(entry)
-    assert params.kind == "number_input"
     assert params.min_v == 200_000
     assert params.max_v == 1_500_000
     assert params.default_v == int(entry["price_retail"])
@@ -121,7 +117,6 @@ def test_slider_params_unknown_22m_frame_22(prices):
     """UNKNOWN (22м без price_class): min=ceil(retail*0.92/1000), dealer помечен synthetic."""
     entry = prices["options"]["frame_22"]
     params = get_slider_params(entry)
-    assert params.kind == "slider"
     assert params.dealer_is_synthetic is True
     assert params.min_v % 1000 == 0
     assert params.max_v % 1000 == 0

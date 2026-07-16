@@ -54,7 +54,6 @@ def test_model_price_slider_passes_platform_width_to_pricing(monkeypatch):
     def fake_get_model_slider_params(price: dict, *, platform_width_m: float):
         calls.append({"price": price, "platform_width_m": platform_width_m})
         return SliderParams(
-            kind="slider",
             min_v=1_000,
             max_v=10_000,
             default_v=5_000,
