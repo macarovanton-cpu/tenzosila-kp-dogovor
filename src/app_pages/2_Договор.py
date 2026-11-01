@@ -18,7 +18,6 @@ from src.contracts.clauses_context import build_clauses_context, winter_surcharg
 from src.contracts.compose import compose_spec_with_attachments, compose_supply  # noqa: E402
 from src.contracts.extractor import extract_kp_data_legacy  # noqa: E402
 from src.contracts.filler import (  # noqa: E402
-    fill_spec_with_items,
     fill_template,
     get_unfilled_placeholders,
 )
@@ -1194,21 +1193,10 @@ if not generated:
                         st.error(f"Спецификация не сформирована: {exc_lite}")
                         st.stop()
                     except Exception as exc_v2:
-                        import traceback
-                        from datetime import datetime
-                        _tb_path = Path("docs") / f"v1.0_fillspec_traceback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-                        _tb_path.parent.mkdir(exist_ok=True)
-                        with open(_tb_path, "w", encoding="utf-8") as f:
-                            f.write(f"=== EXCEPTION ===\n{type(exc_v2).__name__}: {exc_v2}\n\n")
-                            f.write(f"=== TRACEBACK ===\n{traceback.format_exc()}\n\n")
-                            f.write(f"=== DATA KEYS ===\n{list(data.keys())}\n\n")
-                            f.write(f"=== ITEMS COUNT ===\n{len(items_for_docx)}\n\n")
-                            f.write("=== DEAL ===\n")
-                            import json
-                            f.write(json.dumps(_gen_deal, ensure_ascii=False, indent=2, default=str))
-                        st.error(f"❌ fill_spec_v2 упал. Traceback: {_tb_path}")
-                        st.code(traceback.format_exc(), language="python")
-                        fill_spec_with_items(str(SPEC_TEMPLATE), data, items_for_docx, str(spec_path), model_qty=_model_qty)
+                        # N17: без подмены шаблоном v1 и без трассировки в docs/ —
+                        # файл не отдаём, генерацию рушим явно.
+                        st.error(f"Спецификация не сформирована: {exc_v2}")
+                        st.stop()
 
                     attachments = _gen_cs.get("attachments", {})
                     compose_spec_with_attachments(spec_path, attachments, data)
