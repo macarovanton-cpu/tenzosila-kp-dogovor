@@ -6,6 +6,7 @@ from datetime import timedelta
 import streamlit as st
 
 from src.config import VAT_RATE
+from src.contracts.filler import unfilled_fields_error
 from src.generators.kp_generator import build_filename, generate_kp
 from src.pricing import calc_totals
 from src.storage.snapshot_builder import build_kp_snapshot
@@ -149,6 +150,12 @@ def _render_generate_button(
 
     try:
         docx_bytes = generate_kp(dict(state), prices)
+        # Д21: остались поля шаблона — кнопка скачивания неактивна
+        unfilled_err = unfilled_fields_error("КП", docx_bytes)
+        if unfilled_err:
+            st.button(label, disabled=True, help=unfilled_err, width="stretch", type="primary")
+            st.error(unfilled_err)
+            return
         total_price = calc_totals(
             spec_items, model_qty=state.get("model_qty", 1)
         )["with_vat"]

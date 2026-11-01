@@ -179,27 +179,38 @@ def fill_template(template_path: str, data: dict, output_path: str) -> None:
     _replace_textbox_placeholders(output_path, data)
 
 
-def get_unfilled_placeholders(docx_path: str) -> list[str]:
-    """
-    Возвращает список незаполненных плейсхолдеров в документе.
-    Удобно для проверки после генерации.
-    """
-    doc = Document(docx_path)
-    found = set()
+# Остатки шаблона: {{…}} / {%…%} (и их обрывки), маркеры *_SECTION
+_UNFILLED_RE = re.compile(r"\{\{.*?(?:\}\}|$)|\{%.*?(?:%\}|$)|[A-Z_]*_SECTION\w*")
 
-    def scan_text(text):
-        for match in re.finditer(r'\{\{[^}]+\}\}', text):
-            found.add(match.group())
 
-    for p in doc.paragraphs:
-        scan_text(p.text)
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                for p in cell.paragraphs:
-                    scan_text(p.text)
+def get_unfilled_placeholders(docx) -> list[str]:
+    """Незаполненные поля во ВСЕХ XML-частях word/ (тело, таблицы, колонтитулы,
+    надписи w:txbxContent). docx — путь или байты документа."""
+    import io
+    import zipfile
 
+    from lxml import etree
+
+    src = io.BytesIO(docx) if isinstance(docx, (bytes, bytearray)) else docx
+    found: set[str] = set()
+    with zipfile.ZipFile(src) as zf:
+        for name in zf.namelist():
+            if not (name.startswith("word/") and name.endswith(".xml")):
+                continue
+            root = etree.fromstring(zf.read(name))
+            # текст абзаца целиком: плейсхолдер бывает разбит на несколько w:t
+            for p in root.iter(qn("w:p")):
+                text = "".join(t.text or "" for t in p.iter(qn("w:t")))
+                found.update(m.group() for m in _UNFILLED_RE.finditer(text))
     return sorted(found)
+
+
+def unfilled_fields_error(label: str, docx) -> str | None:
+    """Ошибка «документ не сформирован», если после сборки остались поля (Д21)."""
+    found = get_unfilled_placeholders(docx)
+    if not found:
+        return None
+    return f"Документ «{label}» не сформирован: остались незаполненные поля {', '.join(found)}"
 
 
 def remove_empty_paragraphs(doc_path: str, output_path: str = None) -> None:

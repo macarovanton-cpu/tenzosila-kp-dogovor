@@ -23,7 +23,7 @@ from typing import Any
 from src.contracts.clauses_context import build_clauses_context
 from src.contracts.clauses_renderer import RenderedClause, build_contract_clauses
 from src.contracts.compose import compose_spec_with_attachments, compose_supply
-from src.contracts.filler import fill_template
+from src.contracts.filler import fill_template, unfilled_fields_error
 from src.contracts.from_kp import (
     build_specification_from_kp_snapshot,
     build_specification_items,
@@ -206,6 +206,11 @@ def generate_all(fixture: Fixture, out_dir: Path) -> GeneratedSet:
         compose_spec_with_attachments(spec_path, attachments, data)
         docx_paths["contract"] = contract_path
         docx_paths["spec"] = spec_path
+
+    # Зеркало проверки Д21 (sidebar / 2_Договор.py): незаполненные поля — не отдаём
+    for kind, path in docx_paths.items():
+        if err := unfilled_fields_error(kind, path):
+            raise AssertionError(f"{fixture.id}: {err}")
 
     return GeneratedSet(
         fixture_id=fixture.id,

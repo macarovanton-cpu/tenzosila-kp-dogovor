@@ -20,7 +20,7 @@ from src.contracts.compose import compose_spec_with_attachments, compose_supply 
 from src.contracts.extractor import extract_kp_data_legacy  # noqa: E402
 from src.contracts.filler import (  # noqa: E402
     fill_template,
-    get_unfilled_placeholders,
+    unfilled_fields_error,
 )
 from src.contracts.fundament_lookup import (  # noqa: E402
     BuildTaskResolution,
@@ -1183,9 +1183,11 @@ if not generated:
                     model_qty=_model_qty,
                 )
                 compose_supply(supply_ctx, supply_path)
-                unfilled = get_unfilled_placeholders(str(supply_path))
-                if unfilled:
-                    st.warning(f"Договор поставки — не заполнены: {', '.join(unfilled)}")
+                # Д21: остались поля шаблона — файл не отдаём
+                _unfilled_err = unfilled_fields_error("Договор поставки", supply_path)
+                if _unfilled_err:
+                    st.error(_unfilled_err)
+                    st.stop()
                 cs["generated"] = {
                     "contract_type": "supply",
                     "supply_bytes": supply_path.read_bytes(),
@@ -1244,10 +1246,15 @@ if not generated:
                 else:
                     fill_template(str(SPEC_TEMPLATE), data, str(spec_path))
 
-                for label, path in [("Договор", contract_path), ("Спецификация", spec_path)]:
-                    unfilled = get_unfilled_placeholders(str(path))
-                    if unfilled:
-                        st.warning(f"{label} — не заполнены: {', '.join(unfilled)}")
+                # Д21: остались поля шаблона — файлы не отдаём, generated не выставляем
+                _unfilled_errs = [
+                    err for label, path in [("Договор", contract_path), ("Спецификация", spec_path)]
+                    if (err := unfilled_fields_error(label, path))
+                ]
+                if _unfilled_errs:
+                    for err in _unfilled_errs:
+                        st.error(err)
+                    st.stop()
 
                 cs["generated"] = {
                     "contract_type": "spec",
