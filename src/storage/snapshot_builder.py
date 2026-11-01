@@ -35,7 +35,7 @@ def _resolve_foundation_execution(
     - None — фундамент не выбран
     """
     for key in enabled_options:
-        if key == "concrete_base_on_frame":
+        if key.startswith("concrete_base_on_frame"):  # и ключи длин (Д07)
             return "rama_concrete"
         if key.startswith("road_slabs_"):
             return "rama_road_slabs"
@@ -64,7 +64,7 @@ def _resolve_foundation_sections(
             "construction_works_",
             "kbu_",  # КБУ — как рама: стройзадание по секциям
         ))
-        or key == "concrete_base_on_frame"
+        or key.startswith("concrete_base_on_frame")
         for key in enabled_options
     )
     if not has_sectioned_foundation or length is None:

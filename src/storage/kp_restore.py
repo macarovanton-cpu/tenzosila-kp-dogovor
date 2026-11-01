@@ -23,6 +23,9 @@ from src.filters import model_id_from_cascade
 
 _FOUNDATION_EXECUTION_CHOICES = ("пандусный", "приямок", "монолитная_плита")
 _DEFAULT_FOUNDATION_EXECUTION = "пандусный"
+# Д07 (В2-а): цена закладных и бетонного основания зависит от длины — ключ
+# старого КП, неприменимый к длине модели, переносится на ключ своей длины.
+_LENGTH_SPLIT_KEYS: tuple[str, ...] = ("embedded_parts", "concrete_base_on_frame")
 
 
 def _needs_foundation_choice(key: str) -> bool:
@@ -33,6 +36,18 @@ def _needs_foundation_choice(key: str) -> bool:
         or key == "foundation_supervision"
         or key.startswith("construction_works_")
     )
+
+
+def _length_key(key: str, length: Any, prices: dict) -> str:
+    """Ключ опции для длины модели (`embedded_parts` на 24 м → `embedded_parts_24`)."""
+    options = prices.get("options") or {}
+    entry = options.get(key)
+    if key not in _LENGTH_SPLIT_KEYS or entry is None:
+        return key
+    if length in entry.get("applies_to_lengths", []):
+        return key
+    new_key = f"{key}_{length}"
+    return new_key if new_key in options else key
 
 
 def _parse_kp_date(raw: Any) -> date | None:
@@ -62,11 +77,12 @@ def reconstruct_kp_state(kp_row: dict[str, Any], prices: dict) -> dict[str, Any]
     equipment = data.get("equipment") or {}
     construction = data.get("construction") or {}
     metrology = data.get("metrology") or {}
-    snap_options = data.get("options") or {}
-
     line = model.get("line", "")
     max_t = _coerce_int(model.get("max"))
     length = _coerce_int(model.get("length"))
+    snap_options = {
+        _length_key(k, length, prices): v for k, v in (data.get("options") or {}).items()
+    }
     if line and max_t and length:
         model_id = model_id_from_cascade(line, max_t, length)
     else:
@@ -187,7 +203,10 @@ def reconstruct_kp_state(kp_row: dict[str, Any], prices: dict) -> dict[str, Any]
     out["bytovka_dimensions"] = bytovka_dimensions
 
     # --- spec overrides ---
-    out["spec_items_overrides"] = data.get("spec_overrides") or {}
+    out["spec_items_overrides"] = {
+        _length_key(k, length, prices): v
+        for k, v in (data.get("spec_overrides") or {}).items()
+    }
 
     # --- custom items: снапшот хранит name/price/scope? → переприсваиваем id ---
     from src.contracts.custom_work_types import DEFAULT_WORK_TYPE

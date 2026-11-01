@@ -559,7 +559,7 @@ def build_specification_items(
                 metadata["scope"] = "pandus_std"
             elif key.startswith("construction_works_"):
                 metadata["scope"] = "contractor_with_materials"
-            elif key == "concrete_base_on_frame":
+            elif key.startswith("concrete_base_on_frame"):  # и ключи длин (Д07)
                 metadata["scope"] = "rama_concrete"
             elif key.startswith("road_slabs_"):
                 metadata["scope"] = "rama_road_slabs"

@@ -62,7 +62,7 @@ def _option_key_to_spec_id(key: str) -> str | None:
     # Стройработы и основание на раме — тоже фундаментная группа
     if key.startswith("construction_works_"):
         return "foundation"
-    if key == "concrete_base_on_frame":
+    if key.startswith("concrete_base_on_frame"):  # и ключи длин (Д07)
         return "foundation"
     if key.startswith("road_slabs_"):
         return "foundation"

@@ -18,8 +18,8 @@ def test_normalize_prices_keeps_model_and_option_counts(prices: dict) -> None:
 
     by_type = Counter(item.item_type for item in items)
 
-    assert len(items) == 184
-    assert by_type == {"model": 53, "option": 131}
+    assert len(items) == 190
+    assert by_type == {"model": 53, "option": 137}
 
 
 def test_normalize_prices_reports_option_classes(prices: dict) -> None:
@@ -30,11 +30,11 @@ def test_normalize_prices_reports_option_classes(prices: dict) -> None:
     on_request_count = sum(1 for item in options if item.on_request)
 
     assert by_class == {
-        "A_retail_and_dealer": 50,
-        "B_retail_only": 72,
+        "A_retail_and_dealer": 52,
+        "B_retail_only": 76,
         "C_manual_range": 9,
     }
-    assert on_request_count == 12
+    assert on_request_count == 16
 
 
 def test_normalize_prices_maps_model_fields_without_losing_payload(

@@ -617,18 +617,52 @@
         "П"
       ],
       "applies_to_lengths": [
-        12,
         16,
         18,
         20,
-        22,
-        24
+        22
       ],
       "price_retail": 35000,
       "price_dealer_ru": 32200,
       "discount_pct": 8,
-      "notes": "Цена в прайсе: 18м=30000, 20м=35000, 24м=35000. В JSON — усреднённое или по запросу.",
+      "notes": "Прайс 28.09.2026: 35 000 на 16–22 м; 12 и 24 м — embedded_parts_12/_24.",
       "price_class": "A_retail_and_dealer"
+    },
+    "embedded_parts_12": {
+      "label": "Комплект закладных деталей",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 30000,
+      "price_dealer_ru": 27600,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "embedded_parts_24": {
+      "label": "Комплект закладных деталей",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "СЛ",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 40000,
+      "price_dealer_ru": 36800,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
     },
     "rubber_t_6m": {
       "label": "Защитная Т-образная резина, 6м",
@@ -896,18 +930,63 @@
     "concrete_base_on_frame": {
       "label": "Бетонное основание для весов на раме",
       "applies_to_lengths": [
-        12,
         16,
-        18,
-        20,
-        22,
-        24
+        18
       ],
-      "price_retail": 550000,
+      "price_retail": 600000,
       "price_dealer_ru": 506000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
-      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%."
+      "dealer_note": "В прайсе указана внутренняя расчётная цена -8%. Для класса B используется только retail с коридором ±40%.",
+      "notes": "Прайс 28.09.2026: 600 000 на 16/18 м; 12/20/22/24 м — по запросу (concrete_base_on_frame_<L>)."
+    },
+    "concrete_base_on_frame_12": {
+      "label": "Бетонное основание для весов на раме",
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "concrete_base_on_frame_20": {
+      "label": "Бетонное основание для весов на раме",
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "concrete_base_on_frame_22": {
+      "label": "Бетонное основание для весов на раме",
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "concrete_base_on_frame_24": {
+      "label": "Бетонное основание для весов на раме",
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
     },
     "road_slabs_18": {
       "label": "Укладка дорожных плит, 18м",
