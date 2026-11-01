@@ -45,11 +45,6 @@ def validate(
     price_entry = get_price_by_model_id(prices, model_id)
     if price_entry is None:
         errors.append(f"Модель «{model_id}» отсутствует в прайсе")
-    else:
-        model_price = state.get("model_price")
-        dealer = int(price_entry.get("dealer_ru", 0) or 0)
-        if model_price is not None and int(model_price) < dealer:
-            errors.append("Цена модели ниже дилерской — проверьте слайдер")
 
     # Опции "под запрос"
     for key, opt in state.get("options", {}).items():

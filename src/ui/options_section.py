@@ -14,6 +14,7 @@ from src.config import (
 )
 from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
 from src.filters import get_visible_options
+from src.price_warnings import price_warnings
 from src.pricing import (
     SliderParams,
     color_code,
@@ -220,7 +221,9 @@ def _render_option_row(
     if customer_side:
         st.caption("Поверка силами Заказчика — цена 0 ₽.")
     else:
-        price_value = _render_price_widget(key, params, widget_suffix)
+        price_value = _render_price_widget(
+            key, params, widget_suffix, display_label
+        )
         # Бандл ОРИОН печатается в спецификации двумя строками — цена делится.
         if (entry.get("components") or {}).get("shef_montazh"):
             st.caption(
@@ -364,12 +367,12 @@ def _clear_price_override(item_key: str) -> None:
 
 
 def _render_price_widget(
-    key: str, params: SliderParams, widget_suffix: str
+    key: str, params: SliderParams, widget_suffix: str, name: str
 ) -> int:
     widget_key = f"opt_{key}_price{widget_suffix}"
     common = dict(
-        min_value=params.min_v,
-        max_value=params.max_v,
+        # Свободная цена: поле не ограничено коридором, коридор — только справка.
+        min_value=1,
         value=params.default_v,
         step=params.step,
         key=widget_key,
@@ -383,6 +386,8 @@ def _render_price_widget(
         ),
     )
     value = st.number_input(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **common)
+    for msg in price_warnings(name, int(value), params):
+        st.warning(msg)
 
     _render_price_caption(int(value), params)
     return int(value)

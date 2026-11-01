@@ -19,6 +19,7 @@ from src.pricing import (
     get_model_slider_params,
     percent_to_retail,
 )
+from src.price_warnings import price_warnings
 from src.state import on_cascade_change, on_platform_width_change
 
 PLATFORM_WIDTH_OPTIONS: list[float] = [3.0, 3.5, 4.0]
@@ -186,7 +187,7 @@ def _clear_model_price_override() -> None:
 
 
 def _render_model_price_slider(state: dict, price: dict) -> None:
-    from src.utils.format import fmt_rub
+    from src.utils.format import fmt_int_spaces, fmt_rub
     params = get_model_slider_params(
         price,
         platform_width_m=float(state.get("platform_width_m", 3.0) or 3.0),
@@ -194,15 +195,21 @@ def _render_model_price_slider(state: dict, price: dict) -> None:
     current = state.get("model_price") or params.default_v
     value = st.number_input(
         f"Цена модели, ₽ (с НДС {VAT_RATE*100:.0f}%)",
-        min_value=params.min_v,
-        max_value=params.max_v,
+        min_value=1,
         value=int(current),
         step=params.step,
         key=f"model_price_slider__{state['model_id']}",
         on_change=_clear_model_price_override,
-        help="Диапазон дилерская ↔ розница +40 %. Значения округлены до тысяч",
+        # Свободная цена: поле не ограничено коридором, коридор — только справка.
+        help=(
+            f"Диапазон {fmt_int_spaces(params.min_v)} – "
+            f"{fmt_int_spaces(params.max_v)} ₽, округление до тысяч"
+        ),
     )
     state["model_price"] = int(value)
+    name = f"ВЕСТА-{state['model_line']}-{state['model_max']}-{state['model_length']}"
+    for msg in price_warnings(name, int(value), params):
+        st.warning(msg)
 
     qty = st.number_input(
         "Количество весов",

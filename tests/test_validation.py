@@ -179,3 +179,11 @@ def test_split_foundation_group_active_for_all_foundation_base_variants(
         errors, _ = validate(state, prices, models_json, payment_terms, managers)
 
         assert any("не равна 100" in e for e in errors), key
+
+
+def test_model_price_below_dealer_is_not_error(prices, models_json, payment_terms, managers):
+    """Д01: цена ниже дилерской больше не блокирует — только предупреждение в UI."""
+    state = _valid_state()
+    state["model_price"] = 1
+    errors, _ = validate(state, prices, models_json, payment_terms, managers)
+    assert errors == []

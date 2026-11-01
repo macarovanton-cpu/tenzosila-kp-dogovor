@@ -46,6 +46,9 @@ def test_model_price_slider_passes_platform_width_to_pricing(monkeypatch):
     """Ценовой виджет модели рассчитывает параметры с учётом выбранной ширины."""
     state = {
         "model_id": "vesta-с-60-18",
+        "model_line": "С",
+        "model_max": 60,
+        "model_length": 18,
         "platform_width_m": 4.0,
         "model_price": None,
     }
