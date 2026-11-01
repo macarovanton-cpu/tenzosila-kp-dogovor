@@ -83,5 +83,5 @@ def test_contract_by_old_and_resaved_kp_rama_concrete():
         items = [it for it in build_specification_items(kp, PRICES) if it["id"] == "foundation"]
         assert len(items) == 1
         assert items[0]["metadata"]["scope"] == "rama_concrete"
-        assert items[0]["total"] == 550_000
+        assert items[0]["total"] == 550_001  # правка таблицы КП доходит до договора (Д09)
         assert items[0]["name"] == "Бетонное основание для весов на раме"

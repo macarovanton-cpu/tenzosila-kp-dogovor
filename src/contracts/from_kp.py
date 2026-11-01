@@ -10,6 +10,7 @@ from src.config import is_weighbridge_foundation_key
 from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
 from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
 from src.spec_builder import (
+    _apply_override,
     _assert_single_orion_bundle,
     format_platform_size,
     resolve_custom_payment_group,
@@ -314,6 +315,12 @@ def build_spec_rows_from_snapshot(
     length = model.get("length", "")
     width = model.get("width", 3.0)
     model_price = int(model.get("price") or 0)
+    # N2: правки таблицы КП — по тем же ключам, что spec_builder._apply_override
+    overrides: dict = data.get("spec_overrides") or {}
+    model_qty_ov, model_price, _ = _apply_override(
+        1, model_price, overrides.get(kp_row.get("model_id", ""))
+    )
+    model_price *= model_qty_ov
 
     rows: list[dict[str, Any]] = []
 
@@ -324,7 +331,7 @@ def build_spec_rows_from_snapshot(
     )
     rows.append({
         "name": model_name,
-        "qty": 1,
+        "qty": model_qty_ov,
         "price": model_price,
         "price_display": _fmt(model_price),
         "customer_side": False,
@@ -338,8 +345,11 @@ def build_spec_rows_from_snapshot(
         if qty == 0:
             continue
         customer_side = bool(opt.get("customer_side", False))
+        qty, price, _ = _apply_override(
+            qty, 0 if customer_side else int(opt.get("price") or 0), overrides.get(key)
+        )
         # N1: в снапшоте цена за единицу; price строки — её сумма (× qty)
-        price = 0 if customer_side else int(opt.get("price") or 0) * qty
+        price *= qty
         price_display = "ЗАКАЗЧИК" if customer_side else _fmt(price)
 
         name = _resolve_option_name(key, line, opt, installation_scope, prices)
@@ -354,14 +364,17 @@ def build_spec_rows_from_snapshot(
             "customer_side": customer_side,
         })
 
-    for item in data.get("custom_items") or []:
+    for index, item in enumerate(data.get("custom_items") or [], start=1):
         name = str(item.get("name") or "").strip()
         price = int(item.get("price") or 0)
         if not name or price <= 0:
             continue
+        # ключ правки — custom_N по порядку в снапшоте, как при открытии КП
+        qty, price, _ = _apply_override(1, price, overrides.get(f"custom_{index}"))
+        price *= qty
         rows.append({
             "name": name,
-            "qty": 1,
+            "qty": qty,
             "price": price,
             "price_display": _fmt(price),
             "customer_side": False,
@@ -503,6 +516,11 @@ def build_specification_items(
     length = model.get("length", "")
     width = model.get("width", 3.0)
     model_price = float(model.get("price") or 0)
+    # N2: правки таблицы КП — по тем же ключам, что spec_builder._apply_override
+    overrides: dict = data.get("spec_overrides") or {}
+    model_qty_ov, model_price_ov, _ = _apply_override(
+        1, int(model_price), overrides.get(kp_row.get("model_id", ""))
+    )
     options = _expand_orion_options(data.get("options") or {}, prices)
     installation_scope = data.get("installation_scope")
 
@@ -518,9 +536,9 @@ def build_specification_items(
         "id": "weights",
         "name": model_name,
         "unit": "компл",
-        "quantity": 1.0,
-        "price_per_unit": model_price,
-        "total": model_price,
+        "quantity": float(model_qty_ov),
+        "price_per_unit": float(model_price_ov),
+        "total": float(model_price_ov * model_qty_ov),
         "payment_group": resolve_payment_group(kp_row.get("model_id", "")),
         "is_custom": False,
         "source": "preset",
@@ -533,7 +551,10 @@ def build_specification_items(
             continue
 
         customer_side = bool(opt.get("customer_side", False))
-        price = 0.0 if customer_side else float(opt.get("price") or 0)
+        qty_ov, price_ov, _ = _apply_override(
+            int(qty), 0 if customer_side else int(opt.get("price") or 0), overrides.get(key)
+        )
+        qty, price = float(qty_ov), float(price_ov)
 
         spec_id = _option_key_to_spec_id(key)
         is_custom = spec_id is None
@@ -609,13 +630,15 @@ def build_specification_items(
         else:
             spec_id = f"custom_{index}"
         payment_group = resolve_custom_payment_group(name, item.get("scope"))
+        # ключ правки — custom_N по порядку в снапшоте, как при открытии КП
+        qty_ov, price_ov, _ = _apply_override(1, int(price), overrides.get(f"custom_{index}"))
         items.append({  # type: ignore[misc]
             "id": spec_id,
             "name": name,
             "unit": "шт",
-            "quantity": 1.0,
-            "price_per_unit": price,
-            "total": price,
+            "quantity": float(qty_ov),
+            "price_per_unit": float(price_ov),
+            "total": float(price_ov * qty_ov),
             "payment_group": payment_group,
             "is_custom": True,
             "source": "custom",
