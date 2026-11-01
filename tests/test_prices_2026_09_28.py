@@ -75,9 +75,10 @@ def _flat(d: dict) -> dict:
 
 def test_no_unexpected_changes() -> None:
     """Дифф копия v0.5 -> живой прайс по парам (ключ, поле) = ровно список задачи."""
+    from tests.test_prices_new_options_2026_09_28 import NEW  # новые ключи — только список Д04
     old, new = _flat(OLD), _flat(LIVE)
     changed = {p for p in old.keys() | new.keys() if old.get(p, "<нет>") != new.get(p, "<нет>")}
-    changed = {p for p in changed if p[2] != "__keys__"}
+    changed = {p for p in changed if p[2] != "__keys__" and p[1] not in NEW}
     expected = set()
     for key, (retail, cls, dealer, rng) in OPTIONS.items():
         expected.add(("options", key, "price_retail"))
@@ -94,5 +95,5 @@ def test_no_unexpected_changes() -> None:
         expected |= {("models", mid, "retail"), ("models", mid, "dealer_ru")}
     expected = {p for p in expected if old.get(p, "<нет>") != new.get(p, "<нет>")}
     assert changed == expected, (changed - expected, expected - changed)
-    assert set(LIVE["options"]) == set(OLD["options"]) and set(LIVE["models"]) == set(OLD["models"])
+    assert set(LIVE["options"]) == set(OLD["options"]) | set(NEW) and set(LIVE["models"]) == set(OLD["models"])
     assert {k for k in OLD if k not in ("models", "options", "_meta")} == {k for k in LIVE if k not in ("models", "options", "_meta")}

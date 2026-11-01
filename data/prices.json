@@ -335,6 +335,50 @@
       "price_class": "A_retail_and_dealer",
       "notes": "Для линейки П рекомендуются усиленные пандусы, которых в прайсе нет. В MVP используются стандартные. Уточнить у производства."
     },
+    "ramp_set_f_s_8mm": {
+      "label": "Комплект пандусов под весы ВЕСТА-Ф/С (L=3,9м), 8мм",
+      "applies_to_lines": [
+        "С",
+        "Ф",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12,
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 430000,
+      "price_dealer_ru": 395600,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "ramp_set_concrete": {
+      "label": "Комплект пандусов бетонных под весы ВЕСТА (L=3,6м)",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12,
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 275000,
+      "price_dealer_ru": 261250,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
     "frame_18": {
       "label": "Рама под весы ВЕСТА-С(Ф)/ФЛ(СЛ), 18м",
       "applies_to_lines": [
@@ -653,6 +697,30 @@
       "range_min": 200000,
       "range_max": 1500000,
       "notes": "Ручной диапазон. Габариты вводятся менеджером свободным текстом."
+    },
+    "foundation_heating_gorynych_5": {
+      "label": "Подогрев фундамента «Горыныч 5» (оборудование)",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12,
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
     },
     "foundation_lite_sl_fl_18": {
       "label": "Фундамент пандусный «ЛАЙТ» под ВЕСТА-СЛ/ФЛ, 18м",
@@ -1331,6 +1399,51 @@
       "range_max": 1000000,
       "notes": "Ручной диапазон. Прайсовая строка «Монтаж С-60(80)-18 (3 секции) — 175К» — информационная, всегда рассчитывается индивидуально."
     },
+    "shefmontazh": {
+      "label": "Шеф-монтаж и пусконаладка",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        12,
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 140000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "ppr_documentation": {
+      "label": "Разработка ППР и исполнительной документации",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12,
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": 50000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
     "delivery_default": {
       "label": "Доставка весов до объекта",
       "applies_to_lines": [
@@ -1708,6 +1821,276 @@
       "price_class": "B_retail_only",
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
     },
+    "kbu_p06_35_l_12": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.35.Л, 12м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 290000,
+      "price_dealer_ru": 275500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_35_l_16": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.35.Л, 16м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 300000,
+      "price_dealer_ru": 285000,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_35_l_18": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.35.Л, 18м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 300000,
+      "price_dealer_ru": 285000,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_35_l_20": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.35.Л, 20м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 310000,
+      "price_dealer_ru": 294500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_35_l_22": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.35.Л, 22м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 310000,
+      "price_dealer_ru": 294500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_35_l_24": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.35.Л, 24м",
+      "applies_to_lines": [
+        "СЛ",
+        "ФЛ"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 310000,
+      "price_dealer_ru": 294500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_44_12": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.44, 12м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 390000,
+      "price_dealer_ru": 370500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_44_16": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.44, 16м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 400000,
+      "price_dealer_ru": 380000,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_44_18": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.44, 18м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 400000,
+      "price_dealer_ru": 380000,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_44_20": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.44, 20м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 410000,
+      "price_dealer_ru": 389500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_44_22": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.44, 22м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 410000,
+      "price_dealer_ru": 389500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p06_44_24": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П06.44, 24м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 410000,
+      "price_dealer_ru": 389500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p08_44_12": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П08.44, 12м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": 440000,
+      "price_dealer_ru": 418000,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p08_44_16": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П08.44, 16м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": 450000,
+      "price_dealer_ru": 427500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p08_44_18": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П08.44, 18м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 450000,
+      "price_dealer_ru": 427500,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p08_44_20": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П08.44, 20м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 460000,
+      "price_dealer_ru": 437000,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p08_44_22": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П08.44, 22м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 460000,
+      "price_dealer_ru": 437000,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
+    "kbu_p08_44_24": {
+      "label": "Комплект бесфундаментной установки с опорными плитами П08.44, 24м",
+      "applies_to_lines": [
+        "С",
+        "Ф"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": 460000,
+      "price_dealer_ru": 437000,
+      "discount_pct": 5,
+      "price_class": "A_retail_and_dealer",
+      "notes": "Прайс 28.09.2026."
+    },
     "canopy_turnkey_12": {
       "label": "Навес под ключ для ВЕСТА, 12м (навес + фундамент + монтаж)",
       "applies_to_lines": [
@@ -1757,6 +2140,363 @@
         "canopy_installation": 1600000
       },
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Ручной диапазон: низ −30% от 18м, верх — ×4.5 к нижней границе."
+    },
+    "canopy_12": {
+      "label": "Навес для ВЕСТА, 12м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "canopy_16": {
+      "label": "Навес для ВЕСТА, 16м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "canopy_18": {
+      "label": "Навес для ВЕСТА, 18м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 2800000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "canopy_20": {
+      "label": "Навес для ВЕСТА, 20м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 3000000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "canopy_22": {
+      "label": "Навес для ВЕСТА, 22м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 3200000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "canopy_24": {
+      "label": "Навес для ВЕСТА, 24м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "foundation_under_canopy_12": {
+      "label": "Фундамент под навес для ВЕСТА, 12м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "foundation_under_canopy_16": {
+      "label": "Фундамент под навес для ВЕСТА, 16м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "foundation_under_canopy_18": {
+      "label": "Фундамент под навес для ВЕСТА, 18м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 1100000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "foundation_under_canopy_20": {
+      "label": "Фундамент под навес для ВЕСТА, 20м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 1350000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "foundation_under_canopy_22": {
+      "label": "Фундамент под навес для ВЕСТА, 22м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 1480000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "foundation_under_canopy_24": {
+      "label": "Фундамент под навес для ВЕСТА, 24м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "canopy_installation_12": {
+      "label": "Монтаж навеса для ВЕСТА, 12м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "canopy_installation_16": {
+      "label": "Монтаж навеса для ВЕСТА, 16м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        16
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "canopy_installation_18": {
+      "label": "Монтаж навеса для ВЕСТА, 18м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        18
+      ],
+      "price_retail": 1600000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "canopy_installation_20": {
+      "label": "Монтаж навеса для ВЕСТА, 20м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        20
+      ],
+      "price_retail": 1650000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "canopy_installation_22": {
+      "label": "Монтаж навеса для ВЕСТА, 22м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        22
+      ],
+      "price_retail": 1700000,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "Прайс 28.09.2026."
+    },
+    "canopy_installation_24": {
+      "label": "Монтаж навеса для ВЕСТА, 24м",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        24
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
+    },
+    "canopy_lighting": {
+      "label": "Освещение под навесом",
+      "applies_to_lines": [
+        "С",
+        "СЛ",
+        "Ф",
+        "ФЛ",
+        "П"
+      ],
+      "applies_to_lengths": [
+        12,
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "price_retail": null,
+      "price_dealer_ru": null,
+      "discount_pct": null,
+      "price_class": "B_retail_only",
+      "notes": "В прайсе 28.09.2026 — по запросу.",
+      "on_request": true
     }
   }
 }

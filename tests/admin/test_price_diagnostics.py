@@ -48,13 +48,13 @@ def test_diagnose_prices_reports_real_counts_and_classes(prices: dict) -> None:
     diagnostics = diagnose_prices(prices, today=date(2026, 6, 12))
 
     assert diagnostics.model_count == 53
-    assert diagnostics.option_count == 89
+    assert diagnostics.option_count == 131
     assert diagnostics.class_counts == {
-        "A_retail_and_dealer": 30,
-        "B_retail_only": 50,
+        "A_retail_and_dealer": 50,
+        "B_retail_only": 72,
         "C_manual_range": 9,
     }
-    assert diagnostics.on_request_count == 1
+    assert diagnostics.on_request_count == 12
     assert diagnostics.is_expired is False
     assert diagnostics.error_count == 0
     assert any(
