@@ -4,6 +4,8 @@ from __future__ import annotations
 import uuid
 from typing import Literal, TypedDict
 
+from src.config import is_weighbridge_foundation_key
+
 
 class SpecItem(TypedDict):
     id: str
@@ -55,7 +57,7 @@ def _option_key_to_spec_id(key: str) -> str | None:
         return "installation"
     if key == "verification_default":
         return "verification"
-    if key.startswith("foundation_"):
+    if is_weighbridge_foundation_key(key):
         return "foundation"
     # Стройработы и основание на раме — тоже фундаментная группа
     if key.startswith("construction_works_"):
@@ -83,4 +85,11 @@ def _option_key_to_spec_id(key: str) -> str | None:
         return "rama"
     if key.startswith(("pandus", "ramp_set_")):
         return "pandus"
+    # КБУ работает как рама (adr/0013 п. 9), но свой id: «rama» дал бы
+    # в объекте оплаты «рамы» (wording_flags.has_frame).
+    if key.startswith("kbu_"):
+        return "kbu"
+    # ППР — объект оплаты «монтаж» (payment_wording._iv_kind), без пунктов.
+    if key == "ppr_documentation":
+        return "ppr_documentation"
     return None

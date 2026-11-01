@@ -153,6 +153,26 @@ def resolve_build_task(snapshot: Mapping[str, Any]) -> BuildTaskResolution:
     )
 
 
+def snapshot_has_kbu(snapshot: Mapping[str, Any]) -> bool:
+    """КБУ в КП: стройзадание не подбирается, менеджер выбирает раму (adr/0013 п. 9)."""
+    return any(str(key).startswith("kbu_") for key in (snapshot.get("options") or {}))
+
+
+def kbu_build_task_files(sections: Any) -> list[Path]:
+    """Стройзадания рамы (`rama_*`) на число секций модели — варианты для КБУ."""
+    n = _normalize_sections(sections)
+    return [
+        p for p in list_build_task_files()
+        if p.stem.startswith("rama_") and p.stem.endswith(f"_{n}скц")
+    ]
+
+
+def kbu_build_task_reason(sections: Any) -> str:
+    n = _normalize_sections(sections)
+    suffix = f" на {n} скц" if n else ""
+    return f"для КБУ автоподбора нет — выберите строительное задание рамы{suffix}"
+
+
 def resolve_control_sheet(execution: str | None, sections: int | str | None) -> Path | None:
     """Подобрать контрольный лист, если он доступен для ручного выбора."""
     normalized_execution = _normalize_execution(execution)

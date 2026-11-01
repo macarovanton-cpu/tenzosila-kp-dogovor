@@ -69,7 +69,8 @@ def build_clauses_context(deal: dict) -> dict:
     if "foundation" in items_by_id:
         raw_scope = items_by_id["foundation"].get("metadata", {}).get("scope", "contractor_full")
         foundation_scope = _FOUNDATION_SCOPE_MAP.get(raw_scope, "contractor_full")
-    elif "rama" in items_by_id:
+    elif "rama" in items_by_id or "kbu" in items_by_id:
+        # КБУ — как рама: площадка, 220 В, «месту установки» (adr/0013 п. 9)
         foundation_scope = "rama"
     elif overrides.get("foundation_scope") is not None:
         foundation_scope = overrides["foundation_scope"]

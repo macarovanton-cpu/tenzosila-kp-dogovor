@@ -24,9 +24,12 @@ from src.contracts.filler import (  # noqa: E402
 )
 from src.contracts.fundament_lookup import (  # noqa: E402
     BuildTaskResolution,
+    kbu_build_task_files,
+    kbu_build_task_reason,
     list_build_task_files,
     pretty_name,
     resolve_build_task,
+    snapshot_has_kbu,
     resolve_control_sheet,
 )
 from src.contracts.kp_load import build_kp_payload  # noqa: E402
@@ -353,7 +356,7 @@ def _build_task_choice_index(options: list[str | Path], attachments: dict) -> in
         for index, option in enumerate(options):
             if isinstance(option, Path) and option == selected_path:
                 return index
-    return options.index("Авто-подбор")
+    return options.index("Авто-подбор") if "Авто-подбор" in options else 0
 
 
 def _build_task_option_label(option: str | Path) -> str:
@@ -371,7 +374,10 @@ def _render_fundament_attachment_choice() -> None:
 
     st.subheader("Приложения по фундаменту")
     auto_text = _build_task_auto_text(auto_result)
-    if auto_result.path is not None:
+    kbu = snapshot_has_kbu(snapshot)
+    if kbu:
+        st.info(f"Строительное задание: {kbu_build_task_reason(snapshot.get('foundation_sections'))}")
+    elif auto_result.path is not None:
         st.success(f"Строительное задание: {auto_text}")
     elif "не найден" in auto_result.reason:
         st.error(f"Строительное задание: {auto_text}")
@@ -380,6 +386,8 @@ def _render_fundament_attachment_choice() -> None:
 
     build_task_files = list_build_task_files()
     options: list[str | Path] = ["Авто-подбор", "Без приложения", *build_task_files]
+    if kbu:  # adr/0013 п. 9: только стройзадания рамы на секции модели
+        options = ["Без приложения", *kbu_build_task_files(snapshot.get("foundation_sections"))]
     widget_key = "w_build_task_choice"
     if widget_key not in st.session_state or st.session_state[widget_key] not in options:
         st.session_state[widget_key] = options[_build_task_choice_index(options, attachments)]
@@ -1206,6 +1214,13 @@ if not generated:
                         st.warning(
                             "В тексте Спецификации есть ссылка на Приложение №1 "
                             "(строительное задание), но файл не приложен."
+                        )
+                    elif build_task_missing and snapshot_has_kbu(_gen_cs.get("kp_snapshot") or {}):
+                        # DM 9.2 build_task_missing: договор выпускается
+                        _kbu_sections = (_gen_cs.get("kp_snapshot") or {}).get("foundation_sections")
+                        st.warning(
+                            "Спецификация ссылается на строительное задание (Приложение №1), "
+                            f"но файл не подобран: {kbu_build_task_reason(_kbu_sections)}."
                         )
                 else:
                     fill_template(str(SPEC_TEMPLATE), data, str(spec_path))

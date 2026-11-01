@@ -6,6 +6,7 @@ import re
 import uuid
 from typing import Any
 
+from src.config import is_weighbridge_foundation_key
 from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
 from src.contracts.spec_items import SpecItem, _option_key_to_spec_id
 from src.spec_builder import (
@@ -101,7 +102,7 @@ def _expand_orion_options(
         return options
     prices = prices or {}
     _assert_single_orion_bundle(options.keys(), prices)
-    has_foundation = any(k.startswith("foundation_") for k in options)
+    has_foundation = any(is_weighbridge_foundation_key(k) for k in options)
     expanded: dict[str, Any] = {}
     for key, opt in options.items():
         for new_key, new_opt in split_orion_bundle(
@@ -473,11 +474,13 @@ _ITEM_ORDER: dict[str, int] = {
     "weights": 0,
     "orion": 1,
     "rama": 2,
+    "kbu": 2,
     "pandus": 3,
     "foundation": 4,
     "orion_poles": 5,
     "delivery": 6,
     "installation": 7,
+    "ppr_documentation": 7,
     "orion_install": 8,
     "verification": 9,
 }
@@ -547,7 +550,7 @@ def build_specification_items(
             if installation_scope in ("full", "shefmontazh"):
                 metadata["scope"] = installation_scope
             else:
-                has_foundation = any(k.startswith("foundation_") for k in options)
+                has_foundation = any(is_weighbridge_foundation_key(k) for k in options)
                 metadata["scope"] = "fundament" if has_foundation else "rama"
         elif spec_id == "foundation":
             if "_lite_" in key:
