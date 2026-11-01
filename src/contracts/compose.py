@@ -39,7 +39,7 @@ def compose_supply(context: dict, output_path: Path) -> None:
         tmp_files.append(contract_tmp1)
 
         tpl = DocxTemplate(str(contract_tpl))
-        tpl.render(tpl_context)
+        tpl.render(tpl_context, autoescape=True)
         tpl.save(str(contract_tmp1))
 
         # Второй проход: заменить {{PAYMENT_SECTION}} реальными параграфами.
@@ -66,7 +66,7 @@ def compose_supply(context: dict, output_path: Path) -> None:
             app1_tmp = Path(f.name)
         tmp_files.append(app1_tmp)
         tpl1 = DocxTemplate(str(appendix1_tpl))
-        tpl1.render(tpl_context)
+        tpl1.render(tpl_context, autoescape=True)
         tpl1.save(str(app1_tmp))
 
         # При model_qty > 1 — вторая строка ИТОГО в спецификации appendix_1:
@@ -86,7 +86,7 @@ def compose_supply(context: dict, output_path: Path) -> None:
             app2_tmp = Path(f.name)
         tmp_files.append(app2_tmp)
         tpl2 = DocxTemplate(str(appendix2_tpl))
-        tpl2.render(tpl_context)
+        tpl2.render(tpl_context, autoescape=True)
         tpl2.save(str(app2_tmp))
 
         # --- Склейка через docxcompose ---

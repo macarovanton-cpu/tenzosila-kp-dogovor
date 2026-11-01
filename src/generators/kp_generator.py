@@ -260,7 +260,7 @@ def generate_kp(state: dict[str, Any], prices: dict) -> bytes:
 
     doc = DocxTemplate(str(TEMPLATE_PATH))
     context = build_template_context(state, prices)
-    doc.render(context)
+    doc.render(context, autoescape=True)
 
     # Постобработка: заменить маркеры ⟦MERGE:...⟧ в колонке сроков на
     # реальный текст + <w:vMerge> в tcPr. См. spec_vmerge.py.

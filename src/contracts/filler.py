@@ -99,6 +99,7 @@ def _replace_textbox_placeholders(docx_path: str, data: dict) -> None:
     """Заменяет {{KEY}} в text box-ах (w:txbxContent), которые python-docx пропускает."""
     import shutil
     import zipfile
+    from xml.sax.saxutils import escape
 
     tmp = docx_path + '.tmp'
     with zipfile.ZipFile(docx_path, 'r') as zin:
@@ -110,7 +111,7 @@ def _replace_textbox_placeholders(docx_path: str, data: dict) -> None:
                     for key, value in data.items():
                         placeholder = '{{' + key + '}}'
                         if placeholder in text:
-                            text = text.replace(placeholder, str(value) if value else '')
+                            text = text.replace(placeholder, escape(str(value)) if value else '')
                     data_bytes = text.encode('utf-8')
                 zout.writestr(item, data_bytes)
     shutil.move(tmp, docx_path)
