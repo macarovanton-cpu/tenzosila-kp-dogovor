@@ -240,6 +240,12 @@ def _validate_rows(rows: list[dict], spec_total: int) -> tuple[str | None, list[
     return error, warnings
 
 
+def payment_lines_error() -> str | None:
+    """Блокирующая ошибка текущих строк оплаты (для кнопки генерации) или None."""
+    spec_total = sum(int(i.get("total") or 0) for i in get_spec_items()) * get_model_qty()
+    return _validate_rows(get_payment_lines(), spec_total)[0]
+
+
 def default_payment_rows(
     payment_snapshot: dict,
     spec_items: list[dict],

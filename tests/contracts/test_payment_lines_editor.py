@@ -17,6 +17,7 @@ from src.ui.payment_lines_editor import (
     _row_to_line,
     _rows_amount_total,
     _validate_rows,
+    payment_lines_error,
     render_payment_lines_editor,
 )
 
@@ -411,3 +412,33 @@ def test_recompute_preserves_bridge_split_amounts():
         _normalize_rows([_line_to_row(ln) for ln in lines]), spec_total
     )
     assert [r["Сумма, ₽"] for r in rows] == bridge_amounts
+
+
+# ---------------------------------------------------------------------------
+# Д15 (N8): payment_lines_error блокирует генерацию при Σ% > 100
+# ---------------------------------------------------------------------------
+
+def _patch_state(monkeypatch, rows):
+    import src.ui.payment_lines_editor as m
+    monkeypatch.setattr(m, "get_payment_lines", lambda: rows)
+    monkeypatch.setattr(m, "get_spec_items", lambda: [{"total": 1_000_000}])
+    monkeypatch.setattr(m, "get_model_qty", lambda: 1)
+
+
+def test_payment_lines_error_sum_110_blocks(monkeypatch):
+    _patch_state(monkeypatch, [_row(pct=60.0, base=1_000_000, amount=600_000),
+                               _row(pct=50.0, base=1_000_000, amount=500_000, kind="доплата")])
+    assert "100" in (payment_lines_error() or "")
+
+
+def test_payment_lines_error_sum_100_ok(monkeypatch):
+    _patch_state(monkeypatch, [_row(pct=60.0, base=1_000_000, amount=600_000),
+                               _row(pct=40.0, base=1_000_000, amount=400_000, kind="доплата")])
+    assert payment_lines_error() is None
+
+
+def test_dogovor_generate_disabled_uses_payment_lines_error():
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[2] / "src" / "app_pages" / "2_Договор.py").read_text(encoding="utf-8")
+    block = src.split("generate_disabled = (", 1)[1].split("\n    )\n", 1)[0]
+    assert "_payment_pct_error" in block and "payment_lines_error()" in src

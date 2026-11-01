@@ -70,6 +70,7 @@ from src.storage.supabase_client import (  # noqa: E402
 )
 from src.ui.payment_lines_editor import (  # noqa: E402
     default_payment_rows,
+    payment_lines_error,
     render_payment_lines_editor,
 )
 from src.utils.format import sanitize_filename  # noqa: E402
@@ -1075,12 +1076,20 @@ if not generated:
             st.markdown("**:material/error: Не заполнены условия оплаты**")
             st.markdown("- Заполните таблицу оплаты (кнопка «Заполнить по умолчанию»).")
 
+    # N8: Σ% по одной базе > 100 — договор не выпускаем (ошибка видна и в редакторе).
+    _payment_pct_error = payment_lines_error()
+    if _payment_pct_error:
+        with st.sidebar.container(border=True):
+            st.markdown("**:material/error: Ошибка условий оплаты**")
+            st.markdown(f"- {_payment_pct_error}")
+
     generate_disabled = (
         not (bool(cs.get("specification")) and bool(cs.get("requisites")))
         or not contract_number
         or not object_address
         or bool(_req_errors)
         or _payment_empty
+        or bool(_payment_pct_error)
     )
 
     # ⚠️ ЗЕРКАЛО: блок генерации ниже реплицирован в tests/autoverify/runner.py —
