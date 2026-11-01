@@ -253,3 +253,57 @@ def test_suspect_names_ignores_correctly_classified_installation(monkeypatch):
     ]
 
     assert page._suspect_names(items) == []
+
+
+def _four_items() -> list[dict]:
+    """4 позиции; 2-я (pandus) на пункты договора не влияет."""
+    return [
+        {"id": "weights", "name": "Весы", "payment_group": "scales", "metadata": {"line": "С"}},
+        {"id": "pandus", "name": "Пандус", "payment_group": "scales", "metadata": {}},
+        {
+            "id": "installation", "name": "Монтаж",
+            "payment_group": "installation_and_verification",
+            "metadata": {"scope": "shefmontazh"},
+        },
+        {
+            "id": "verification", "name": "Поверка",
+            "payment_group": "installation_and_verification",
+            "metadata": {"customer_side": True},
+        },
+    ]
+
+
+def test_rows_to_items_delete_row_keeps_ids_and_metadata(monkeypatch):
+    """N9: удаление 2-й строки не сдвигает id/metadata следующих; новая строка — custom."""
+    page = _load_dogovor_page(monkeypatch)
+    items = _four_items()
+    rows = page._items_to_rows(items)
+    del rows[1]
+    rows.append({"Наименование": "Новая", "Бакет": "Оборудование", "_key": float("nan")})
+    rows.append({"Наименование": "Новая 2", "Бакет": "Оборудование"})
+
+    result = page._rows_to_items(rows, items)
+
+    assert [(i["id"], i["metadata"]) for i in result[:3]] == [
+        (items[k]["id"], items[k]["metadata"]) for k in (0, 2, 3)
+    ]
+    assert all(i["is_custom"] and i["id"].startswith("custom_") for i in result[3:])
+    assert len(result) == 5
+
+
+def test_rows_to_items_delete_row_keeps_contract_clauses(monkeypatch):
+    """N9: набор пунктов после удаления 2-й позиции = набор для списка без неё."""
+    from src.contracts.clauses_renderer import build_contract_clauses
+
+    page = _load_dogovor_page(monkeypatch)
+    items = _four_items()
+    rows = page._items_to_rows(items)
+    del rows[1]
+
+    def ids(its: list[dict]) -> list[tuple[str, str]]:
+        deal = {"items": its, "flags": {}, "scope_overrides": {}}
+        return [
+            (sec, c.text) for sec, cs in build_contract_clauses(deal).items() for c in cs
+        ]
+
+    assert ids(page._rows_to_items(rows, items)) == ids([items[0], items[2], items[3]])

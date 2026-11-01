@@ -254,6 +254,7 @@ def _items_to_rows(items: list[dict]) -> list[dict]:
     """Конвертировать SpecItem list в строки для data_editor."""
     return [
         {
+            "_key": i,  # скрытый ключ: позиция в исходном списке (id не уникальны)
             "Наименование": item.get("name", ""),
             "Бакет": _PG_TO_BUCKET.get(item.get("payment_group"), "equipment"),
             "Ед.": item.get("unit", "шт"),
@@ -261,7 +262,7 @@ def _items_to_rows(items: list[dict]) -> list[dict]:
             "Цена с НДС, руб.": item.get("price_per_unit", 0.0),
             "Сумма с НДС, руб.": item.get("total", 0.0),
         }
-        for item in items
+        for i, item in enumerate(items)
     ]
 
 
@@ -270,9 +271,12 @@ def _rows_to_items(rows, original_items: list[dict]) -> list[dict]:
     import uuid as _uuid
     result = []
     rows_list = rows.to_dict("records") if hasattr(rows, "to_dict") else list(rows)
-    for i, row in enumerate(rows_list):
-        if i < len(original_items):
-            item = dict(original_items[i])
+    for row in rows_list:
+        key = row.get("_key")
+        # новая строка data_editor: ключ None или NaN (NaN != NaN)
+        has_key = key is not None and key == key and 0 <= int(key) < len(original_items)
+        if has_key:
+            item = dict(original_items[int(key)])
         else:
             item = {
                 "id": f"custom_{_uuid.uuid4().hex[:8]}",
@@ -899,6 +903,7 @@ if is_extracted():
             _items_to_rows(spec_items),
             num_rows="dynamic",
             column_config={
+                "_key": None,
                 "Наименование": st.column_config.TextColumn("Наименование"),
                 "Бакет": st.column_config.SelectboxColumn(
                     "Бакет",
@@ -929,12 +934,15 @@ if is_extracted():
 
         _synced = _rows_to_items(edited_df, spec_items)
         recalculate_totals(_synced)
-        _totals_changed = len(_synced) == len(spec_items) and any(
+        # число строк изменилось (удаление/добавление в редакторе): сбросить дельту
+        # виджета, иначе deleted_rows применится к уже укороченному входу
+        _rows_changed = len(_synced) != len(spec_items)
+        _totals_changed = not _rows_changed and any(
             round(n["total"]) != round(o.get("total", 0))
             for n, o in zip(_synced, spec_items)
         )
         set_spec_items(_synced)
-        if _totals_changed:
+        if _totals_changed or _rows_changed:
             if "spec_items_editor" in st.session_state:
                 del st.session_state["spec_items_editor"]
             st.rerun()
