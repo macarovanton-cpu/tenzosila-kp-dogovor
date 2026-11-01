@@ -8,7 +8,7 @@ import pytest
 from src.admin.price_pdf_retail import _parse_page4, _parse_page19, parse_retail_pdf
 
 FIXTURE_RETAIL = Path(__file__).parent / "fixtures" / "2026_03_01_Прайс_розница_Tenzosila.pdf"
-PRICES_JSON = Path(__file__).resolve().parents[2] / "data" / "prices.json"
+PRICES_JSON = Path(__file__).resolve().parent / "fixtures" / "prices_2026_03_01.json"
 
 _ORION_LEVEL_KEYS = {
     "orion_lite", "orion_standard", "orion_standard_plus",

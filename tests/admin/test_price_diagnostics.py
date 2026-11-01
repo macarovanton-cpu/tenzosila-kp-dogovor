@@ -50,10 +50,9 @@ def test_diagnose_prices_reports_real_counts_and_classes(prices: dict) -> None:
     assert diagnostics.model_count == 53
     assert diagnostics.option_count == 89
     assert diagnostics.class_counts == {
-        "A_retail_and_dealer": 20,
-        "B_retail_only": 52,
-        "C_manual_range": 12,
-        "UNKNOWN": 5,
+        "A_retail_and_dealer": 30,
+        "B_retail_only": 50,
+        "C_manual_range": 9,
     }
     assert diagnostics.on_request_count == 1
     assert diagnostics.is_expired is False

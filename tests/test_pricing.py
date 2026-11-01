@@ -114,8 +114,10 @@ def test_slider_params_class_c_bytovka(prices):
 
 
 def test_slider_params_unknown_22m_frame_22(prices):
-    """UNKNOWN (22м без price_class): min=ceil(retail*0.92/1000), dealer помечен synthetic."""
-    entry = prices["options"]["frame_22"]
+    """UNKNOWN (нет price_class): min=ceil(retail*0.92/1000), dealer помечен synthetic."""
+    # прайс 28.09: в живом прайсе записей без price_class нет — снимаем класс у frame_22
+    entry = {k: v for k, v in prices["options"]["frame_22"].items() if k != "price_class"}
+    entry["price_dealer_ru"] = None
     params = get_slider_params(entry)
     assert params.dealer_is_synthetic is True
     assert params.min_v % 1000 == 0

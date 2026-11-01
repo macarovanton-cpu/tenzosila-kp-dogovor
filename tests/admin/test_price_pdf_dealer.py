@@ -7,7 +7,7 @@ import pytest
 from src.admin.price_pdf_dealer import parse_dealer_pdf
 
 FIXTURE_DEALER = Path(__file__).parent / "fixtures" / "2026_03_01_Прайс_дилер_экспорт.pdf"
-PRICES_JSON = Path(__file__).resolve().parents[2] / "data" / "prices.json"
+PRICES_JSON = Path(__file__).resolve().parent / "fixtures" / "prices_2026_03_01.json"
 
 # Документированные дельты PDF ↔ prices.json (Задача 2, ARCHITECTURE п.1a).
 # Есть в prices.json (ошибочные дубли п-100), в PDF отсутствуют:

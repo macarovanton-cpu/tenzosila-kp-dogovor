@@ -30,10 +30,9 @@ def test_normalize_prices_reports_option_classes(prices: dict) -> None:
     on_request_count = sum(1 for item in options if item.on_request)
 
     assert by_class == {
-        "A_retail_and_dealer": 20,
-        "B_retail_only": 52,
-        "C_manual_range": 12,
-        "UNKNOWN": 5,
+        "A_retail_and_dealer": 30,
+        "B_retail_only": 50,
+        "C_manual_range": 9,
     }
     assert on_request_count == 1
 
@@ -74,14 +73,14 @@ def test_normalize_prices_maps_manual_range_and_unknown_options(
     items = normalize_prices(prices)
 
     manual = _find_item(items, "option", "install_default")
-    unknown = _find_item(items, "option", "frame_22")
+    frame22 = _find_item(items, "option", "frame_22")
 
     assert manual.price_class == "C_manual_range"
     assert manual.range_min == 100000
     assert manual.range_max == 1000000
     assert manual.allow_customer_value is False
-    assert unknown.price_class == "UNKNOWN"
-    assert unknown.price_retail == 162500
+    assert frame22.price_class == "A_retail_and_dealer"  # прайс 28.09: UNKNOWN в живом прайсе не осталось
+    assert frame22.price_retail == 170000
 
 
 def test_normalize_prices_preserves_on_request_option(prices: dict) -> None:

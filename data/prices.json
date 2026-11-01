@@ -1,11 +1,11 @@
 {
   "_meta": {
-    "version": "0.5",
-    "source_retail": "2026_03_01_Прайс_розница_Tenzosila.pdf",
-    "source_dealer": "2026_03_01_Прайс_дилер_экспорт.pdf",
+    "version": "2026-10-30",
+    "source_retail": "Прайс розница 28.09.2026 (выжимка владельца: tenzosila-kp reviews/price-2026-09-28.md)",
+    "source_dealer": "Прайс дилерский 28.09.2026 (там же, сноска ¹)",
     "currency": "RUB",
     "vat_note": "Все цены с НДС 22%. Дилер РФ = розница × 0.92.",
-    "valid_from": "2026-03-01",
+    "valid_from": "2026-09-28",
     "notes": [
       "Цены извлечены из прайсов от 01.03.2026.",
       "Для 20-метровых С/Ф используется цена 4-секционного варианта (стандарт MVP).",
@@ -18,14 +18,15 @@
       "v0.4 (2026-04-25): Переименованы label у install_default, delivery_default, verification_default — для соответствия формату реальных КП (1.5b-fix2).",
       "v0.4→ (2026-07-15): Добавлены 12 моделей автовесов из дилерского прайса 01.03.2026, отсутствовавшие ранее: ФЛ/СЛ/Ф/С 60т-12м и 60т-16м; СЛ 100т-18/20/22/24м. Дилерская цена взята напрямую из дилерской колонки PDF (не пересчёт ×0.92); скидка 8%.",
       "v0.5 (2026-07-16): СЛ-100 (18/20/22/24) УДАЛЕНЫ — справочник исключил модель (changelog v10.2 от 15.04.2025). В дилерском PDF строки есть, поэтому парсер будет показывать их как дельту: это ожидаемо, см. EXPECTED_NEW в tests/admin/test_price_pdf_dealer.py.",
-      "v0.5: Заведены опции на длины 12 и 16м (рамы, ограждения, люки, фундаменты, стройработы, плиты, навес) + расширен applies_to_lengths у позиций, цена которых от длины не зависит. В прайсе 01.03.2026 колонок 12м и 16м НЕТ — принята цена 18м, дилерской цены на эти длины не существует (price_dealer_ru: null). Фундаменты и навес — C_manual_range: нестандартная длина считается по факту."
+      "v0.5: Заведены опции на длины 12 и 16м (рамы, ограждения, люки, фундаменты, стройработы, плиты, навес) + расширен applies_to_lengths у позиций, цена которых от длины не зависит. В прайсе 01.03.2026 колонок 12м и 16м НЕТ — принята цена 18м, дилерской цены на эти длины не существует (price_dealer_ru: null). Фундаменты и навес — C_manual_range: нестандартная длина считается по факту.",
+      "v2026-10-30 (2026-11-01): цены по прайсу 28.09.2026 — модели ФЛ/СЛ/Ф-60-12, Ф-60-16, С-60-12; рамы, ограждения, люки, фундаменты, стройработы, ПАГ, курирование, опоры ОРИОН (dorabotka/PLAN.md Д03)."
     ],
     "updated_at": "2026-07-16"
   },
   "models": {
     "vesta-фл-60-12": {
-      "retail": 1140296,
-      "dealer_ru": 1049072,
+      "retail": 1131500,
+      "dealer_ru": 1040980,
       "dealer_discount_pct": 8
     },
     "vesta-фл-60-16": {
@@ -69,8 +70,8 @@
       "dealer_discount_pct": 8
     },
     "vesta-сл-60-12": {
-      "retail": 1296581,
-      "dealer_ru": 1192855,
+      "retail": 1260013,
+      "dealer_ru": 1159212,
       "dealer_discount_pct": 8
     },
     "vesta-сл-60-16": {
@@ -114,13 +115,13 @@
       "dealer_discount_pct": 8
     },
     "vesta-ф-60-12": {
-      "retail": 1176980,
-      "dealer_ru": 1082822,
+      "retail": 1290980,
+      "dealer_ru": 1187702,
       "dealer_discount_pct": 8
     },
     "vesta-ф-60-16": {
-      "retail": 1579817,
-      "dealer_ru": 1453431,
+      "retail": 1682817,
+      "dealer_ru": 1548192,
       "dealer_discount_pct": 8
     },
     "vesta-ф-60-18": {
@@ -179,8 +180,8 @@
       "dealer_discount_pct": 8
     },
     "vesta-с-60-12": {
-      "retail": 1329013,
-      "dealer_ru": 1222692,
+      "retail": 1358581,
+      "dealer_ru": 1249895,
       "dealer_discount_pct": 8
     },
     "vesta-с-60-16": {
@@ -345,8 +346,8 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 130000,
-      "price_dealer_ru": 119600,
+      "price_retail": 140000,
+      "price_dealer_ru": 128800,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -361,8 +362,8 @@
       "applies_to_lengths": [
         20
       ],
-      "price_retail": 160000,
-      "price_dealer_ru": 147200,
+      "price_retail": 170000,
+      "price_dealer_ru": 156400,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -377,8 +378,8 @@
       "applies_to_lengths": [
         24
       ],
-      "price_retail": 165000,
-      "price_dealer_ru": 151800,
+      "price_retail": 170000,
+      "price_dealer_ru": 156400,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -394,8 +395,8 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 99000,
-      "price_dealer_ru": 91080,
+      "price_retail": 115000,
+      "price_dealer_ru": 105800,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -411,8 +412,8 @@
       "applies_to_lengths": [
         20
       ],
-      "price_retail": 114300,
-      "price_dealer_ru": 105156,
+      "price_retail": 130000,
+      "price_dealer_ru": 119600,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -428,8 +429,8 @@
       "applies_to_lengths": [
         24
       ],
-      "price_retail": 121000,
-      "price_dealer_ru": 111320,
+      "price_retail": 130000,
+      "price_dealer_ru": 119600,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -445,8 +446,8 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 128000,
-      "price_dealer_ru": 117760,
+      "price_retail": 148000,
+      "price_dealer_ru": 136160,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -462,8 +463,8 @@
       "applies_to_lengths": [
         20
       ],
-      "price_retail": 148000,
-      "price_dealer_ru": 136160,
+      "price_retail": 165000,
+      "price_dealer_ru": 151800,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -479,8 +480,8 @@
       "applies_to_lengths": [
         24
       ],
-      "price_retail": 162000,
-      "price_dealer_ru": 149040,
+      "price_retail": 165000,
+      "price_dealer_ru": 151800,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -492,8 +493,8 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 200000,
-      "price_dealer_ru": 184000,
+      "price_retail": 220000,
+      "price_dealer_ru": 202400,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -531,8 +532,8 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 150000,
-      "price_dealer_ru": 138000,
+      "price_retail": 165000,
+      "price_dealer_ru": 151800,
       "discount_pct": 8,
       "price_class": "A_retail_and_dealer"
     },
@@ -662,7 +663,7 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 1200000,
+      "price_retail": 1250000,
       "price_dealer_ru": 1104000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -677,7 +678,7 @@
       "applies_to_lengths": [
         20
       ],
-      "price_retail": 1300000,
+      "price_retail": 1370000,
       "price_dealer_ru": 1196000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -692,7 +693,7 @@
       "applies_to_lengths": [
         24
       ],
-      "price_retail": 1350000,
+      "price_retail": 1500000,
       "price_dealer_ru": 1242000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -707,7 +708,7 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 1350000,
+      "price_retail": 1400000,
       "price_dealer_ru": 1242000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -722,7 +723,7 @@
       "applies_to_lengths": [
         20
       ],
-      "price_retail": 1500000,
+      "price_retail": 1590000,
       "price_dealer_ru": 1380000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -737,7 +738,7 @@
       "applies_to_lengths": [
         24
       ],
-      "price_retail": 1550000,
+      "price_retail": 1680000,
       "price_dealer_ru": 1426000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -753,7 +754,7 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 1500000,
+      "price_retail": 1550000,
       "price_dealer_ru": 1380000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -769,7 +770,7 @@
       "applies_to_lengths": [
         20
       ],
-      "price_retail": 1550000,
+      "price_retail": 1690000,
       "price_dealer_ru": 1426000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -785,7 +786,7 @@
       "applies_to_lengths": [
         24
       ],
-      "price_retail": 1600000,
+      "price_retail": 1850000,
       "price_dealer_ru": 1472000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -796,7 +797,7 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 400000,
+      "price_retail": 430000,
       "price_dealer_ru": 368000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -807,7 +808,7 @@
       "applies_to_lengths": [
         20
       ],
-      "price_retail": 430000,
+      "price_retail": 460000,
       "price_dealer_ru": 395600,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -878,7 +879,7 @@
       "applies_to_lengths": [
         18
       ],
-      "price_retail": 450000,
+      "price_retail": 810000,
       "price_dealer_ru": 414000,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -889,7 +890,7 @@
       "applies_to_lengths": [
         20
       ],
-      "price_retail": 490000,
+      "price_retail": 875000,
       "price_dealer_ru": 450800,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -900,7 +901,7 @@
       "applies_to_lengths": [
         24
       ],
-      "price_retail": 540000,
+      "price_retail": 875000,
       "price_dealer_ru": 496800,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -908,7 +909,7 @@
     },
     "foundation_supervision": {
       "label": "Курирование строительства фундамента ВЕСТА",
-      "price_retail": 120000,
+      "price_retail": 130000,
       "price_dealer_ru": 110400,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -916,7 +917,7 @@
     },
     "orion_cable_poles": {
       "label": "Установка опор и кабель-трасс для ПАК ОРИОН",
-      "price_retail": 155000,
+      "price_retail": 160000,
       "price_dealer_ru": 142600,
       "discount_pct": 8,
       "price_class": "B_retail_only",
@@ -933,9 +934,10 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 162500,
-      "price_dealer_ru": null,
-      "discount_pct": null,
+      "price_retail": 170000,
+      "price_dealer_ru": 156400,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "Цена для 22м рассчитана как среднее между 20 и 24м — в прайсе отсутствует."
     },
     "fence_light_22": {
@@ -950,9 +952,10 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 117650,
-      "price_dealer_ru": null,
-      "discount_pct": null,
+      "price_retail": 130000,
+      "price_dealer_ru": 119600,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "Цена для 22м — среднее между 20 и 24м."
     },
     "fence_norma_22": {
@@ -967,9 +970,10 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 155000,
-      "price_dealer_ru": null,
-      "discount_pct": null,
+      "price_retail": 165000,
+      "price_dealer_ru": 151800,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "Цена для 22м — среднее между 20 и 24м."
     },
     "hatches_fl_22": {
@@ -980,9 +984,10 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 230000,
-      "price_dealer_ru": null,
-      "discount_pct": null,
+      "price_retail": 240000,
+      "price_dealer_ru": 220800,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "Цена для 22м — среднее между 20 и 24м."
     },
     "hatches_f_22": {
@@ -993,9 +998,10 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 172500,
-      "price_dealer_ru": null,
-      "discount_pct": null,
+      "price_retail": 180000,
+      "price_dealer_ru": 165600,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "Цена для 22м — среднее между 20 и 24м."
     },
     "foundation_lite_sl_fl_22": {
@@ -1007,7 +1013,7 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 1325000,
+      "price_retail": 1500000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "B_retail_only",
@@ -1022,7 +1028,7 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 1525000,
+      "price_retail": 1680000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "B_retail_only",
@@ -1038,7 +1044,7 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 1575000,
+      "price_retail": 1850000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "B_retail_only",
@@ -1049,7 +1055,7 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 445000,
+      "price_retail": 460000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "B_retail_only",
@@ -1071,7 +1077,7 @@
       "applies_to_lengths": [
         22
       ],
-      "price_retail": 515000,
+      "price_retail": 875000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "B_retail_only",
@@ -1387,7 +1393,7 @@
       "applies_to_lengths": [
         12
       ],
-      "price_retail": 130000,
+      "price_retail": 110000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "B_retail_only",
@@ -1404,10 +1410,10 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 130000,
-      "price_dealer_ru": null,
-      "discount_pct": null,
-      "price_class": "B_retail_only",
+      "price_retail": 140000,
+      "price_dealer_ru": 128800,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
     },
     "fence_light_12": {
@@ -1440,10 +1446,10 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 99000,
-      "price_dealer_ru": null,
-      "discount_pct": null,
-      "price_class": "B_retail_only",
+      "price_retail": 115000,
+      "price_dealer_ru": 105800,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
     },
     "fence_norma_12": {
@@ -1476,10 +1482,10 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 128000,
-      "price_dealer_ru": null,
-      "discount_pct": null,
-      "price_class": "B_retail_only",
+      "price_retail": 148000,
+      "price_dealer_ru": 136160,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
     },
     "hatches_fl_12": {
@@ -1504,10 +1510,10 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 200000,
-      "price_dealer_ru": null,
-      "discount_pct": null,
-      "price_class": "B_retail_only",
+      "price_retail": 220000,
+      "price_dealer_ru": 202400,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
     },
     "hatches_f_12": {
@@ -1532,10 +1538,10 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 150000,
-      "price_dealer_ru": null,
-      "discount_pct": null,
-      "price_class": "B_retail_only",
+      "price_retail": 165000,
+      "price_dealer_ru": 151800,
+      "discount_pct": 8,
+      "price_class": "A_retail_and_dealer",
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Дилерской цены на эту длину нет."
     },
     "foundation_lite_sl_fl_12": {
@@ -1547,7 +1553,7 @@
       "applies_to_lengths": [
         12
       ],
-      "price_retail": 1200000,
+      "price_retail": 1100000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "C_manual_range",
@@ -1564,12 +1570,10 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 1200000,
+      "price_retail": 1250000,
       "price_dealer_ru": null,
       "discount_pct": null,
-      "price_class": "C_manual_range",
-      "range_min": 800000,
-      "range_max": 3600000,
+      "price_class": "B_retail_only",
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Ручной диапазон: нестандартная длина считается по факту, верх — ×4.5 к нижней границе (удалённые объекты)."
     },
     "foundation_std_sl_fl_12": {
@@ -1581,7 +1585,7 @@
       "applies_to_lengths": [
         12
       ],
-      "price_retail": 1350000,
+      "price_retail": 1250000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "C_manual_range",
@@ -1598,12 +1602,10 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 1350000,
+      "price_retail": 1400000,
       "price_dealer_ru": null,
       "discount_pct": null,
-      "price_class": "C_manual_range",
-      "range_min": 800000,
-      "range_max": 3600000,
+      "price_class": "B_retail_only",
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Ручной диапазон: нестандартная длина считается по факту, верх — ×4.5 к нижней границе (удалённые объекты)."
     },
     "foundation_s_f_12": {
@@ -1616,7 +1618,7 @@
       "applies_to_lengths": [
         12
       ],
-      "price_retail": 1500000,
+      "price_retail": 1400000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "C_manual_range",
@@ -1634,12 +1636,10 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 1500000,
+      "price_retail": 1550000,
       "price_dealer_ru": null,
       "discount_pct": null,
-      "price_class": "C_manual_range",
-      "range_min": 900000,
-      "range_max": 4050000,
+      "price_class": "B_retail_only",
       "notes": "В прайсе от 01.03.2026 длина 16м отсутствует; принята цена 18м. Ручной диапазон: нестандартная длина считается по факту, верх — ×4.5 к нижней границе (удалённые объекты)."
     },
     "construction_works_12": {
@@ -1658,7 +1658,7 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 400000,
+      "price_retail": 430000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "B_retail_only",
@@ -1691,7 +1691,7 @@
       "applies_to_lengths": [
         12
       ],
-      "price_retail": 450000,
+      "price_retail": 730000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "B_retail_only",
@@ -1702,7 +1702,7 @@
       "applies_to_lengths": [
         16
       ],
-      "price_retail": 450000,
+      "price_retail": 810000,
       "price_dealer_ru": null,
       "discount_pct": null,
       "price_class": "B_retail_only",
