@@ -144,6 +144,7 @@ def generate_all(fixture: Fixture, out_dir: Path) -> GeneratedSet:
         "scope_overrides": fixture.scope_overrides,
         "flags": {**_FLAG_DEFAULTS, **fixture.flags},
         "delivery_address": fixture.object_address,
+        "is_dual_range": bool((snapshot.get("metrology") or {}).get("is_dual_range")),
     }
     prows, spec_total = _build_payment_rows(fixture, snapshot, items, model_qty)
 

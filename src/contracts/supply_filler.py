@@ -139,13 +139,13 @@ def _buyer_context(ctx: dict[str, str]) -> dict[str, str]:
 # build_supply_tth: ТТХ для приложения №2
 # ---------------------------------------------------------------------------
 
-def build_supply_tth(model: dict, sensor: dict) -> dict[str, str]:
+def build_supply_tth(model: dict, sensor: dict, **opts) -> dict[str, str]:
     """ТТХ для шаблона supply_appendix_2.docx.
 
     Перекладывает выход build_tth_data в supply-ключи и дополняет
     статичными константами (ТТХ_СВЯЗЬ, ТТХ_ПИТАНИЕ, ТТХ_МОЩНОСТЬ, ТТХ_ГОСТ_СТРОКА).
     """
-    base = build_tth_data(model, sensor)
+    base = build_tth_data(model, sensor, **opts)
 
     d1 = base.get("ТТХ_ДИСКРЕТНОСТЬ_1", "")
     d2 = base.get("ТТХ_ДИСКРЕТНОСТЬ_2", "")
@@ -326,7 +326,8 @@ def build_supply_context(
     kit_rows: list[dict] = []
     if deps:
         model, line_defaults, sensor, indicator = deps
-        tth = build_supply_tth(model, sensor)
+        from src.contracts.tth_context import deal_tth_opts
+        tth = build_supply_tth(model, sensor, **deal_tth_opts(deal))
         from src.contracts.kit_renderer import build_kit_items
         cable_m = line_defaults.get("default_cable_length_m", 20)
         kit_rows = build_kit_items(model, line_defaults, sensor, indicator, cable_m)

@@ -421,6 +421,7 @@ def build_spec_v2_data(
         "scope_overrides": data_json.get("spec_overrides") or {},
         "flags": data_json.get("flags") or {},
         "delivery_address": data_json.get("delivery_address", ""),
+        "is_dual_range": bool((data_json.get("metrology") or {}).get("is_dual_range")),
     }
 
     # --- Lookup model / sensor / indicator ---
@@ -446,7 +447,8 @@ def build_spec_v2_data(
     )
 
     # --- TTH ---
-    tth = build_tth_data(model_dict, sensor_dict)
+    from src.contracts.tth_context import deal_tth_opts
+    tth = build_tth_data(model_dict, sensor_dict, **deal_tth_opts(deal))
 
     # --- Data dict ---
     data: dict[str, Any] = {

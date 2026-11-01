@@ -1139,6 +1139,8 @@ if not generated:
             "delivery_address": _gen_cs.get("manual", {}).get("object_address", ""),
             # Датчик/индикатор/кабель из КП → ТТХ и комплект (N3)
             "equipment": (_gen_cs.get("kp_snapshot") or {}).get("equipment") or {},
+            # Двухдиапазонность из КП → ТТХ (N4)
+            "is_dual_range": bool(((_gen_cs.get("kp_snapshot") or {}).get("metrology") or {}).get("is_dual_range")),
         }
         _prows = get_payment_lines()
 

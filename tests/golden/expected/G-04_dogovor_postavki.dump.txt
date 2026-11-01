@@ -369,7 +369,7 @@ TBL{cols=3;grid=605,7213,2218}
         R{font=Arial;sz=11;color=000000} '- от 60 до 80 т'
     TC{}
       P{jc=center}
-        R{} '10 / 20'
+        R{} '20'
   TR{h=auto:410}
     TC{}
       P{}

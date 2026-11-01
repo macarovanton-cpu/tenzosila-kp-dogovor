@@ -1,7 +1,9 @@
 """spec_v2_filler.py — рендер спецификации v2 с динамическими clauses."""
 import copy
 import logging
+import os
 import re
+import tempfile
 from datetime import datetime
 
 import streamlit as st
@@ -253,6 +255,21 @@ def _load_model_and_deps(deal: dict):
         return None
 
 
+def _template_without_second_range(template_path: str) -> str:
+    """Копия шаблона без абзацев ТТХ_ГРАНИЦА_2 / ТТХ_ДИСКРЕТНОСТЬ_2 (N4)."""
+    doc = Document(template_path)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for para in cell.paragraphs:
+                    if "ТТХ_ГРАНИЦА_2" in para.text or "ТТХ_ДИСКРЕТНОСТЬ_2" in para.text:
+                        para._p.getparent().remove(para._p)
+    fd, path = tempfile.mkstemp(suffix=".docx")
+    os.close(fd)
+    doc.save(path)
+    return path
+
+
 def fill_spec_v2(
     template_path: str,
     data: dict,
@@ -298,11 +315,20 @@ def fill_spec_v2(
     if any(key not in data for key in _TTH_KEYS):
         deps = _load_model_and_deps(deal)
         if deps:
-            from src.contracts.tth_context import build_tth_data
-            for key, value in build_tth_data(deps[0], deps[2]).items():
+            from src.contracts.tth_context import build_tth_data, deal_tth_opts
+            for key, value in build_tth_data(deps[0], deps[2], **deal_tth_opts(deal)).items():
                 data.setdefault(key, value)
 
-    fill_spec_with_items(template_path, data, items, output_path, model_qty=model_qty)
+    # Однодиапазонные весы: убрать абзацы второго диапазона/дискретности (N4)
+    tmp_template = None
+    if not data.get("ТТХ_ГРАНИЦА_2"):
+        tmp_template = _template_without_second_range(template_path)
+        template_path = tmp_template
+    try:
+        fill_spec_with_items(template_path, data, items, output_path, model_qty=model_qty)
+    finally:
+        if tmp_template:
+            os.unlink(tmp_template)
 
     doc = Document(output_path)
 

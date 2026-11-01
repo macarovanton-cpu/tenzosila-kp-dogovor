@@ -286,7 +286,7 @@ def test_build_supply_tth_dual_range():
         "w1": {"e_kg": 20, "max_load_t": 40},
         "w2": {"e_kg": 50, "max_load_t": 80},
     }
-    tth = build_supply_tth(model, _sensor())
+    tth = build_supply_tth(model, _sensor(), is_dual=True)
     assert tth["ТТХ_ДИСКРЕТНОСТЬ"] == "20 / 50"
 
 

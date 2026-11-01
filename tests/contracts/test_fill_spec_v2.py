@@ -437,7 +437,7 @@ class TestTTXSection:
             "ТТХ_ДИСКРЕТНОСТЬ_2": "50",
         })
         items = [_item("weights", {"line": "С", "max": 80, "length": 18})]
-        deal = {"items": items, "delivery_address": "г. Тест"}
+        deal = {"items": items, "delivery_address": "г. Тест", "is_dual_range": True}
         output = str(tmp_path / "spec_v2_tth_partial.docx")
 
         fill_spec_v2(SPEC_V2_PATH, data, items, deal, output)

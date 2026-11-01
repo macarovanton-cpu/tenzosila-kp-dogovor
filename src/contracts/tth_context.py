@@ -1,18 +1,36 @@
 """tth_context.py — ТТХ плейсхолдеры из модели и датчика."""
 from __future__ import annotations
 
+from src.spec_builder import format_platform_size
 
-def build_tth_data(model: dict, sensor: dict) -> dict[str, str]:
+
+def deal_tth_opts(deal: dict) -> dict:
+    """Параметры ТТХ из КП: двухдиапазонность и ширина платформы (N4, N6).
+
+    Ширина — из metadata весов (items[0]), туда её кладёт КП; нет — None (из модели).
+    """
+    items = deal.get("items") or [{}]
+    return {
+        "is_dual": bool(deal.get("is_dual_range")),
+        "width": (items[0].get("metadata") or {}).get("width"),
+    }
+
+
+def build_tth_data(
+    model: dict, sensor: dict, *, is_dual: bool = False, width: float | None = None,
+) -> dict[str, str]:
     """Вычислить значения ТТХ-плейсхолдеров для spec_v2.
 
-    model  — запись из models.json
-    sensor — запись из equipment_specs.json (sensors)
+    model   — запись из models.json
+    sensor  — запись из equipment_specs.json (sensors)
+    is_dual — двухдиапазонность включена в КП (иначе один диапазон)
+    width   — ширина платформы из КП, м (None → из модели)
     """
     axle = model.get("axle_loads_t", {})
     axle_single = axle.get("single", "")
 
     dual = model.get("dual_range")
-    if dual and "w1" in dual and "w2" in dual:
+    if is_dual and dual and "w1" in dual and "w2" in dual:
         disc_1 = str(dual["w1"]["e_kg"])
         disc_2 = str(dual["w2"]["e_kg"])
         border_1 = str(int(dual["w1"]["max_load_t"]))
@@ -24,8 +42,8 @@ def build_tth_data(model: dict, sensor: dict) -> dict[str, str]:
         border_2 = ""
 
     length = model.get("length_m", "")
-    width = model.get("width_m", "")
-    dimensions = f"{length}×{width}"
+    width = model.get("width_m", "") if width is None else width
+    dimensions = format_platform_size(length, width, separator="×", suffix="")
 
     def _fmt(val: int) -> str:
         if val < 0:

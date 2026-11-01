@@ -46,7 +46,7 @@ MODEL_DUAL_C80 = {
 
 class TestDualRange:
     def test_discreteness_two_placeholders(self):
-        result = build_tth_data(MODEL_DUAL, SENSOR_DEFAULT)
+        result = build_tth_data(MODEL_DUAL, SENSOR_DEFAULT, is_dual=True)
         assert result["ТТХ_ДИСКРЕТНОСТЬ_1"] == "10"
         assert result["ТТХ_ДИСКРЕТНОСТЬ_2"] == "20"
 
@@ -94,17 +94,17 @@ class TestConstant:
 
 class TestBoundaries:
     def test_dual_40(self):
-        r = build_tth_data(MODEL_DUAL, SENSOR_DEFAULT)
+        r = build_tth_data(MODEL_DUAL, SENSOR_DEFAULT, is_dual=True)
         assert r["ТТХ_ГРАНИЦА_1"] == "30"
         assert r["ТТХ_ГРАНИЦА_2"] == "40"
 
     def test_dual_60(self):
-        r = build_tth_data(MODEL_DUAL_C60, SENSOR_DEFAULT)
+        r = build_tth_data(MODEL_DUAL_C60, SENSOR_DEFAULT, is_dual=True)
         assert r["ТТХ_ГРАНИЦА_1"] == "30"
         assert r["ТТХ_ГРАНИЦА_2"] == "60"
 
     def test_dual_80(self):
-        r = build_tth_data(MODEL_DUAL_C80, SENSOR_DEFAULT)
+        r = build_tth_data(MODEL_DUAL_C80, SENSOR_DEFAULT, is_dual=True)
         assert r["ТТХ_ГРАНИЦА_1"] == "60"
         assert r["ТТХ_ГРАНИЦА_2"] == "80"
 
