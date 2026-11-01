@@ -545,6 +545,7 @@ if mode == "Из базы (по номеру)":
             set_spec_items(payload["items"])
             st.session_state["contract"]["kp_snapshot"] = payload["snapshot"]
             st.session_state["contract"]["kp_payment_snapshot"] = payload["payment"]
+            st.session_state["contract"]["kp_term_days"] = payload["term_days"]
             # A5: сразу засеваем строки оплаты по пресету КП (эквивалент клика
             # «Заполнить по умолчанию»), чтобы Спецификация не уходила с КП-lite
             # строками, если менеджер не открыл редактор оплаты.
@@ -1141,6 +1142,8 @@ if not generated:
             "equipment": (_gen_cs.get("kp_snapshot") or {}).get("equipment") or {},
             # Двухдиапазонность из КП → ТТХ (N4)
             "is_dual_range": bool(((_gen_cs.get("kp_snapshot") or {}).get("metrology") or {}).get("is_dual_range")),
+            # Сроки КП по ролям, в т. ч. ручной срок → сроки договора (N5)
+            "term_days": _gen_cs.get("kp_term_days") or {},
         }
         _prows = get_payment_lines()
 

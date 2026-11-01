@@ -171,6 +171,7 @@ def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
         for key, v in (data.get("options") or {}).items()
     }
     installation_scope = data.get("installation_scope")
+    metadata = data.get("metadata") or {}
 
     return {
         "model_id": kp_row.get("model_id", ""),
@@ -187,7 +188,10 @@ def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
         "is_shefmontazh": installation_scope == "shefmontazh",
         "installation_scope": installation_scope,
         "spec_items_overrides": data.get("spec_overrides") or {},
-        "total_term_days": None,
+        # N5: ручной срок КП; без ручной правки — дефолт по составу (None)
+        "total_term_days": (
+            metadata.get("total_term_days") if metadata.get("total_term_days_user_set") else None
+        ),
         "payment_preset_id": payment.get("preset_id", "split_by_items"),
         "payment_days": payment.get("days", 5),
         "payment_custom_text": payment.get("custom_text", ""),
@@ -198,6 +202,19 @@ def _reconstruct_state(kp_row: dict[str, Any]) -> dict[str, Any]:
         "payment_v3_days": payment.get("v3_days", 15),
         "payment_v3_trigger_id": payment.get("v3_trigger_id", "after_installation"),
     }
+
+
+def kp_term_days(
+    kp_row: dict[str, Any],
+    prices: dict[str, Any],
+    models_json: dict[str, Any],
+) -> dict[str, int]:
+    """role → рабочие дни, как в КП: позиции КП и его ручной срок (N5)."""
+    from src.contracts.terms_renderer import _role_days
+    from src.spec_builder import build_spec_items
+
+    state = _reconstruct_state(kp_row)
+    return _role_days(build_spec_items(state, prices, models_json), state["total_term_days"])
 
 
 def _fmt(amount: int) -> str:
@@ -253,7 +270,7 @@ def build_specification_from_kp_snapshot(
 
     spec_items = build_spec_items(state, prices, models_json)
 
-    item_to_days, _ = calculate_term_days_per_item(spec_items)
+    item_to_days, _ = calculate_term_days_per_item(spec_items, state["total_term_days"])
     model_id = state.get("model_id", "")
     scales_term = str(item_to_days.get(model_id) or TERM_DAYS_DEFAULTS.get("scales", 20))
 
@@ -422,6 +439,7 @@ def build_spec_v2_data(
         "flags": data_json.get("flags") or {},
         "delivery_address": data_json.get("delivery_address", ""),
         "is_dual_range": bool((data_json.get("metrology") or {}).get("is_dual_range")),
+        "term_days": kp_term_days(kp_row, prices, models_json),
     }
 
     # --- Lookup model / sensor / indicator ---

@@ -24,6 +24,7 @@ _CONTRACT_DEFAULTS: dict[str, Any] = {
     "kp_snapshot": {},
     "payment_lines": [],
     "kp_payment_snapshot": {},
+    "kp_term_days": {},
     "attachments": {
         "build_task_path": "",
         "build_task_source": "auto",

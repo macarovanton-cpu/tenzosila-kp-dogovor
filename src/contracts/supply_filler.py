@@ -305,7 +305,7 @@ def build_supply_context(
     сумма_прописью = number_to_words(total).strip() if total else ""  # W4: пропись строчными
 
     # --- Сроки ---
-    role_days = _role_days_supply(items)
+    role_days = deal.get("term_days") or _role_days_supply(items)  # N5: сроки КП
     prod_days = role_days.get("scales", TERM_DAYS_DEFAULTS["scales"])
     deliv_days = role_days.get("delivery", TERM_DAYS_DEFAULTS["delivery"])
 

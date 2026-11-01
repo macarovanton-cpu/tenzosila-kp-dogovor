@@ -6,6 +6,7 @@ from typing import Any
 from src.contracts.from_kp import (
     build_specification_from_kp_snapshot,
     build_specification_items,
+    kp_term_days,
 )
 
 
@@ -30,4 +31,5 @@ def build_kp_payload(
         "items": items,
         "snapshot": snap,
         "payment": snap.get("payment") or {},
+        "term_days": kp_term_days(kp_row, prices, models_json),
     }

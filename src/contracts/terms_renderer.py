@@ -10,9 +10,9 @@ from src.term_days import (
 )
 
 
-def _role_days(spec_items: list[dict]) -> dict[str, int]:
+def _role_days(spec_items: list[dict], total_days_user: int | None = None) -> dict[str, int]:
     """item_key→days → role→days (первый item каждой роли)."""
-    item_days, _ = calculate_term_days_per_item(spec_items)
+    item_days, _ = calculate_term_days_per_item(spec_items, total_days_user)
     result: dict[str, int] = {}
     for item_key, days in item_days.items():
         if days is None:
@@ -33,7 +33,8 @@ def render_terms_section(deal: dict, spec_items: list[dict]) -> list[str]:
     Возвращает list[str], каждый элемент — один параграф DOCX.
     """
     ctx = build_clauses_context(deal)
-    days = _role_days(spec_items)
+    # N5: сроки КП по ролям (from_kp.kp_term_days); позиции договора ролей не несут
+    days = deal.get("term_days") or _role_days(spec_items)
 
     scales_d = days.get("scales", TERM_DAYS_DEFAULTS["scales"])
     foundation_d = days.get("foundation", TERM_DAYS_DEFAULTS["foundation"])

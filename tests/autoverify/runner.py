@@ -27,6 +27,7 @@ from src.contracts.filler import fill_template
 from src.contracts.from_kp import (
     build_specification_from_kp_snapshot,
     build_specification_items,
+    kp_term_days,
 )
 from src.contracts.fundament_lookup import resolve_build_task
 from src.contracts.payment_line import build_lines_from_snapshot, format_payment_line
@@ -145,6 +146,7 @@ def generate_all(fixture: Fixture, out_dir: Path) -> GeneratedSet:
         "flags": {**_FLAG_DEFAULTS, **fixture.flags},
         "delivery_address": fixture.object_address,
         "is_dual_range": bool((snapshot.get("metrology") or {}).get("is_dual_range")),
+        "term_days": kp_term_days(kp_row, prices, models_json),
     }
     prows, spec_total = _build_payment_rows(fixture, snapshot, items, model_qty)
 
