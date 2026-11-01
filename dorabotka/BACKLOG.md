@@ -16,3 +16,4 @@
 - Позиции договора с одинаковым id: пандусы 8 мм + бетонные (оба `pandus`), фундамент + стройработы (`foundation`) — `items_by_id` в `clauses_context` берёт последнюю; учесть при сопоставлении строк по id (Д16).
 - Правки таблицы КП для ручных позиций ключуются `custom_<id>` из сессии, а при сохранении id выбрасываются и при открытии/в договоре становятся `custom_<порядковый номер>` — после удаления ручной позиции в КП правка может уехать на соседнюю (`grep -n custom_ src/storage/kp_restore.py src/storage/snapshot_builder.py`).
 - После Д12 `from_kp._find_sensor` / `_find_indicator` не вызываются (мёртвый код).
+- `src/contracts/requisites_transforms.py` `decline_fio`: при ошибке petrovich пишет ФИО директора в лог (`grep -n 'petrovich error' src/contracts/requisites_transforms.py`) — ПДн, как B26.
