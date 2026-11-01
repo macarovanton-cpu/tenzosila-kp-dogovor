@@ -372,25 +372,24 @@ def _mixed_items() -> list[dict]:
     ]
 
 
-def test_supply_spec_rows_excludes_works_and_foundation():
-    """Сумма = весы + доставка; монтаж и фундамент исключены."""
+def test_supply_spec_rows_keeps_works_and_foundation():
+    """N12 (Д10): работы не выпадают — строки между весами и доставкой, сумма = всё."""
     total, rows = _supply_spec_rows(_mixed_items(), "ВЕСТА-С-60")
-    assert total == 2_270_000  # 2 200 000 + 70 000
-    assert [r["name"] for r in rows] == ["ВЕСТА-С-60", "Доставка"]
-    assert rows[0]["sum"] == "2 200 000"
-    assert rows[1]["sum"] == "70 000"
+    assert total == 2_760_000  # 2 200 000 + 300 000 + 190 000 + 70 000
+    assert [r["name"] for r in rows] == ["ВЕСТА-С-60", "Фундамент", "Монтаж", "Доставка"]
+    assert [r["sum"] for r in rows] == ["2 200 000", "300 000", "190 000", "70 000"]
 
 
-def test_supply_spec_rows_custom_montazh_excluded_by_payment_group():
-    """Кастом-монтаж (id='custom_N') исключается по payment_group, не по id."""
+def test_supply_spec_rows_custom_montazh_own_row_by_payment_group():
+    """Кастом-монтаж (id='custom_N') — своей строкой по payment_group, не по id."""
     items = [
         {"name": "Весы", "total": 1_000_000, "payment_group": "scales"},
         {"name": "Шеф-монтаж доп.", "id": "custom_3", "total": 50_000,
          "payment_group": "installation_and_verification"},
     ]
     total, rows = _supply_spec_rows(items, "ВЕСТА")
-    assert total == 1_000_000
-    assert [r["name"] for r in rows] == ["ВЕСТА"]
+    assert total == 1_050_000
+    assert [r["name"] for r in rows] == ["ВЕСТА", "Шеф-монтаж доп."]
 
 
 def test_supply_spec_rows_scales_only_no_delivery_row():

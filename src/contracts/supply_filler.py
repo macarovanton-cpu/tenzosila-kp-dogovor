@@ -229,31 +229,36 @@ def _fmt_money(x: int) -> str:
 
 
 def _supply_spec_rows(items: list[dict], product_name: str) -> tuple[int, list[dict]]:
-    """Сумма поставки и строки спецификации (весы + доставка).
+    """Сумма поставки и строки спецификации (прил. 1).
 
-    Фильтр по payment_group: исключаются работы (installation_and_verification)
-    и фундамент (foundation); остаются scales (+None/unknown) и delivery.
-    Весы — одной агрегированной строкой, доставка — отдельной.
+    Весы — одной агрегированной строкой (scales + None/unknown), доставка —
+    отдельной, последней. N12: работы (foundation, installation_and_verification)
+    не выбрасываются — своими строками между ними (сначала фундамент): сумма
+    прил. 1 = сумма договора (ACCEPTANCE З6.3 нового проекта).
     Фильтр по payment_group, а не по id — обходит баг маппинга custom_N.
     """
-    kept = [
-        it for it in items
-        if it.get("payment_group") not in {"installation_and_verification", "foundation"}
-    ]
+    works_groups = {"installation_and_verification", "foundation"}
     delivery_total = sum(
-        int(it.get("total") or 0) for it in kept
+        int(it.get("total") or 0) for it in items
         if it.get("payment_group") == "delivery"
     )
     scales_total = sum(
-        int(it.get("total") or 0) for it in kept
-        if it.get("payment_group") != "delivery"
+        int(it.get("total") or 0) for it in items
+        if it.get("payment_group") not in works_groups | {"delivery"}
     )
+    works = [
+        it for it in items
+        if it.get("payment_group") in works_groups and int(it.get("total") or 0)
+    ]
+    works.sort(key=lambda it: it.get("payment_group") != "foundation")
+    works_total = sum(int(it["total"]) for it in works)
     rows: list[dict] = []
     if scales_total:
         rows.append({"name": product_name, "sum": _fmt_money(scales_total)})
+    rows += [{"name": it.get("name", ""), "sum": _fmt_money(int(it["total"]))} for it in works]
     if delivery_total:
         rows.append({"name": "Доставка", "sum": _fmt_money(delivery_total)})
-    return scales_total + delivery_total, rows
+    return scales_total + works_total + delivery_total, rows
 
 
 # ---------------------------------------------------------------------------
