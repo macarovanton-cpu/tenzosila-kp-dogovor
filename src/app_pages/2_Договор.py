@@ -1137,6 +1137,8 @@ if not generated:
             "scope_overrides": _gen_cs.get("scope_overrides", {}),
             "flags": _gen_cs.get("flags", {}),
             "delivery_address": _gen_cs.get("manual", {}).get("object_address", ""),
+            # Датчик/индикатор/кабель из КП → ТТХ и комплект (N3)
+            "equipment": (_gen_cs.get("kp_snapshot") or {}).get("equipment") or {},
         }
         _prows = get_payment_lines()
 

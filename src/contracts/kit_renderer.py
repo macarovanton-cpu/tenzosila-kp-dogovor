@@ -58,3 +58,38 @@ def build_kit_items(
         {"name": "Кабель сигнальный, м", "qty": str(cable_length_m)},
         {"name": "Комплект документации: паспорт/РЭ на весы, паспорт/РЭ на терминал", "qty": "1"},
     ]
+
+
+def resolve_equipment(
+    models_json: dict, specs_json: dict, line: str, equipment: dict | None,
+) -> tuple[dict, dict, dict, int]:
+    """(line_defaults, sensor, indicator, cable_m) с учётом equipment снапшота КП.
+
+    Пустые/неизвестные sensor_id, indicator_id, cable_m — умолчания линейки.
+    line_defaults возвращается с подставленным default_sensor/default_indicator.
+    """
+    eq = equipment or {}
+    ld = dict(models_json.get("line_defaults", {}).get(line, {}))
+    alts = models_json.get("equipment_defaults", {})
+    for key, block in (("default_sensor", "sensor"), ("default_indicator", "indicator")):
+        want = eq.get(block + "_id")
+        for alt in alts.get(block, {}).get("alternatives", []):
+            if want and alt.get("id") == want:
+                ld[key] = alt.get("label", ld.get(key, ""))
+
+    # Самое длинное совпадение: «Keli ZSFY-D-30t» не должен попасть на «Keli ZSFY».
+    sensor: dict = {}
+    best = 0
+    for s in specs_json.get("sensors", []):
+        full = f"{s.get('manufacturer', '')} {s.get('model', '')}"
+        if ld.get("default_sensor", "").startswith(full) and len(full) > best:
+            sensor, best = s, len(full)
+    indicator = next(
+        (t for t in specs_json.get("terminals", [])
+         if t.get("model", "") == ld.get("default_indicator", "")),
+        {},
+    )
+    cable = eq.get("cable_m")
+    if not isinstance(cable, (int, float)) or cable <= 0:
+        cable = ld.get("default_cable_length_m", 20)
+    return ld, sensor, indicator, cable

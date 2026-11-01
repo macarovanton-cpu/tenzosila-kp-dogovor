@@ -401,7 +401,7 @@ def build_spec_v2_data(
     from src.contracts.kit_renderer import build_kit_items
     from src.contracts.terms_renderer import render_terms_section
     from src.contracts.tth_context import build_tth_data
-    from src.data_loader import get_line_defaults, get_model_by_id
+    from src.data_loader import get_model_by_id
     from src.generators.payment_renderer import render_payment_block
     from src.spec_builder import build_spec_items
 
@@ -427,12 +427,10 @@ def build_spec_v2_data(
     state = _reconstruct_state(kp_row)
     model_id = state.get("model_id", "")
     model_dict = get_model_by_id(models_json, model_id) or {}
-    line_defaults = get_line_defaults(models_json, line)
-
-    sensor_model_name = line_defaults.get("default_sensor", "Zemic DHM9B-30t")
-    sensor_dict = _find_sensor(equipment_specs, sensor_model_name)
-    indicator_name = line_defaults.get("default_indicator", "ТИТАН 3ЦС")
-    indicator_dict = _find_indicator(equipment_specs, indicator_name)
+    from src.contracts.kit_renderer import resolve_equipment
+    line_defaults, sensor_dict, indicator_dict, cable_len = resolve_equipment(
+        models_json, equipment_specs, line, data_json.get("equipment"),
+    )
 
     # --- Payment ---
     raw_spec_items = build_spec_items(state, prices, models_json)
@@ -443,7 +441,6 @@ def build_spec_v2_data(
     terms_lines = render_terms_section(deal, raw_spec_items)
 
     # --- Kit ---
-    cable_len = line_defaults.get("default_cable_length_m", 20)
     kit_items = build_kit_items(
         model_dict, line_defaults, sensor_dict, indicator_dict, cable_len,
     )

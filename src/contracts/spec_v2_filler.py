@@ -239,22 +239,12 @@ def _load_model_and_deps(deal: dict):
         if not model:
             return None
 
-        ld = models_json.get("line_defaults", {}).get(line, {})
-        default_sensor_name = ld.get("default_sensor", "")
-
-        sensor: dict = {}
-        for s in specs_json.get("sensors", []):
-            full = f"{s.get('manufacturer', '')} {s.get('model', '')}"
-            if default_sensor_name.startswith(full):
-                sensor = s
-                break
-
-        default_indicator_name = ld.get("default_indicator", "")
-        indicator: dict = {}
-        for t in specs_json.get("terminals", []):
-            if t.get("model", "") == default_indicator_name:
-                indicator = t
-                break
+        # Датчик/индикатор/кабель — из снапшота КП (deal["equipment"]), иначе умолчания линейки
+        from src.contracts.kit_renderer import resolve_equipment
+        ld, sensor, indicator, cable_m = resolve_equipment(
+            models_json, specs_json, line, deal.get("equipment"),
+        )
+        ld["default_cable_length_m"] = cable_m  # потребители читают кабель из ld
 
         return model, ld, sensor, indicator
     except Exception as exc:
