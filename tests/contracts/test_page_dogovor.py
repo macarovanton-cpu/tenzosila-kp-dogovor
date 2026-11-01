@@ -307,3 +307,26 @@ def test_rows_to_items_delete_row_keeps_contract_clauses(monkeypatch):
         ]
 
     assert ids(page._rows_to_items(rows, items)) == ids([items[0], items[2], items[3]])
+
+
+class _FakeUpload:
+    name = "card.pdf"
+
+    def getbuffer(self) -> bytes:
+        return b"secret"
+
+
+def test_save_uploaded_removes_temp_file(monkeypatch):
+    """Д19/B25: временный файл с ПДн удаляется — и при штатном выходе, и при ошибке."""
+    page = _load_dogovor_page(monkeypatch)
+
+    with page._save_uploaded(_FakeUpload()) as path:
+        assert Path(path).read_bytes() == b"secret"
+    assert not Path(path).exists()
+
+    try:
+        with page._save_uploaded(_FakeUpload()) as path_err:
+            raise RuntimeError("сбой извлечения")
+    except RuntimeError:
+        pass
+    assert not Path(path_err).exists()

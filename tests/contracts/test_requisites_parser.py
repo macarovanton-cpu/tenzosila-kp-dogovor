@@ -876,3 +876,14 @@ class TestAuditCards:
         result = parse_requisites(text)
         assert result.get("ЗАКАЗЧИК_БИК") == "044525225"
         assert result.get("ЗАКАЗЧИК_КС") == "30101810500000000653"
+
+
+def test_phone_warning_does_not_log_requisites_text(caplog):
+    """Д19/B26: предупреждение о нераспознанном телефоне не содержит текст реквизитов."""
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="src.contracts.requisites_parser"):
+        parse_requisites("ООО Секрет 7701234567\nтел.: уточняйте")
+    warnings = [r for r in caplog.records if "телефон не распознан" in r.getMessage()]
+    assert warnings
+    assert all("Секрет" not in r.getMessage() and "7701234567" not in r.getMessage() for r in warnings)

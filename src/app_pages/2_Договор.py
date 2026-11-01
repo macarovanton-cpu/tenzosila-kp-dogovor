@@ -1,6 +1,7 @@
 """Страница генерации договора и спецификации."""
 from __future__ import annotations
 
+import contextlib
 import re
 import sys
 import tempfile
@@ -299,12 +300,18 @@ def _rows_to_items(rows, original_items: list[dict]) -> list[dict]:
     return result
 
 
-def _save_uploaded(uploaded_file) -> str:
+@contextlib.contextmanager
+def _save_uploaded(uploaded_file):
+    """Пишет загрузку во временный файл, отдаёт путь; удаляет файл при выходе (ПДн)."""
     suffix = Path(uploaded_file.name).suffix
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    tmp.write(uploaded_file.getbuffer())
-    tmp.close()
-    return tmp.name
+    try:
+        tmp.write(uploaded_file.getbuffer())
+        tmp.close()
+        yield tmp.name
+    finally:
+        tmp.close()
+        Path(tmp.name).unlink(missing_ok=True)
 
 
 @st.cache_data(show_spinner=False)
@@ -599,9 +606,8 @@ else:
     if st.button("Извлечь данные через AI", disabled=extract_disabled):
         with st.spinner("AI извлекает данные..."):
             try:
-                kp_path = _save_uploaded(kp_file)
-                card_path = _save_uploaded(card_file_b)
-                raw = extract_kp_data_legacy(kp_path, card_path)
+                with _save_uploaded(kp_file) as kp_path, _save_uploaded(card_file_b) as card_path:
+                    raw = extract_kp_data_legacy(kp_path, card_path)
                 # Падежи/инициалы директора теперь считает код (петрович),
                 # LLM их не заполняет — вписываем только в пустые поля.
                 _dwarns = fill_missing_derived(raw.setdefault("requisites", {}))
@@ -696,7 +702,8 @@ with st.expander("Реквизиты из файла или текста", expan
         disabled=_req_file is None,
     ):
         try:
-            _file_text = extract_text(Path(_save_uploaded(_req_file)))
+            with _save_uploaded(_req_file) as _req_path:
+                _file_text = extract_text(Path(_req_path))
         except NoTextLayerError:
             st.error(
                 "В файле нет текстового слоя — вставьте реквизиты текстом. "
