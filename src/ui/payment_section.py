@@ -5,7 +5,7 @@ import streamlit as st
 
 from src.contracts.utils import due_days_phrase
 from src.payment_wording import days_brief
-from src.validation import _split_group_active
+from src.generators.payment_renderer import get_active_payment_groups
 
 
 def _get_preset(payment_terms: dict, preset_id: str) -> dict | None:
@@ -46,7 +46,7 @@ def render_payment_section(
 
     variant = preset.get("variant")
     if preset.get("is_split"):
-        preview = _render_split(state, preset)
+        preview = _render_split(state, preset, spec_items)
     elif preset.get("id") == "custom":
         preview = _render_custom(state, preset)
     elif variant == "v1":
@@ -181,7 +181,7 @@ def _render_prepay_100(state: dict, preset: dict) -> str:
 _PCT_LABELS = {"prepay": "предоплата, %", "postpay": "постоплата, %"}
 
 
-def _render_split(state: dict, preset: dict) -> str:
+def _render_split(state: dict, preset: dict, spec_items: list[dict]) -> str:
     # Убеждаемся, что payment_split_state заполнено дефолтами
     split = state.setdefault("payment_split_state", {})
     groups = preset.get("groups", [])
@@ -190,11 +190,12 @@ def _render_split(state: dict, preset: dict) -> str:
         "Группы, не включённые в спецификацию, "
         "автоматически скрываются (как на КП)."
     )
+    # N11: те же группы, что печатает документ (payment_renderer).
+    active_groups = get_active_payment_groups(spec_items)["groups"]
     active_lines: list[str] = []
     for group in groups:
         group_id = group["id"]
-        active = _split_group_active(group_id, state)
-        if not active:
+        if not active_groups.get(group_id):
             continue
         defaults = group["default_percents"]
         if group_id not in split:

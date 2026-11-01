@@ -4,6 +4,8 @@ from __future__ import annotations
 from typing import Any
 
 from src.data_loader import get_manager_by_id, get_model_by_id, get_price_by_model_id
+from src.generators.payment_renderer import get_active_payment_groups
+from src.spec_builder import build_spec_items
 
 
 def _get_preset(payment_terms: dict, preset_id: str) -> dict | None:
@@ -59,9 +61,13 @@ def validate(
     preset = _get_preset(payment_terms, preset_id)
     if preset is not None:
         if preset.get("is_split"):
+            # N11: группа активна по payment_group позиций — как в документе.
+            active = get_active_payment_groups(
+                build_spec_items(state, prices, models_json)
+            )["groups"]
             for group in preset.get("groups", []):
                 group_id = group["id"]
-                if not _split_group_active(group_id, state):
+                if not active.get(group_id):
                     continue
                 vals = state.get("payment_split_state", {}).get(group_id, {})
                 prepay = int(vals.get("prepay", group["default_percents"]["prepay"]))
@@ -145,41 +151,3 @@ def validate(
         )
 
     return errors, warnings
-
-
-def _split_group_active(group_id: str, state: dict) -> bool:
-    """Определяет, активна ли группа оплаты split_by_items по содержимому state.options."""
-    if group_id == "scales":
-        return True
-    options: dict = state.get("options", {})
-    if group_id == "foundation":
-        prefixes = (
-            "foundation_lite_",
-            "foundation_std_",
-            "foundation_s_f_",
-            "construction_works_",
-            "road_slabs_",
-            "pag_slabs_",
-        )
-        for k, opt in options.items():
-            if not opt.get("enabled"):
-                continue
-            if (
-                k.startswith(prefixes)
-                or k == "foundation_supervision"
-                or k == "concrete_base_on_frame"
-            ):
-                return True
-        return False
-    if group_id == "delivery":
-        opt = options.get("delivery_default", {})
-        return bool(opt.get("enabled"))
-    if group_id == "installation_and_verification":
-        inst = options.get("install_default", {})
-        if inst.get("enabled"):
-            return True
-        ver = options.get("verification_default", {})
-        if ver.get("enabled") and not ver.get("customer_side"):
-            return True
-        return False
-    return False
