@@ -301,7 +301,8 @@ def build_spec_rows_from_snapshot(
 ) -> list[dict[str, Any]]:
     """Список строк спецификации из снапшота КП.
 
-    Каждая строка: {name, qty, price, price_display, customer_side}.
+    Каждая строка: {name, qty, price, price_display, customer_side};
+    price — сумма строки (цена за единицу × qty).
     customer_side=True → price_display='ЗАКАЗЧИК', price=0 (не в итого).
     qty=0 → строка пропускается.
     Неизвестный ключ → WARNING в логе, добавляется с raw-ключом.
@@ -337,7 +338,8 @@ def build_spec_rows_from_snapshot(
         if qty == 0:
             continue
         customer_side = bool(opt.get("customer_side", False))
-        price = 0 if customer_side else int(opt.get("price") or 0)
+        # N1: в снапшоте цена за единицу; price строки — её сумма (× qty)
+        price = 0 if customer_side else int(opt.get("price") or 0) * qty
         price_display = "ЗАКАЗЧИК" if customer_side else _fmt(price)
 
         name = _resolve_option_name(key, line, opt, installation_scope, prices)
@@ -572,15 +574,14 @@ def build_specification_items(
         elif spec_id == "bytovka":
             metadata["bucket"] = "equipment"
 
-        price_per_unit = price / qty if qty > 0 else 0.0
-
+        # N1: цена в снапшоте — за единицу, как в КП (spec_builder: total = price × qty)
         items.append({  # type: ignore[misc]
             "id": spec_id,
             "name": name,
             "unit": "компл",
             "quantity": qty,
-            "price_per_unit": price_per_unit,
-            "total": price,
+            "price_per_unit": price,
+            "total": price * qty,
             "payment_group": resolve_payment_group(key),
             "is_custom": is_custom,
             "source": "custom" if is_custom else "preset",
