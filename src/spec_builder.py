@@ -8,6 +8,7 @@ from typing import Any
 from src.config import (
     OPTION_BLOCKS_ORDER,
     UNIT_BY_BLOCK,
+    is_weighbridge_foundation_key,
 )
 from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
 from src.data_loader import (
@@ -106,7 +107,7 @@ def resolve_dynamic_option_label(
     `foundation_s_f_*`            «… ВЕСТА-С/Ф/П, …»      → «… ВЕСТА-{line}, …»
     `foundation_lite/std_sl_fl_*` «… ВЕСТА-СЛ/ФЛ, …»      → «… ВЕСТА-{line}, …»
     `frame_*`                     «… ВЕСТА-С(Ф)/ФЛ(СЛ), …» → «… ВЕСТА-{line}, …»
-    `ramp_set_f_s`                «… ВЕСТА-Ф/С …»          → «… ВЕСТА-{line} …»
+    `ramp_set_f_s`, `…_8mm`       «… ВЕСТА-Ф/С …»          → «… ВЕСТА-{line} …»
     `ramp_set_fl_sl`              «… ВЕСТА-ФЛ/СЛ …»        → «… ВЕСТА-{line} …»
 
     Прочие ключи и лейблы возвращаются без изменений.
@@ -127,7 +128,7 @@ def resolve_dynamic_option_label(
         if model_line in _FRAME_LINES:
             return label.replace(_FRAME_PLACEHOLDER, model_line)
         return label
-    if item_key == "ramp_set_f_s":
+    if item_key in ("ramp_set_f_s", "ramp_set_f_s_8mm"):
         if model_line in _RAMP_F_S_LINES:
             return label.replace(_RAMP_F_S_PLACEHOLDER, model_line)
         return label
@@ -223,7 +224,7 @@ def resolve_payment_group(item_key: str) -> str:
     Группы: scales (модель + ОРИОН + рамы/пандусы/ограждения/навес/люки/конструкция),
     foundation, delivery, installation_and_verification.
     """
-    if item_key.startswith("foundation_"):
+    if is_weighbridge_foundation_key(item_key):
         return "foundation"
     if item_key.startswith("construction_works_"):
         return "foundation"
@@ -231,7 +232,9 @@ def resolve_payment_group(item_key: str) -> str:
         return "foundation"
     if item_key == "delivery_default":
         return "delivery"
-    if item_key in ("install_default", "verification_default", "orion_install"):
+    if item_key in (
+        "install_default", "verification_default", "orion_install", "ppr_documentation"
+    ):
         return "installation_and_verification"
     # Опоры/кабель-трассы ОРИОН оплачиваются вместе с фундаментом (эталон A1)
     if item_key == "orion_cable_poles":
@@ -401,7 +404,7 @@ def build_spec_items(
     options_state = state.get("options", {})
     # Наличие активного фундамента — влияет на имя монтажа расщеплённого ОРИОНа.
     has_foundation = any(
-        k.startswith("foundation_") and (options_state.get(k) or {}).get("enabled")
+        is_weighbridge_foundation_key(k) and (options_state.get(k) or {}).get("enabled")
         for k in options_state
     )
     _assert_single_orion_bundle(

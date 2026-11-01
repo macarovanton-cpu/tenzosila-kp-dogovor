@@ -13,7 +13,7 @@ from src.config import (
     VAT_RATE,
 )
 from src.contracts.custom_work_types import CUSTOM_WORK_TYPES, DEFAULT_WORK_TYPE
-from src.filters import get_visible_options
+from src.filters import get_visible_options, is_option_applicable
 from src.price_warnings import price_warnings
 from src.pricing import (
     SliderParams,
@@ -75,6 +75,46 @@ def _on_orion_package_toggle(active_key: str, widget_suffix: str) -> None:
     _disable_other_orion_packages(st.session_state, active_key, widget_suffix)
 
 
+# Пандусы Ф/С 6 и 8 мм взаимоисключающие (exclusive_group ramp_f_s нового проекта).
+_RAMP_F_S_PAIR: tuple[str, str] = ("ramp_set_f_s", "ramp_set_f_s_8mm")
+
+
+def _disable_other_ramp(
+    session_state: dict, active_key: str, widget_suffix: str
+) -> None:
+    """Включили пандусы 6 или 8 мм → снять другие (чистая функция над dict)."""
+    if not session_state.get(f"opt_{active_key}_enabled{widget_suffix}"):
+        return
+    other = next(k for k in _RAMP_F_S_PAIR if k != active_key)
+    session_state[f"opt_{other}_enabled{widget_suffix}"] = False
+    session_state.setdefault("options", {}).pop(other, None)
+    session_state.setdefault("spec_items_overrides", {}).pop(other, None)
+
+
+def _on_ramp_toggle(active_key: str, widget_suffix: str) -> None:
+    _disable_other_ramp(st.session_state, active_key, widget_suffix)
+
+
+def _shefmontazh_params(prices_options: dict, state: dict) -> SliderParams | None:
+    """Цена шеф-монтажа по записи `shefmontazh`; None — неприменима (линейка П, В5)."""
+    entry = prices_options.get("shefmontazh")
+    line = state.get("model_line", "")
+    length = int(state.get("model_length") or 18)
+    if not entry or not is_option_applicable(entry, line, length):
+        return None
+    return get_slider_params(entry)
+
+
+def _on_shef_toggle(
+    shef_key: str, price_key: str, shef_default: int, install_default: int
+) -> None:
+    """Галка «Шеф-монтаж» меняет цену монтажа на цену по умолчанию своего режима."""
+    st.session_state[price_key] = (
+        shef_default if st.session_state.get(shef_key) else install_default
+    )
+    _clear_price_override("install_default")
+
+
 def render_options_section(
     state: dict,
     prices: dict,
@@ -103,7 +143,7 @@ def render_options_section(
         with st.expander(label, expanded=enabled_count > 0):
             for key, entry in visible:
                 _render_option_row(
-                    key, entry, block_id, state, options_meta
+                    key, entry, block_id, state, options_meta, prices_options
                 )
     _render_custom_items(state)
 
@@ -114,6 +154,7 @@ def _render_option_row(
     block_id: str,
     state: dict,
     options_meta: dict,
+    prices_options: dict,
 ) -> None:
     params = get_slider_params(entry)
     model_id = state.get("model_id", "base")
@@ -127,30 +168,32 @@ def _render_option_row(
 
     # Чекбокс включения
     checkbox_key = f"opt_{key}_enabled{widget_suffix}"
-    if params.is_on_request:
-        st.warning(
-            f"**{display_label}** — под запрос у производства. "
-            f"Свяжитесь для уточнения цены."
-        )
+    install_on = bool(state.get("options", {}).get("install_default", {}).get("enabled"))
+    if key == "ppr_documentation" and not install_on:
+        # В3: ППР только вместе с монтажом — без него галка снята и неактивна.
+        st.session_state[checkbox_key] = False
         enabled = st.checkbox(
             display_label,
-            value=False,
             disabled=True,
             key=checkbox_key,
+            help="Выбирается только вместе с «Монтажом»",
         )
     else:
-        # Пакеты ОРИОН — radio-семантика: включение снимает остальные пакеты.
-        orion_kwargs: dict[str, Any] = {}
+        # Пакеты ОРИОН и пандусы 6/8 мм — radio-семантика: включение снимает
+        # остальные. «По запросу» выбирается, цену вводит менеджер (В1).
+        toggle_kwargs: dict[str, Any] = {}
         if key in _ORION_PACKAGE_KEYS:
-            orion_kwargs = {
+            toggle_kwargs = {
                 "on_change": _on_orion_package_toggle,
                 "args": (key, widget_suffix),
             }
+        elif key in _RAMP_F_S_PAIR:
+            toggle_kwargs = {"on_change": _on_ramp_toggle, "args": (key, widget_suffix)}
         enabled = st.checkbox(
             display_label,
             value=state.get("options", {}).get(key, {}).get("enabled", False),
             key=checkbox_key,
-            **orion_kwargs,
+            **toggle_kwargs,
         )
 
     # Описание из options_meta
@@ -197,13 +240,27 @@ def _render_option_row(
         state["bytovka_dimensions"] = dimensions
 
     if key == "install_default":
+        shef_key = f"opt_{key}_shefmontazh{widget_suffix}"
+        shef_params = _shefmontazh_params(prices_options, state)
+        shef_kwargs: dict[str, Any] = {}
+        if shef_params is not None:
+            shef_kwargs = {
+                "on_change": _on_shef_toggle,
+                "args": (
+                    shef_key, f"opt_{key}_price{widget_suffix}",
+                    shef_params.default_v, params.default_v,
+                ),
+            }
         state["is_shefmontazh"] = bool(
             st.checkbox(
                 "Шеф-монтаж",
                 value=bool(state.get("is_shefmontazh", False)),
-                key=f"opt_{key}_shefmontazh{widget_suffix}",
+                key=shef_key,
+                **shef_kwargs,
             )
         )
+        if state["is_shefmontazh"] and shef_params is not None:
+            params = shef_params  # Н7: коридор и цена по умолчанию шеф-монтажа
 
     # Поверка: особый случай — radio «Подрядчик / Заказчик»
     customer_side = False
@@ -370,10 +427,11 @@ def _render_price_widget(
     key: str, params: SliderParams, widget_suffix: str, name: str
 ) -> int:
     widget_key = f"opt_{key}_price{widget_suffix}"
+    if params.is_on_request:
+        return _render_on_request_price(key, widget_key)
     common = dict(
         # Свободная цена: поле не ограничено коридором, коридор — только справка.
         min_value=1,
-        value=params.default_v,
         step=params.step,
         key=widget_key,
         on_change=_clear_price_override,
@@ -385,12 +443,30 @@ def _render_price_widget(
             f"{fmt_int_spaces(params.max_v)} ₽, округление до тысяч"
         ),
     )
+    # Ключ уже в state (открытый КП, колбэк шеф-монтажа) — value= рядом с ним
+    # даёт предупреждение Streamlit, значение и так берётся из state.
+    if widget_key not in st.session_state:
+        common["value"] = params.default_v
     value = st.number_input(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **common)
     for msg in price_warnings(name, int(value), params):
         st.warning(msg)
 
     _render_price_caption(int(value), params)
     return int(value)
+
+
+def _render_on_request_price(key: str, widget_key: str) -> int:
+    """В1: цены нет в прайсе — менеджер вводит её; пустое поле = 0 (ошибка validate)."""
+    kwargs: dict[str, Any] = dict(
+        min_value=1, step=1000, key=widget_key,
+        on_change=_clear_price_override, args=(key,),
+        help="Цена по запросу у производства — укажите вручную",
+    )
+    if widget_key not in st.session_state:
+        kwargs["value"] = None
+    value = st.number_input(f"Цена, ₽ (с НДС {VAT_RATE*100:.0f}%)", **kwargs)
+    st.caption("Цена по запросу у производства.")
+    return int(value or 0)
 
 
 def _render_price_caption(value: int, params: SliderParams) -> None:

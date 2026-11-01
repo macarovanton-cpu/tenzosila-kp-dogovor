@@ -169,7 +169,11 @@ def _iv_kind(item: dict) -> tuple[bool, bool, bool]:
     """
     key = str(item.get("item_key") or item.get("id") or "")
     tag = item.get("custom_scope")
-    is_install = key in {"install_default", "installation"} or tag == "installation"
+    # ППР выбирается только с монтажом (В3) — объект оплаты тот же «монтаж».
+    is_install = (
+        key in {"install_default", "installation", "ppr_documentation"}
+        or tag == "installation"
+    )
     is_verif = key in {"verification_default", "verification"} or tag == "verification"
     is_orion = key == "orion_install"
     return is_install, is_verif, is_orion

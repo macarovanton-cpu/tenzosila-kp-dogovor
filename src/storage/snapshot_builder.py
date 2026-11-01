@@ -62,6 +62,7 @@ def _resolve_foundation_sections(
             "foundation_lite_",
             "foundation_std_",
             "construction_works_",
+            "kbu_",  # КБУ — как рама: стройзадание по секциям
         ))
         or key == "concrete_base_on_frame"
         for key in enabled_options

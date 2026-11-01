@@ -130,7 +130,7 @@ def test_on_request_option_blocks(prices, models_json, payment_terms, managers):
         }
     }
     errors, _ = validate(state, prices, models_json, payment_terms, managers)
-    assert any("под запрос" in e for e in errors)
+    assert any("цена по запросу" in e for e in errors)
 
 
 def test_data_incomplete_emits_warning(prices, models_json, payment_terms, managers):

@@ -47,6 +47,7 @@ _VARIABLE_DELTA_PRIORITY: tuple[str, ...] = ("scales", "orion", "foundation", "c
 # (prefix-or-exact-key, role) — порядок матчинга важен
 _ROLE_RULES: list[tuple[str, str]] = [
     ("install_default",        "install"),
+    ("ppr_documentation",      "install"),  # срок ППР = срок монтажа
     ("verification_default",   "verification"),
     ("delivery_default",       "delivery"),
     ("foundation_lite_",       "foundation"),
@@ -57,7 +58,8 @@ _ROLE_RULES: list[tuple[str, str]] = [
     ("concrete_base_on_frame", "foundation"),
     ("road_slabs_",            "foundation"),
     ("pag_slabs_",             "foundation"),
-    ("canopy_turnkey_",        "canopy"),
+    ("canopy_",                "canopy"),  # под ключ и части навеса
+    ("foundation_under_canopy_", "canopy"),
     ("orion_",                 "orion"),
 ]
 

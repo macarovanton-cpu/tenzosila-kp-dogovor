@@ -86,8 +86,10 @@ BLOCK_KEY_PREFIXES: dict[str, tuple[str, ...]] = {
         "concrete_base_on_frame",
         "road_slabs_",
         "pag_slabs_",
+        "kbu_",
     ),
-    "canopy": ("canopy_turnkey_",),
+    # Навес под ключ и навес по частям (навес, фундамент, монтаж, освещение)
+    "canopy": ("canopy_", "foundation_under_canopy_"),
     "pak_orion": (
         "orion_lite",
         "orion_standard",
@@ -101,8 +103,9 @@ BLOCK_KEY_PREFIXES: dict[str, tuple[str, ...]] = {
         "rubber_t_6m",
         "factory_calibration",
         "bytovka_weigh_room",
+        "foundation_heating_gorynych_5",
     ),
-    "install": ("install_default",),
+    "install": ("install_default", "ppr_documentation"),
     "delivery": ("delivery_default",),
     "verification": ("verification_default",),
 }
@@ -116,3 +119,16 @@ UNIT_BY_BLOCK: dict[str, str] = {
     "foundation_and_base": "компл",
 }
 
+# Ключи «foundation_*», которые не фундамент весов (прайс 28.09): подогрев и
+# фундамент под навес — группа оплаты «весы», фундаментных пунктов не дают.
+_NOT_WEIGHBRIDGE_FOUNDATION_PREFIXES: tuple[str, ...] = (
+    "foundation_heating_",
+    "foundation_under_canopy_",
+)
+
+
+def is_weighbridge_foundation_key(key: str) -> bool:
+    """Ключ фундамента под весы: `foundation_*`, кроме подогрева и фундамента под навес."""
+    return key.startswith("foundation_") and not key.startswith(
+        _NOT_WEIGHBRIDGE_FOUNDATION_PREFIXES
+    )

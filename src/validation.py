@@ -5,7 +5,7 @@ from typing import Any
 
 from src.data_loader import get_manager_by_id, get_model_by_id, get_price_by_model_id
 from src.generators.payment_renderer import get_active_payment_groups
-from src.spec_builder import build_spec_items
+from src.spec_builder import build_spec_items, resolve_dynamic_option_label
 
 
 def _get_preset(payment_terms: dict, preset_id: str) -> dict | None:
@@ -48,13 +48,15 @@ def validate(
     if price_entry is None:
         errors.append(f"Модель «{model_id}» отсутствует в прайсе")
 
-    # Опции "под запрос"
+    # Опции «по запросу» (В1): выбрать можно, цену менеджер вводит сам (DM 9.1)
     for key, opt in state.get("options", {}).items():
-        if opt.get("enabled") and opt.get("is_on_request"):
-            errors.append(
-                f"Опция «{key}» помечена «под запрос» — "
-                f"запросите цену у производства"
+        entry = prices.get("options", {}).get(key) or {}
+        on_request = opt.get("is_on_request") or entry.get("on_request")
+        if opt.get("enabled") and on_request and int(opt.get("price") or 0) <= 0:
+            name = resolve_dynamic_option_label(
+                key, entry.get("label", key), state.get("model_line", "")
             )
+            errors.append(f"Опция «{name}» — цена по запросу: укажите цену вручную.")
 
     # Оплата
     preset_id = state.get("payment_preset_id", "")
