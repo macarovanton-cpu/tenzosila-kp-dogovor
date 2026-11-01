@@ -202,3 +202,51 @@ def test_resolve_control_sheet_unavailable(
     sections: int | None,
 ) -> None:
     assert fl.resolve_control_sheet(execution, sections) is None
+
+
+def _kp_state(option_key: str, length: int) -> dict:
+    return {
+        "model_line": "С",
+        "model_max": 60,
+        "model_length": length,
+        "options": {option_key: {"enabled": True, "price": 1, "qty": 1}},
+    }
+
+
+@pytest.mark.parametrize(
+    ("option_key", "length", "sections", "filename"),
+    [
+        ("road_slabs_18", 18, 3, "rama_road_slabs_3скц.docx"),
+        ("pag_slabs_24", 24, 4, "rama_pag_slabs_4скц.docx"),
+    ],
+)
+def test_kp_with_slabs_gets_build_task(
+    option_key: str, length: int, sections: int, filename: str
+) -> None:
+    from src.storage.snapshot_builder import build_kp_snapshot
+
+    snapshot = build_kp_snapshot(_kp_state(option_key, length))
+    result = fl.resolve_build_task(snapshot)
+
+    assert snapshot["foundation_sections"] == sections
+    assert result.reason == ""
+    assert result.path is not None and result.path.name == filename
+
+
+@pytest.mark.parametrize(
+    ("execution", "filename"),
+    [
+        ("rama_road_slabs", "rama_road_slabs_3скц.docx"),
+        ("rama_pag_slabs", "rama_pag_slabs_3скц.docx"),
+    ],
+)
+@pytest.mark.parametrize("old_snapshot", [
+    {"model_code": "ВЕСТА-С-60-18"},
+    {"model": {"length": 18}},
+])
+def test_old_snapshot_without_sections_uses_model_length(
+    execution: str, filename: str, old_snapshot: dict
+) -> None:
+    result = fl.resolve_build_task({"foundation_execution": execution, **old_snapshot})
+
+    assert result.path is not None and result.path.name == filename

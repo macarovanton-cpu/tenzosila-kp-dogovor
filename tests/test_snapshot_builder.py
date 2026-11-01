@@ -401,12 +401,12 @@ def test_foundation_sections_null_when_no_foundation():
     assert snap["foundation_sections"] is None
 
 
-def test_foundation_sections_null_for_road_and_pag_slabs():
-    """Дорожные плиты и ПАГ — одиночные задания, секции не применяются."""
+def test_foundation_sections_for_road_and_pag_slabs():
+    """Дорожные плиты и ПАГ — стройзадание по секциям (Д18, N14)."""
     road = build_kp_snapshot(_state_with_option("road_slabs_18", length=18))
     pag = build_kp_snapshot(_state_with_option("pag_slabs_24", length=24))
-    assert road["foundation_sections"] is None
-    assert pag["foundation_sections"] is None
+    assert road["foundation_sections"] == 3
+    assert pag["foundation_sections"] == 4
 
 
 def test_model_code_format():

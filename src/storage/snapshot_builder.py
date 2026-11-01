@@ -62,6 +62,8 @@ def _resolve_foundation_sections(
             "foundation_lite_",
             "foundation_std_",
             "construction_works_",
+            "road_slabs_",
+            "pag_slabs_",
             "kbu_",  # КБУ — как рама: стройзадание по секциям
         ))
         or key.startswith("concrete_base_on_frame")

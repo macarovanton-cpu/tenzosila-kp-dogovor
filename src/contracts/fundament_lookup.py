@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from src.storage.snapshot_builder import _LENGTH_TO_SECTIONS
+
 
 FUNDAMENT_ROOT = Path("data/fundament")
 BUILD_TASK_DIR = FUNDAMENT_ROOT / "build_task"
@@ -90,6 +92,9 @@ def resolve_build_task(snapshot: Mapping[str, Any]) -> BuildTaskResolution:
     execution = _normalize_execution(snapshot.get("foundation_execution"))
     sections = _normalize_sections(snapshot.get("foundation_sections"))
     model_code = str(snapshot.get("model_code") or "").strip()
+    if sections is None and execution in _RAMA_EXECUTIONS:
+        # старый снапшот без foundation_sections: секции по длине модели
+        sections = _sections_by_length(snapshot, model_code)
 
     if execution in _NO_BUILD_TASK_EXECUTIONS:
         return BuildTaskResolution(
@@ -207,6 +212,14 @@ def _normalize_sections(value: Any) -> int | None:
         return None
     try:
         return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _sections_by_length(snapshot: Mapping[str, Any], model_code: str) -> int | None:
+    length = (snapshot.get("model") or {}).get("length") or model_code.rsplit("-", 1)[-1]
+    try:
+        return _LENGTH_TO_SECTIONS.get(int(length))
     except (TypeError, ValueError):
         return None
 
