@@ -173,6 +173,43 @@ class TestDeclineFio:
         assert isinstance(res, tuple)
         assert len(res) == 2
 
+    def test_error_log_has_no_fio(self, monkeypatch, caplog):
+        """ПДн: при ошибке склонения в логе нет ФИО и его частей (даже в тексте исключения)."""
+        import logging
+        from src.contracts import requisites_transforms as rt
+
+        fio = "Сидоренко Тимофей Аркадьевич"
+
+        def boom():
+            raise ValueError(f"не склоняется: {fio}")
+
+        monkeypatch.setattr(rt, "_get_petrovich", boom)
+        with caplog.at_level(logging.WARNING, logger=rt.__name__):
+            result, uncertain = rt.decline_fio(fio, "male")
+        assert (result, uncertain) == (fio, True)
+        assert caplog.records, "ошибка склонения должна логироваться"
+        assert "ValueError" in caplog.text and str(len(fio)) in caplog.text
+        for part in fio.split():
+            assert part not in caplog.text
+
+    def test_unchanged_log_has_no_fio(self, monkeypatch, caplog):
+        """ПДн: предупреждение «не склонилось» тоже без ФИО."""
+        import logging
+        from src.contracts import requisites_transforms as rt
+
+        class _Echo:
+            def lastname(self, s, *a): return s
+            def firstname(self, s, *a): return s
+            def middlename(self, s, *a): return s
+
+        fio = "Сидоренко Тимофей Аркадьевич"
+        monkeypatch.setattr(rt, "_get_petrovich", lambda: _Echo())
+        with caplog.at_level(logging.WARNING, logger=rt.__name__):
+            _, uncertain = rt.decline_fio(fio, "male")
+        assert uncertain is True and caplog.records
+        for part in fio.split():
+            assert part not in caplog.text
+
 
 # ---------------------------------------------------------------------------
 # derive_requisites — интеграция

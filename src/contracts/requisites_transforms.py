@@ -181,7 +181,11 @@ def decline_fio(fio: str, gender: str) -> tuple[str, bool]:
             if mid_orig else ""
         )
     except Exception as exc:
-        _logger.warning("decline_fio: petrovich error for %r: %s", fio, exc)
+        # ПДн: ни ФИО, ни текст исключения (он может содержать ФИО) в лог не пишем
+        _logger.warning(
+            "decline_fio: ошибка склонения %s, длина строки %d",
+            type(exc).__name__, len(fio),
+        )
         return (fio, True)
 
     # Детектируем несработавшее склонение: хотя бы один значимый компонент
@@ -193,8 +197,8 @@ def decline_fio(fio: str, gender: str) -> tuple[str, bool]:
     )
     if unchanged:
         _logger.warning(
-            "decline_fio: неуверенное склонение для %r (компонент не изменён)",
-            fio,
+            "decline_fio: неуверенное склонение (компонент не изменён), длина строки %d",
+            len(fio),
         )
 
     result_parts = [last_decl, first_decl]
