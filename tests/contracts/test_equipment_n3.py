@@ -116,3 +116,13 @@ def test_zemic_sensors_resolve_unchanged():
                        ("zemic_hm9b_30t", "HM9B"), ("zemic_bm14g_30t", "BM14G")):
         _, _, sensor, _ = _load_model_and_deps({"items": _ITEMS, "equipment": {"sensor_id": sid}})
         assert sensor["manufacturer"] == "Zemic" and sensor["model"] == model
+
+
+def test_mv150_tth_temperature_from_owner():
+    """Решение владельца: у МВ-150 рабочий диапазон −50…+50 °C (ТТХ договора)."""
+    deal = {"items": _ITEMS, "equipment": {"sensor_id": "mv150_30t"}}
+    res = build_supply_context(
+        {"ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ": "ООО «Тест»"}, _ITEMS, deal, [],
+        {"contract_number": "1"}, date(2026, 1, 1),
+    )
+    assert res["ТТХ_ТЕМПЕРАТУРА"] == "от –50 до +50 °С"
