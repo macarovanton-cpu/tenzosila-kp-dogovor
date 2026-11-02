@@ -95,3 +95,24 @@ def test_build_spec_v2_data_kit_from_kp():
     data, _, _ = build_spec_v2_data(kp, prices, models, pt, es)
     text = _kit_text(data["_kit_items"])
     assert "DHM9B-30t" in text and "ТИТАН 3ЦС" in text and "Кабель сигнальный, м|20" in text
+
+
+def test_mv150_sensor_resolves_analog_kit():
+    """Находка 1 ревью: подпись МВ-150 без производителя → аналоговый датчик и КСТ-8."""
+    deal = {"items": _ITEMS, "equipment": {"sensor_id": "mv150_30t"}}
+    _, _, sensor, _ = _load_model_and_deps(deal)
+    assert sensor and sensor["model"] == "МВ-150"
+    res = build_supply_context(
+        {"ЗАКАЗЧИК_КРАТКОЕ_НАИМЕНОВАНИЕ": "ООО «Тест»"}, _ITEMS, deal, [],
+        {"contract_number": "1"}, date(2026, 1, 1),
+    )
+    text = _kit_text(res["kit_rows"])
+    assert "аналоговый" in text and "КСТ-8" in text
+    assert "цифровой" not in text and "КБТ" not in text
+
+
+def test_zemic_sensors_resolve_unchanged():
+    for sid, model in (("zemic_dhm9b_30t", "DHM9B"), ("zemic_dbm14g_30t", "DBM14G"),
+                       ("zemic_hm9b_30t", "HM9B"), ("zemic_bm14g_30t", "BM14G")):
+        _, _, sensor, _ = _load_model_and_deps({"items": _ITEMS, "equipment": {"sensor_id": sid}})
+        assert sensor["manufacturer"] == "Zemic" and sensor["model"] == model

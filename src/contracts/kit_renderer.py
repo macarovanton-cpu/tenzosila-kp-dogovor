@@ -77,13 +77,15 @@ def resolve_equipment(
             if want and alt.get("id") == want:
                 ld[key] = alt.get("label", ld.get(key, ""))
 
+    # Подпись — «производитель модель» или одна модель (МВ-150-30t без производителя).
     # Самое длинное совпадение: «Keli ZSFY-D-30t» не должен попасть на «Keli ZSFY».
     sensor: dict = {}
     best = 0
     for s in specs_json.get("sensors", []):
-        full = f"{s.get('manufacturer', '')} {s.get('model', '')}"
-        if ld.get("default_sensor", "").startswith(full) and len(full) > best:
-            sensor, best = s, len(full)
+        model = s.get("model", "")
+        for cand in (f"{s.get('manufacturer', '')} {model}", model):
+            if cand and ld.get("default_sensor", "").startswith(cand) and len(cand) > best:
+                sensor, best = s, len(cand)
     indicator = next(
         (t for t in specs_json.get("terminals", [])
          if t.get("model", "") == ld.get("default_indicator", "")),
